@@ -70,13 +70,20 @@ export function ProductCard({
 
         <div className="flex flex-col gap-2 pt-1 border-t border-line/60">
           {tela.precio_desde != null ? (
-            <p className="text-base sm:text-lg font-bold text-amber">
-              <span className="text-sm font-normal text-ink-soft">desde </span>
-              {pesos.format(tela.precio_desde)}
-              <span className="text-sm font-medium text-ink-soft ml-0.5">
-                {unidadDe(tela.precio_desde_unidad).sufijoPrecio}
-              </span>
-            </p>
+            <div>
+              <p className="text-base sm:text-lg font-bold text-amber">
+                <span className="text-sm font-normal text-ink-soft">desde </span>
+                {pesos.format(tela.precio_desde)}
+                <span className="text-sm font-medium text-ink-soft ml-0.5">
+                  {unidadDe(tela.precio_desde_unidad).sufijoPrecio}
+                </span>
+              </p>
+              {/* Precio de demo (NEXT_PUBLIC_DEMO_PRICES): se avisa para que
+                  nadie cotice con un número que la tienda no decidió. */}
+              {tela.precio_desde_es_referencia && (
+                <p className="text-sm text-ink-soft">Precio de referencia</p>
+              )}
+            </div>
           ) : (
             <p className="text-sm font-medium text-ink-soft">A consultar</p>
           )}
