@@ -42,9 +42,9 @@
     "admin:crear": "tsx scripts/crear-admin.ts"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
-    "lucide-react": "^0.456.0",
     "next": "^15.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

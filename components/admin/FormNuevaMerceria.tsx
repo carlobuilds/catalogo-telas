@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkle } from "@/components/ui/iconos";
 import { crearMerceria } from "@/app/admin/actions";
 import { categoriaDeCodigo, unidadDeCategoria } from "@/lib/ingesta/categorias";
 import { UNIDADES_VENTA, unidadDe } from "@/lib/unidades";
@@ -95,7 +95,7 @@ export function FormNuevaMerceria({
         />
         {detectada ? (
           <span className="mt-1 flex items-center gap-1.5 text-xs font-medium text-amber">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            <Sparkle className="h-3.5 w-3.5" aria-hidden />
             Reconocido: {detectada.nombre}
           </span>
         ) : (

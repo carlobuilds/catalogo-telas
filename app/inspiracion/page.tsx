@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Construction } from "lucide-react";
+import { ArrowLeft, Barricade, ArrowRight, PencilRuler, Ruler, Sparkle, Swatches } from "@/components/ui/iconos";
 
 export const metadata: Metadata = {
   title: "Inspiración & Atelier — Telas La Jalisciense",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 function BadgeEnDesarrollo() {
   return (
     <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-      <Construction className="h-3 w-3" aria-hidden />
+      <Barricade className="h-3 w-3" aria-hidden />
       En desarrollo
     </span>
   );
@@ -83,7 +83,7 @@ export default function InspiracionPage() {
                   className="inline-flex h-12 items-center justify-center gap-2 rounded bg-heritage-navy px-8 text-sm font-bold text-white shadow-sm transition-all hover:bg-deep-slate hover:shadow-md active:scale-95"
                 >
                   Ver Terciopelos en Catálogo
-                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  <ArrowRight className="size-4.5" />
                 </Link>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function InspiracionPage() {
             {/* Card 1: Hilos y Agujas */}
             <div className="flex flex-col overflow-hidden rounded border border-outline-variant/30 bg-surface-container-lowest p-6 sm:p-8 shadow-xs">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded bg-surface-container text-amber">
-                <span className="material-symbols-outlined text-[28px]">design_services</span>
+                <PencilRuler className="size-7" />
               </div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber">
                 Guía de Atelier
@@ -113,14 +113,14 @@ export default function InspiracionPage() {
                 className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-ink-display transition-colors hover:text-amber"
               >
                 Explorar hilos y mercería
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                <ArrowRight className="size-4.5" />
               </Link>
             </div>
 
             {/* Card 2: Caída y Peso */}
             <div className="flex flex-col overflow-hidden rounded border border-outline-variant/30 bg-surface-container-lowest p-6 sm:p-8 shadow-xs">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded bg-surface-container text-amber">
-                <span className="material-symbols-outlined text-[28px]">straighten</span>
+                <Ruler className="size-7" />
               </div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber">
                 Cálculo de Metraje
@@ -136,7 +136,7 @@ export default function InspiracionPage() {
                 className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-ink-display transition-colors hover:text-amber"
               >
                 Ver telas con caída
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                <ArrowRight className="size-4.5" />
               </Link>
             </div>
           </div>
@@ -146,9 +146,7 @@ export default function InspiracionPage() {
         <section className="space-y-6">
           <BadgeEnDesarrollo />
           <div className="flex flex-col items-center text-center">
-            <span className="material-symbols-outlined text-[32px] text-amber">
-              auto_awesome
-            </span>
+            <Sparkle className="size-8 text-amber" />
             <h2 className="mt-2 font-display text-2xl font-bold text-ink-display sm:text-3xl">
               Hecho con Nuestras Telas
             </h2>
@@ -190,7 +188,7 @@ export default function InspiracionPage() {
                     href="/?q=cobre"
                     className="inline-flex items-center gap-1 rounded bg-surface-container px-3 py-1 text-xs font-semibold text-ink-display hover:bg-surface-container-high"
                   >
-                    <span className="material-symbols-outlined text-[14px]">texture</span>
+                    <Swatches className="size-3.5" />
                     Tono Cobre
                   </Link>
                 </div>
@@ -229,7 +227,7 @@ export default function InspiracionPage() {
                     href="/?q=seda"
                     className="inline-flex items-center gap-1 rounded bg-surface-container px-3 py-1 text-xs font-semibold text-ink-display hover:bg-surface-container-high"
                   >
-                    <span className="material-symbols-outlined text-[14px]">texture</span>
+                    <Swatches className="size-3.5" />
                     Seda Natural
                   </Link>
                 </div>
@@ -268,7 +266,7 @@ export default function InspiracionPage() {
                     href="/?q=encaje"
                     className="inline-flex items-center gap-1 rounded bg-surface-container px-3 py-1 text-xs font-semibold text-ink-display hover:bg-surface-container-high"
                   >
-                    <span className="material-symbols-outlined text-[14px]">texture</span>
+                    <Swatches className="size-3.5" />
                     Encaje & Tul
                   </Link>
                 </div>

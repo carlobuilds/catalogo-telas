@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { Boxes, Gem, LayoutGrid, LogOut, Plus } from "lucide-react";
+import { Warehouse, Diamond, SquaresFour, SignOut, Plus } from "@/components/ui/iconos";
 import { logout } from "@/app/admin/actions";
 
 // Dos altas distintas a propósito: una tela se crea vacía y se llena de
 // colores en el editor; un avío se captura completo de una sentada (código,
 // unidad de venta, precio y foto). Ver /admin/merceria/nueva.
 const enlaces = [
-  { href: "/admin", etiqueta: "Catálogo", Icono: LayoutGrid },
-  { href: "/admin/inventario", etiqueta: "Inventario", Icono: Boxes },
+  { href: "/admin", etiqueta: "Catálogo", Icono: SquaresFour },
+  { href: "/admin/inventario", etiqueta: "Inventario", Icono: Warehouse },
   { href: "/admin/tela/nueva", etiqueta: "Nueva tela", Icono: Plus },
-  { href: "/admin/merceria/nueva", etiqueta: "Nueva mercería", Icono: Gem },
+  { href: "/admin/merceria/nueva", etiqueta: "Nueva mercería", Icono: Diamond },
 ] as const;
 
 /**
@@ -41,7 +41,7 @@ export function AdminNav({ titulo, email }: { titulo: string; email: string }) {
             type="submit"
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
           >
-            <LogOut className="h-4 w-4" aria-hidden />
+            <SignOut className="h-4 w-4" aria-hidden />
             Salir
           </button>
         </form>

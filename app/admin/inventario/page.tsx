@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, CheckCircle2, PackageOpen, TrendingDown } from "lucide-react";
+import { Warning, CheckCircle, ClockCounterClockwise, TrendDown } from "@/components/ui/iconos";
 import { getSesionAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -109,7 +109,7 @@ export default async function InventarioPage({
           role="alert"
           className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
         >
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <Warning className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <p>{errorCaptura}</p>
         </div>
       )}
@@ -118,7 +118,7 @@ export default async function InventarioPage({
           role="status"
           className="mb-6 flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-sm text-ink/80"
         >
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
+          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
           <p>Movimiento registrado. El stock ya está actualizado en el catálogo.</p>
         </div>
       )}
@@ -227,7 +227,7 @@ export default async function InventarioPage({
       {/* ---------------------------------------------------- Alertas stock */}
       <section aria-labelledby="alertas" className="mb-10">
         <h2 id="alertas" className="mb-3 flex items-center gap-2 font-display text-xl text-ink">
-          <TrendingDown className="h-5 w-5 text-amber" aria-hidden />
+          <TrendDown className="h-5 w-5 text-amber" aria-hidden />
           Por resurtir
         </h2>
         {sinExistencia.length + stockBajo.length === 0 ? (
@@ -260,7 +260,7 @@ export default async function InventarioPage({
       {/* --------------------------------------------------------- Historial */}
       <section aria-labelledby="historial">
         <h2 id="historial" className="mb-3 flex items-center gap-2 font-display text-xl text-ink">
-          <PackageOpen className="h-5 w-5 text-amber" aria-hidden />
+          <ClockCounterClockwise className="h-5 w-5 text-amber" aria-hidden />
           Últimos movimientos
         </h2>
 

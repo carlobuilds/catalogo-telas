@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCartStore } from "@/lib/store";
 import { useGuideStore } from "@/lib/guide-store";
+import { Question, ShoppingBag, Sparkle, SquaresFour } from "@/components/ui/iconos";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -49,7 +50,7 @@ export function MobileBottomNav() {
           }`}
           aria-current={isCatalogo ? "page" : undefined}
         >
-          <span aria-hidden className="material-symbols-outlined text-[22px]">grid_view</span>
+          <SquaresFour className="size-5.5" />
           <span className="mt-0.5 text-xs">Catálogo</span>
           {/* El morado no va en texto, así que la pestaña activa se marca con
               un punto de relleno: sin él, activo e inactivo solo se distinguen
@@ -68,7 +69,7 @@ export function MobileBottomNav() {
           }`}
           aria-current={isInspiracion ? "page" : undefined}
         >
-          <span aria-hidden className="material-symbols-outlined text-[22px]">auto_awesome</span>
+          <Sparkle className="size-5.5" />
           <span className="mt-0.5 text-xs">Inspiración</span>
           <span
             aria-hidden
@@ -88,7 +89,7 @@ export function MobileBottomNav() {
           className={`relative flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${inactivo}`}
         >
           <span className="relative">
-            <span aria-hidden className="material-symbols-outlined text-[22px]">shopping_bag</span>
+            <ShoppingBag className="size-5.5" />
             {mounted && itemCount > 0 && (
               <span
                 aria-hidden
@@ -115,7 +116,7 @@ export function MobileBottomNav() {
           onClick={openTutorial}
           className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${inactivo}`}
         >
-          <span aria-hidden className="material-symbols-outlined text-[22px]">help_outline</span>
+          <Question className="size-5.5" />
           <span className="mt-0.5 text-xs">Ayuda</span>
           <span aria-hidden className="mt-1 h-1 w-1" />
         </button>

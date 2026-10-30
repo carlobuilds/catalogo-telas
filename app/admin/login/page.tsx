@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AlertTriangle, Lock } from "lucide-react";
+import { Warning, LockSimple } from "@/components/ui/iconos";
 import { getSesionAdmin } from "@/lib/admin-auth";
 import { login } from "@/app/admin/actions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
@@ -26,7 +26,7 @@ export default async function AdminLoginPage({
       <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber/10 text-amber">
-            <Lock className="h-5 w-5" aria-hidden />
+            <LockSimple className="h-5 w-5" aria-hidden />
           </span>
           <div>
             <h1 className="font-display text-2xl text-ink">Administración</h1>
@@ -36,7 +36,7 @@ export default async function AdminLoginPage({
 
         {error && (
           <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber/30 bg-amber/5 p-3 text-sm text-ink/80">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
+            <Warning className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
             Correo o contraseña incorrectos.
           </div>
         )}

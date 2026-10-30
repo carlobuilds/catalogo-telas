@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/ui/iconos";
 
 /**
  * `router.back()` en vez de `Link href="/"`: reproduce la navegación previa

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { Warning } from "@/components/ui/iconos";
 import { getSesionAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -50,7 +50,7 @@ export default async function NuevaMerceriaPage({
           role="alert"
           className="mb-5 flex items-start gap-3 rounded-2xl border border-amber/30 bg-amber/5 p-4 text-sm text-ink/80"
         >
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
+          <Warning className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
           <div>
             <p>{error}</p>
             {/* Un código repetido casi siempre significa "ya lo capturé":

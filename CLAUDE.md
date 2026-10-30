@@ -13,7 +13,14 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   (pesos 400/600/700), como manda el design system de Stitch "Artisanal Modernity"
   (`design-system/stitch/`). Los tokens `--font-display`/`--font-body`/`--font-serif`
   se conservan por historia y todos apuntan a ella — no reintroducir Bodoni/Inter.
-- **lucide-react** para iconos. Sin librerías de UI pesadas: componentes propios.
+- **Phosphor** (`@phosphor-icons/react`) para iconos, importados SOLO desde
+  `components/ui/iconos.tsx` (ESLint bloquea cualquier otro import). Ahí vive la
+  política: build SSR (sirve en Server y Client Components), peso `bold` por defecto
+  —el `regular` es más fino que el lucide anterior y se pierde para usuarios de 40+—,
+  `fill` para estados activos, `duotone` solo en estados vacíos, y `aria-hidden`
+  salvo que lleve `aria-label`. Tamaño con clases (`size-5`). Un icono nuevo se agrega
+  al barrel, nunca directo. Ya no hay fuente Material Symbols ni lucide-react.
+  Sin librerías de UI pesadas: componentes propios.
 
 ## Comandos (gestor: **pnpm**)
 - `pnpm dev` — servidor de desarrollo

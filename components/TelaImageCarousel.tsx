@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Hand } from "lucide-react";
+import { CaretLeft, CaretRight, HandSwipeRight } from "@/components/ui/iconos";
 import { TelaImage } from "@/components/TelaImage";
 import { useGuideStore } from "@/lib/guide-store";
 import { publicImageUrl, urlDerivado } from "@/lib/supabase/storage";
@@ -255,13 +255,13 @@ export function TelaImageCarousel({
         {showHint && (
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center sm:hidden">
             <div className="flex items-center gap-2 rounded-full bg-ink-deep/75 px-4 py-2 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
-              <ChevronLeft className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              <Hand
+              <CaretLeft className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              <HandSwipeRight
                 className="h-4 w-4 animate-swipe-nudge motion-reduce:animate-none"
                 aria-hidden
               />
               <span>{textoHint}</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              <CaretRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
             </div>
           </div>
         )}
@@ -314,7 +314,7 @@ function FlechaCarrusel({
   onClick: () => void;
   etiqueta: string;
 }) {
-  const Icono = lado === "izquierda" ? ChevronLeft : ChevronRight;
+  const Icono = lado === "izquierda" ? CaretLeft : CaretRight;
   return (
     <button
       type="button"

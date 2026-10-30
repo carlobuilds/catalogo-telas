@@ -11,6 +11,7 @@ import { AddToCart } from "@/components/AddToCart";
 import { VolverAlCatalogo } from "@/components/VolverAlCatalogo";
 import { unidadDe } from "@/lib/unidades";
 import { CATALOGOS, catalogoDeCategoria, rutaDeCatalogo } from "@/lib/catalogos";
+import { CheckCircle } from "@/components/ui/iconos";
 
 const pesos = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -256,7 +257,7 @@ export default async function TelaDetallePage({
                   </dt>
                   {seleccionada.stock > 0 ? (
                     <dd className="mt-1 flex items-start gap-1 text-base font-bold text-success">
-                      <span aria-hidden className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">check_circle</span>
+                      <CheckCircle className="mt-0.5 shrink-0 size-4.5" />
                       <span>
                         {seleccionada.stock}{" "}
                         {seleccionada.stock === 1 ? unidad.singular : unidad.plural}{" "}

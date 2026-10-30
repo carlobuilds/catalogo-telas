@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { ArrowSquareOut } from "@/components/ui/iconos";
 import { getSesionAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
@@ -170,7 +170,7 @@ export default async function EditarTelaPage({
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-amber underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
       >
         Ver en el catálogo público
-        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+        <ArrowSquareOut className="h-3.5 w-3.5" aria-hidden />
       </Link>
 
       {/* ------------------------------------------------ Valores del modelo */}

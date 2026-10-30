@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X, ChevronLeft, ArrowRight, Sparkles } from "lucide-react";
+import { X, CaretLeft, ArrowRight, Sparkle } from "@/components/ui/iconos";
 import { useGuideStore } from "@/lib/guide-store";
 import { Button } from "@/components/ui/Button";
 import {
@@ -291,7 +291,7 @@ export function TutorialModal() {
               onClick={() => irA(slide - 1)}
               className="-ml-2 inline-flex min-h-[44px] items-center gap-1.5 rounded px-3 text-sm font-bold text-ink-soft transition-colors hover:text-ink-display hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             >
-              <ChevronLeft className="h-4 w-4" aria-hidden />
+              <CaretLeft className="h-4 w-4" aria-hidden />
               <span>Anterior</span>
             </button>
           )}
@@ -304,7 +304,7 @@ export function TutorialModal() {
           >
             <span>{esUltimo ? "¡Explorar telas!" : "Siguiente"}</span>
             {esUltimo ? (
-              <Sparkles className="h-4 w-4" aria-hidden />
+              <Sparkle className="h-4 w-4" aria-hidden />
             ) : (
               <ArrowRight className="h-4 w-4" aria-hidden />
             )}

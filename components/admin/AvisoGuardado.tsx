@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
+import { Check } from "@/components/ui/iconos";
 import type { EstadoGuardado } from "@/lib/estado-guardado";
 
 /**

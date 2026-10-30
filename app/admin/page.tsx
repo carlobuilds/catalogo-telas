@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  Image as ImageIcon,
-  ImageOff,
-  LogOut,
-  Pencil,
-  Search,
-  ShieldAlert,
-} from "lucide-react";
+import { Image as ImageIcon, ImageBroken, SignOut, PencilSimple, MagnifyingGlass, ShieldWarning } from "@/components/ui/iconos";
 import { getSesionAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
@@ -115,7 +108,7 @@ export default async function AdminPage({
       {/* Búsqueda (GET → estado compartible en la URL, igual que el sitio público) */}
       <form method="get" className="mb-3 flex max-w-md gap-2" role="search">
         <div className="relative flex-1">
-          <Search
+          <MagnifyingGlass
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
             aria-hidden
           />
@@ -235,7 +228,7 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
           >
             {tela.tela_nombre}
           </Link>
-          <Pencil
+          <PencilSimple
             className="h-3.5 w-3.5 shrink-0 text-ink/30 transition-colors group-hover:text-amber"
             aria-hidden
           />
@@ -280,7 +273,7 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
             }
           >
             {fotos === 0 ? (
-              <ImageOff className="h-3.5 w-3.5" aria-hidden />
+              <ImageBroken className="h-3.5 w-3.5" aria-hidden />
             ) : (
               <ImageIcon className="h-3.5 w-3.5" aria-hidden />
             )}
@@ -332,7 +325,7 @@ function NoAutorizado({ email }: { email: string }) {
   return (
     <main className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
       <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber/10 text-amber">
-        <ShieldAlert className="h-7 w-7" aria-hidden />
+        <ShieldWarning className="h-7 w-7" aria-hidden />
       </span>
       <h1 className="font-display text-2xl text-ink">Cuenta sin permisos</h1>
       <p className="mt-2 text-sm text-ink/60">
@@ -344,7 +337,7 @@ function NoAutorizado({ email }: { email: string }) {
           type="submit"
           className="inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-line/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
         >
-          <LogOut className="h-4 w-4" aria-hidden />
+          <SignOut className="h-4 w-4" aria-hidden />
           Cerrar sesión
         </button>
       </form>

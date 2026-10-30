@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, ShoppingBag, MessageCircle, SlidersHorizontal, Check, Sparkles } from "lucide-react";
+import { MagnifyingGlass, ShoppingBag, WhatsappLogo, SlidersHorizontal, Check, Sparkle } from "@/components/ui/iconos";
 
 /**
  * MAQUETAS del tutorial — representaciones visuales interactivas de alta fidelidad
@@ -22,7 +22,7 @@ function Marco({ children }: { children: React.ReactNode }) {
           </span>
         </div>
         <span className="inline-flex items-center gap-1 rounded bg-surface-container px-2 py-0.5 text-[9px] font-semibold text-amber">
-          <Sparkles className="h-2.5 w-2.5" />
+          <Sparkle className="h-2.5 w-2.5" />
           <span>Catálogo</span>
         </span>
       </div>
@@ -97,7 +97,7 @@ export function MaquetaBuscar() {
       <Foco>
         <div className="flex items-center justify-between gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 shadow-xs">
           <div className="flex items-center gap-2 overflow-hidden">
-            <Search className="h-3.5 w-3.5 shrink-0 text-amber" />
+            <MagnifyingGlass className="h-3.5 w-3.5 shrink-0 text-amber" />
             <span className="text-[11px] font-medium text-ink-text truncate">
               Lino rústico arena...
             </span>
@@ -301,7 +301,7 @@ export function MaquetaWhatsapp() {
         <Foco>
           <div className="flex flex-col items-center justify-center gap-0.5 rounded bg-whatsapp py-2 px-3 shadow-xs text-white">
             <div className="flex items-center gap-1.5">
-              <MessageCircle className="h-3.5 w-3.5 fill-current" />
+              <WhatsappLogo className="h-3.5 w-3.5 fill-current" />
               <span className="text-[10px] font-bold uppercase tracking-wider">
                 Enviar cotización por WhatsApp
               </span>

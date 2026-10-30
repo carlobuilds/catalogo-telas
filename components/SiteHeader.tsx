@@ -9,6 +9,7 @@ import { useGuideStore } from "@/lib/guide-store";
 import { useScrollCompacto } from "@/lib/useScrollCompacto";
 import { ShareCatalog } from "@/components/ShareCatalog";
 import { CATALOGOS, ORDEN_CATALOGOS, esRutaDeCatalogo, rutaDeCatalogo } from "@/lib/catalogos";
+import { Question, ShoppingBag } from "@/components/ui/iconos";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -131,9 +132,7 @@ export function SiteHeader() {
             onClick={openTutorial}
             className="hidden min-h-[44px] items-center gap-1.5 rounded border border-amber/40 bg-surface-container-lowest/80 px-3.5 text-sm font-bold text-ink-display shadow-xs transition-all hover:bg-surface-container hover:border-amber active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy sm:flex"
           >
-            <span aria-hidden className="material-symbols-outlined text-[18px] text-amber">
-              help_outline
-            </span>
+            <Question className="size-4.5 text-amber" />
             <span>¿Cómo pedir?</span>
             {/* El distintivo sale hasta `xl`: entre 640 y 1279px su ancho era
                 justo lo que le faltaba al nombre de la tienda para no cortarse. */}
@@ -157,7 +156,7 @@ export function SiteHeader() {
             className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-container text-ink-display border border-outline-variant/30 shadow-xs transition-all hover:bg-surface-container-high hover:shadow active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             aria-label={nombreCesta}
           >
-            <span aria-hidden className="material-symbols-outlined text-[20px]">shopping_bag</span>
+            <ShoppingBag className="size-5" />
             {mounted && itemCount > 0 && (
               <span
                 aria-hidden

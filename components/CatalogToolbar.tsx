@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, CheckCircle, SlidersHorizontal } from "@/components/ui/iconos";
 import { SearchBar } from "@/components/SearchBar";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import {
@@ -165,9 +165,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                     : "border-outline-variant/40 bg-surface-container-lowest/90 text-ink-display hover:bg-surface-container shadow-xs"
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]" aria-hidden>
-                  {panelFiltrosAbierto ? "close" : "tune"}
-                </span>
+                {panelFiltrosAbierto ? <X className="size-4.5" /> : <SlidersHorizontal className="size-4.5" />}
                 <span className="hidden sm:inline" aria-hidden>Filtros</span>
                 {totalFiltrosAvanzados > 0 && (
                   <span aria-hidden className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-white">
@@ -287,9 +285,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
           <div id="panel-filtros-avanzados" className="mt-3 max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface-container-lowest p-5 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px] text-amber" aria-hidden>
-                  tune
-                </span>
+                <SlidersHorizontal className="size-5 text-amber" />
                 <span className="font-display text-base font-bold text-ink-display">
                   Filtros Avanzados
                 </span>
@@ -405,9 +401,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                         : "border border-outline-variant/30 bg-surface-container text-ink-text hover:bg-surface-container-high"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden>
-                      check_circle
-                    </span>
+                    <CheckCircle className="size-4.5" />
                     <span>Solo con existencia inmediata</span>
                   </Link>
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Pencil } from "lucide-react";
+import { PencilSimple } from "@/components/ui/iconos";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { GuardadoFeedback } from "@/components/revision/GuardadoFeedback";
 import { actualizarNombreProducto, type EstadoGuardado } from "@/app/revision/actions";
@@ -61,7 +61,7 @@ export function NombreProductoForm({ telaId, nombre }: { telaId: string; nombre:
               }
             }}
           />
-          <Pencil
+          <PencilSimple
             className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-ink/30"
             aria-hidden
           />

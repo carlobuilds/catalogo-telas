@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check } from "@/components/ui/iconos";
 
 /** Luminancia relativa WCAG del hex (0 = negro, 1 = blanco). */
 function luminancia(hex: string | null): number {

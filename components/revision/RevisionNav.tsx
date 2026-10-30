@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { SignOut } from "@/components/ui/iconos";
 import { logout } from "@/app/revision/actions";
 
 /**
@@ -22,7 +22,7 @@ export function RevisionNav({ email }: { email: string }) {
           type="submit"
           className="inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-ink-display shadow-sm transition-colors hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
         >
-          <LogOut className="h-4 w-4" aria-hidden />
+          <SignOut className="h-4 w-4" aria-hidden />
           <span className="hidden sm:inline">Salir</span>
         </button>
       </form>

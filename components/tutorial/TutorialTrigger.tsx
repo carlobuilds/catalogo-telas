@@ -1,6 +1,7 @@
 "use client";
 
 import { useGuideStore } from "@/lib/guide-store";
+import { ArrowRight, Question } from "@/components/ui/iconos";
 
 interface TutorialTriggerProps {
   variant?: "hero-banner" | "button" | "pill" | "floating" | "compact";
@@ -39,7 +40,7 @@ export function TutorialTrigger({
               aria-hidden
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-amber text-white shadow-2xs group-hover:scale-105 transition-transform"
             >
-              <span className="material-symbols-outlined text-[20px]">help_outline</span>
+              <Question className="size-5" />
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -63,12 +64,7 @@ export function TutorialTrigger({
               recibe la tarjeta entera. */}
           <span className="inline-flex shrink-0 items-center gap-1 rounded bg-surface-container px-3 py-2 text-sm font-bold text-ink-display group-hover:bg-heritage-navy group-hover:text-white transition-colors shadow-2xs">
             <span className="hidden sm:inline">Ver guía</span>
-            <span
-              aria-hidden
-              className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5"
-            >
-              arrow_forward
-            </span>
+            <ArrowRight className="size-4.5 transition-transform group-hover:translate-x-0.5" />
           </span>
         </span>
       </button>
@@ -88,7 +84,7 @@ export function TutorialTrigger({
           aria-hidden
           className="flex h-8 w-8 items-center justify-center rounded bg-amber text-white shadow-xs group-hover:rotate-12 transition-transform"
         >
-          <span className="material-symbols-outlined text-[18px]">help_outline</span>
+          <Question className="size-4.5" />
         </span>
         <span className="flex flex-col text-left">
           <span className="text-label-caps text-xs text-amber">
@@ -109,7 +105,7 @@ export function TutorialTrigger({
         onClick={openTutorial}
         className={`inline-flex min-h-[44px] items-center gap-2 rounded border border-amber/35 bg-surface-container-lowest px-3.5 text-sm font-semibold text-ink-display shadow-xs transition-all hover:border-amber hover:bg-surface-container hover:shadow-sm active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${className}`}
       >
-        <span aria-hidden className="material-symbols-outlined text-[18px] text-amber">help_outline</span>
+        <Question className="size-4.5 text-amber" />
         <span>¿Cómo pedir en 4 pasos?</span>
       </button>
     );
@@ -121,7 +117,7 @@ export function TutorialTrigger({
       onClick={openTutorial}
       className={`inline-flex min-h-[44px] items-center gap-2 rounded border border-outline-variant/50 bg-surface-container-lowest px-4 py-2 text-sm font-semibold text-ink-display shadow-xs transition-all hover:bg-surface-container hover:border-heritage-navy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${className}`}
     >
-      <span aria-hidden className="material-symbols-outlined text-[18px] text-amber">help_outline</span>
+      <Question className="size-4.5 text-amber" />
       <span>¿Primera vez? Mira cómo pedir en 4 pasos</span>
     </button>
   );

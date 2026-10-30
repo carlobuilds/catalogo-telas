@@ -116,8 +116,11 @@ buttons, dots), never as a stand-in for "very rounded card."
   `:focus-visible` rule in `globals.css` handles most cases automatically;
   don't override it with `outline-none` without also supplying an equivalent
   `focus-visible:ring-*`.
-- Icons need `aria-hidden` + a labeled parent, or their own `aria-label` if
-  they're the only content of a button.
+- Icons are Phosphor, imported ONLY from `@/components/ui/iconos` (ESLint
+  blocks `lucide-react` and direct `@phosphor-icons/react` imports). They are
+  `bold` and `aria-hidden` by default; pass `weight="fill"` for active states
+  and an `aria-label` when the icon is the only content of a button. Size with
+  classes (`size-5`), never with the font (no Material Symbols anymore).
 - Images need real `alt` text (see `TelaImage.tsx`'s pattern of deriving alt
   from tela + color name).
 

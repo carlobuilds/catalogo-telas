@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { X } from "lucide-react";
+import { FunnelX, Gear, MagnifyingGlass, Warning, X } from "@/components/ui/iconos";
 import { getCatalogo, getFacetas, MODELOS_POR_PAGINA } from "@/lib/queries";
 import { agruparPorModelo } from "@/lib/types";
 import { leerFiltros, cuentaFiltros, aQuerystring, FILTROS_VACIOS } from "@/lib/filtros";
@@ -144,7 +144,7 @@ export async function PaginaCatalogo({
 
         {configurado && error && (
           <div className="flex items-start gap-3 rounded-2xl border border-amber/30 bg-surface-container p-5 text-sm shadow-xs">
-            <span className="material-symbols-outlined text-[24px] text-amber">warning</span>
+            <Warning className="size-6 text-amber" />
             <div>
               <p className="font-semibold text-ink-display">No se pudo leer el catálogo</p>
               <p className="text-ink-soft">{error}</p>
@@ -197,7 +197,7 @@ function SetupNotice() {
   return (
     <div className="rounded-2xl border border-line bg-surface-container-lowest p-6 shadow-sm">
       <div className="mb-3 flex items-center gap-2 text-amber">
-        <span className="material-symbols-outlined text-[24px]">settings</span>
+        <Gear className="size-6" />
         <h2 className="font-display text-xl font-bold">Falta conectar Supabase</h2>
       </div>
       <ol className="list-inside list-decimal space-y-1.5 text-sm text-ink-soft">
@@ -237,9 +237,7 @@ function SinResultados({ catalogo, filtros }: { catalogo: Catalogo; filtros: Fil
 
   return (
     <div className="rounded-2xl border border-dashed border-outline-variant/60 bg-surface-container-lowest/80 p-12 text-center shadow-xs">
-      <span className="material-symbols-outlined mx-auto mb-3 text-[48px] text-amber block">
-        search_off
-      </span>
+      <MagnifyingGlass className="mx-auto mb-3 size-12 text-amber block" weight="duotone" />
       <p className="font-display text-2xl font-bold text-ink-display">Sin resultados</p>
       <p className="mt-2 text-sm text-ink-soft max-w-md mx-auto">
         {conBusqueda && conFiltros
@@ -251,7 +249,7 @@ function SinResultados({ catalogo, filtros }: { catalogo: Catalogo; filtros: Fil
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
         {conFiltros && (
           <Link href={rutaCon(catalogo, soloBusqueda)} className={BOTON_SECUNDARIO}>
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt_off</span>
+            <FunnelX className="size-4.5" />
             Quitar los filtros
           </Link>
         )}
@@ -259,7 +257,7 @@ function SinResultados({ catalogo, filtros }: { catalogo: Catalogo; filtros: Fil
             que el catálogo está partido en dos. */}
         {conBusqueda && (
           <Link href={rutaCon(otro, soloBusqueda)} className={BOTON_SECUNDARIO}>
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">search</span>
+            <MagnifyingGlass className="size-4.5" />
             Buscar “{filtros.q}” en {CATALOGOS[otro].nombre}
           </Link>
         )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Plus, Search, X } from "lucide-react";
+import { CircleNotch, Plus, MagnifyingGlass, X } from "@/components/ui/iconos";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import {
   buscarProductos,
@@ -203,7 +203,7 @@ export function MoverFotoModal({
           <h3 className="mb-2 text-sm font-medium text-ink">En otro producto</h3>
 
           <div className="relative">
-            <Search
+            <MagnifyingGlass
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
               aria-hidden
             />
@@ -220,7 +220,7 @@ export function MoverFotoModal({
               className="h-11 w-full rounded-xl border border-line bg-bg pl-9 pr-9 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
             />
             {buscando && (
-              <Loader2
+              <CircleNotch
                 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-ink/40"
                 aria-hidden
               />

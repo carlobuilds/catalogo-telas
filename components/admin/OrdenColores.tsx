@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, GripVertical } from "lucide-react";
+import { ArrowLeft, ArrowRight, DotsSixVertical } from "@/components/ui/iconos";
 import { reordenarVariantes } from "@/app/admin/actions";
 
 export type ColorOrdenable = {
@@ -119,7 +119,7 @@ export function OrdenColores({
               indiceArrastrado.current === i ? "ring-2 ring-amber" : ""
             }`}
           >
-            <GripVertical className="h-4 w-4 shrink-0 text-ink/30" aria-hidden />
+            <DotsSixVertical className="h-4 w-4 shrink-0 text-ink/30" aria-hidden />
             <span className="text-xs tabular-nums text-ink/40">{i + 1}</span>
             {c.fotoUrl ? (
               <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg border border-line">

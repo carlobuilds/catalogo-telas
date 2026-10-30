@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { TutorialTrigger } from "@/components/tutorial/TutorialTrigger";
 import type { Catalogo } from "@/lib/catalogos";
+import { ArrowDown, CaretDown, Diamond, Ruler, SealCheck, Sparkle, Swatches, WhatsappLogo } from "@/components/ui/iconos";
 
 interface HeroSectionProps {
   catalogo: Catalogo;
@@ -15,14 +16,14 @@ interface HeroSectionProps {
  */
 const TEXTO: Record<
   Catalogo,
-  { sello: string; titulo: string; parrafo: string; pildora: { icono: string; texto: string }; insignia: string }
+  { sello: string; titulo: string; parrafo: string; pildora: { Icono: typeof Ruler; texto: string }; insignia: string }
 > = {
   merceria: {
     sello: "Fresnillo, Zac. · Mercería fina",
     titulo: "Cristalería, pedrería y mercería para tus creaciones.",
     parrafo:
       "Piedra suelta, aplicaciones, tiras y cintillos de pedrería, encajes, flores y todo lo de costura. Cotiza por pieza, par o bolsa y recibe atención directa por WhatsApp.",
-    pildora: { icono: "category", texto: "Por pieza, par o bolsa" },
+    pildora: { Icono: Diamond, texto: "Por pieza, par o bolsa" },
     // La foto del hero es de encajes (no hay otra): la insignia la describe a ella.
     insignia: "Encajes & Pedrería Fina",
   },
@@ -31,7 +32,7 @@ const TEXTO: Record<
     titulo: "Telas finas para tus creaciones.",
     parrafo:
       "Tul, chifón y tul bordado para vestidos de fiesta, novia y XV años. Cotiza fácilmente tus metros y recibe atención directa por WhatsApp.",
-    pildora: { icono: "straighten", texto: "Corte a tu medida" },
+    pildora: { Icono: Ruler, texto: "Corte a tu medida" },
     insignia: "Encajes & Tul Bordado",
   },
 };
@@ -89,15 +90,15 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
                 es texto, y el morado es solo para acciones. */}
             <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-2.5 text-sm font-semibold text-ink-soft">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/40 bg-surface-container-lowest/90 px-3 py-1.5 shadow-2xs">
-                <span aria-hidden className="material-symbols-outlined text-[18px] text-amber">{texto.pildora.icono}</span>
+                <texto.pildora.Icono className="size-4.5 text-amber" />
                 <span>{texto.pildora.texto}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/40 bg-surface-container-lowest/90 px-3 py-1.5 shadow-2xs">
-                <span aria-hidden className="material-symbols-outlined text-[18px] text-whatsapp">chat</span>
+                <WhatsappLogo className="size-4.5 text-whatsapp" />
                 <span>Cotización directa en WhatsApp</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/40 bg-surface-container-lowest/90 px-3 py-1.5 shadow-2xs">
-                <span aria-hidden className="material-symbols-outlined text-[18px] text-amber">verified</span>
+                <SealCheck className="size-4.5 text-amber" />
                 <span>Calidad garantizada</span>
               </span>
             </div>
@@ -114,9 +115,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
                 className="group inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded bg-heritage-navy px-6 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-deep-slate hover:shadow-lg active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2"
               >
                 <span>Explorar Catálogo</span>
-                <span aria-hidden className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-y-0.5">
-                  south
-                </span>
+                <ArrowDown className="size-5 transition-transform group-hover:translate-y-0.5" />
               </button>
 
               <TutorialTrigger variant="hero-banner" className="flex-1 md:max-w-md" />
@@ -140,7 +139,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
 
               {/* Insignia Flotante Superior: Colección Destacada */}
               <div className="absolute left-3.5 top-3.5 sm:left-4 sm:top-4 flex items-center gap-1.5 rounded-full border border-white/20 bg-ink-deep/75 px-3 py-1 text-sm font-semibold text-white shadow-md backdrop-blur-md">
-                <span aria-hidden className="material-symbols-outlined text-[16px] text-amber-300">auto_awesome</span>
+                <Sparkle className="size-4 text-amber-300" />
                 <span>{texto.insignia}</span>
               </div>
 
@@ -148,7 +147,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
               <div className="absolute bottom-3.5 left-3.5 right-3.5 sm:bottom-4 sm:left-4 sm:right-4 flex items-center justify-between rounded-lg border border-white/20 bg-ink-deep/80 p-3 text-white shadow-lg backdrop-blur-md">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber/20 text-amber-200">
-                    <span className="material-symbols-outlined text-[18px]">texture</span>
+                    <Swatches className="size-4.5" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold leading-tight">Muestrario de Temporada</p>
@@ -178,9 +177,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
             <span className="text-label-caps text-sm text-ink-soft group-hover:text-amber">
               Ver colección completa
             </span>
-            <span aria-hidden className="material-symbols-outlined text-[20px] text-amber animate-bounce">
-              keyboard_arrow_down
-            </span>
+            <CaretDown className="size-5 text-amber animate-bounce" />
           </button>
         </div>
       </div>
