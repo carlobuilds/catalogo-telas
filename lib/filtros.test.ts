@@ -42,6 +42,13 @@ describe("leerFiltros", () => {
     expect(leerFiltros({}).soloDisponibles).toBe(false);
   });
 
+  it("lee la sección de Mercería e ignora una que ya no existe", () => {
+    expect(leerFiltros({ sec: "cristaleria" }).seccion).toBe("cristaleria");
+    // Un link viejo no debe tumbar la portada ni filtrar a "nada".
+    expect(leerFiltros({ sec: "seccion-vieja" }).seccion).toBeNull();
+    expect(leerFiltros({}).seccion).toBeNull();
+  });
+
   it("sin parámetros devuelve los filtros vacíos", () => {
     expect(leerFiltros({})).toEqual(FILTROS_VACIOS);
     expect(leerFiltros()).toEqual(FILTROS_VACIOS);
@@ -56,6 +63,7 @@ describe("aQuerystring", () => {
   it("da la vuelta completa: leer → serializar → leer", () => {
     const original = {
       q: "piedra",
+      seccion: "pedreria",
       categorias: ["tira-de-pedreria", "copas"],
       colores: ["oro"],
       propiedades: ["brillante" as const],
@@ -82,17 +90,18 @@ describe("hayFiltrosActivos / cuentaFiltros", () => {
     expect(cuentaFiltros(soloTexto)).toBe(0);
   });
 
-  it("suma categorías, colores, propiedades, precio y disponibilidad", () => {
+  it("suma sección, categorías, colores, propiedades, precio y disponibilidad", () => {
     expect(
       cuentaFiltros({
         q: "",
+        seccion: "flores",
         categorias: ["a", "b"],
         colores: ["oro"],
         propiedades: ["brillante"],
         precioMax: 50,
         soloDisponibles: true,
       })
-    ).toBe(6);
+    ).toBe(7);
   });
 });
 

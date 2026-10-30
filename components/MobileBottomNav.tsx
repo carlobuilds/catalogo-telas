@@ -18,7 +18,13 @@ export function MobileBottomNav() {
   }, []);
 
   const itemCount = items.length;
-  const isCatalogo = pathname === "/" || pathname.startsWith("/tela/");
+  // Una sola pestaña para los dos catálogos: el selector Mercería | Telas de
+  // la barra del catálogo hace la separación, y abajo no cabe otra pestaña.
+  const isCatalogo =
+    pathname === "/" ||
+    pathname === "/telas" ||
+    pathname === "/merceria" ||
+    pathname.startsWith("/tela/");
   const isInspiracion = pathname === "/inspiracion";
 
   // /admin y /revision son herramientas internas: esta barra fija (Catálogo,

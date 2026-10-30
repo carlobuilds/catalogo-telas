@@ -37,6 +37,9 @@ export const CATEGORIAS = {
   FLORES: { nombre: "Flores", slug: "flores" },
   HILOS: { nombre: "Hilos", slug: "hilos" },
   CIERRES: { nombre: "Cierres", slug: "cierres" },
+  // Tira angosta de tul con bordado: se cose como orilla, es un avío. Antes
+  // compartía categoría con el Tul Bordado de rollo y salía en Telas.
+  TIRA_TUL_BORDADO: { nombre: "Tira de tul bordado", slug: "tira-de-tul-bordado" },
   // Tela de verdad (no mercería). Ya venían sembradas en la sección 8 del SQL;
   // se repiten aquí para que el clasificador las pueda asignar sola.
   CHIFON: { nombre: "Chifón", slug: "chifon" },
@@ -62,6 +65,7 @@ export const UNIDAD_POR_CATEGORIA: Record<string, string> = {
   [CATEGORIAS.GALON.slug]: "metro",
   [CATEGORIAS.FLECO.slug]: "metro",
   [CATEGORIAS.CINTA.slug]: "metro",
+  [CATEGORIAS.TIRA_TUL_BORDADO.slug]: "metro",
   [CATEGORIAS.CHIFON.slug]: "metro",
   [CATEGORIAS.TUL.slug]: "metro",
   [CATEGORIAS.TUL_BORDADO.slug]: "metro",
@@ -195,7 +199,10 @@ export const REGLAS_CATEGORIA: ReglaCategoria[] = [
   { re: /^BUTTERFLY/i, categoria: CATEGORIAS.APLICACION, ejemplo: "butterfly" },
   { re: /^MAP\d/i, categoria: CATEGORIAS.APLICACION, ejemplo: "map4" },
   { re: /^MOTIVOS/i, categoria: CATEGORIAS.APLICACION, ejemplo: "motivos" },
-  { re: /tira\s+(tul\s+)?bordad/i, categoria: CATEGORIAS.TUL_BORDADO, ejemplo: "201 Tira Tul Bordado40mm" },
+  // Acepta el código de archivo ("Tira Tul Bordado40mm") y el nombre ya
+  // curado ("Tira de tul bordado festón"), para que `pnpm clasificar --forzar`
+  // no regrese estas tiras al Tul Bordado de rollo.
+  { re: /tira\s+(de\s+)?(tul\s+)?bordad/i, categoria: CATEGORIAS.TIRA_TUL_BORDADO, ejemplo: "201 Tira Tul Bordado40mm" },
   { re: /tira\s+orilla/i, categoria: CATEGORIAS.TIRA, ejemplo: "350 Tira Orilla Piedra" },
 ];
 

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { contarFacetas, recortarAModelos } from "./queries";
+import {
+  categoriasPermitidas,
+  contarFacetas,
+  facetasDeCatalogo,
+  recortarAModelos,
+} from "./queries";
+import { FILTROS_VACIOS } from "./filtros";
 
 /** Una fila de la vista, con lo mínimo que mira `contarFacetas`. */
 function fila(over: Partial<Parameters<typeof contarFacetas>[0][number]> = {}) {
@@ -125,5 +131,74 @@ describe("recortarAModelos", () => {
     // debe dejar fuera la mitad de uno que sí entró.
     const r = recortarAModelos(filas(["A", "x"], ["B", "y"], ["A", "z"]), 1);
     expect(r.filas.map((f) => f.tela_id)).toEqual(["A", "A"]);
+  });
+});
+
+describe("categoriasPermitidas", () => {
+  const TODAS = ["chifon", "tul-bordado", "piedra-suelta", "tira-de-pedreria", "flores", "lentejuela"];
+
+  it("separa telas de mercería; lo desconocido y lo sin categoría van a mercería", () => {
+    expect(categoriasPermitidas(TODAS, "telas", FILTROS_VACIOS)).toEqual({
+      slugs: ["chifon", "tul-bordado"],
+      sinCategoria: false,
+    });
+    expect(categoriasPermitidas(TODAS, "merceria", FILTROS_VACIOS)).toEqual({
+      slugs: ["piedra-suelta", "tira-de-pedreria", "flores", "lentejuela"],
+      sinCategoria: true,
+    });
+  });
+
+  it("la sección acota dentro de mercería y deja fuera lo sin categoría", () => {
+    const f = { ...FILTROS_VACIOS, seccion: "cristaleria" };
+    expect(categoriasPermitidas(TODAS, "merceria", f)).toEqual({
+      slugs: ["piedra-suelta"],
+      sinCategoria: false,
+    });
+  });
+
+  it("en Telas una sección se ignora en vez de vaciar el catálogo", () => {
+    const f = { ...FILTROS_VACIOS, seccion: "cristaleria" };
+    expect(categoriasPermitidas(TODAS, "telas", f).slugs).toEqual(["chifon", "tul-bordado"]);
+  });
+
+  it("un chip de categoría del otro catálogo no cuela productos", () => {
+    // Un link viejo `/?cat=chifon` no debe meter tela en Mercería.
+    const f = { ...FILTROS_VACIOS, categorias: ["chifon", "flores"] };
+    expect(categoriasPermitidas(TODAS, "merceria", f)).toEqual({
+      slugs: ["flores"],
+      sinCategoria: false,
+    });
+  });
+});
+
+describe("facetasDeCatalogo", () => {
+  const FILAS = [
+    fila({ tela_id: "chifon", categoria: "Chifón", categoria_slug: "chifon" }),
+    fila({ tela_id: "p1", categoria: "Piedra suelta", categoria_slug: "piedra-suelta" }),
+    fila({ tela_id: "p2", categoria: "Piedra suelta", categoria_slug: "piedra-suelta" }),
+    fila({ tela_id: "a1", categoria: "Aplicación de pedrería", categoria_slug: "aplicacion-de-pedreria" }),
+    fila({ tela_id: "a1", categoria: "Aplicación de pedrería", categoria_slug: "aplicacion-de-pedreria" }),
+    fila({ tela_id: "sin", categoria: null, categoria_slug: null }),
+  ];
+
+  it("cuenta las categorías solo del catálogo pedido", () => {
+    expect(facetasDeCatalogo(FILAS, "telas").categorias.map((c) => c.slug)).toEqual(["chifon"]);
+    expect(facetasDeCatalogo(FILAS, "merceria").categorias.map((c) => c.slug)).toEqual([
+      "piedra-suelta",
+      "aplicacion-de-pedreria",
+    ]);
+  });
+
+  it("cuenta modelos por sección y omite las secciones vacías", () => {
+    expect(facetasDeCatalogo(FILAS, "merceria").secciones).toEqual([
+      { slug: "cristaleria", nombre: "Cristalería", conteo: 2 },
+      { slug: "pedreria", nombre: "Pedrería", conteo: 1 },
+    ]);
+    expect(facetasDeCatalogo(FILAS, "telas").secciones).toEqual([]);
+  });
+
+  it("da el conteo de modelos de los dos catálogos para el selector", () => {
+    // 4 modelos de mercería (p1, p2, a1 y el que no tiene categoría) y 1 de tela.
+    expect(facetasDeCatalogo(FILAS, "telas").porCatalogo).toEqual({ merceria: 4, telas: 1 });
   });
 });

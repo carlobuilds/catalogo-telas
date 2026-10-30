@@ -52,6 +52,14 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   muestra UNA vez, sin caracteres ambiguos porque se dicta por teléfono y se
   teclea en tablet. `--listar` dice quién tiene cuenta y si está autorizado;
   `--reset --aplicar` repone la contraseña de una cuenta que ya existe.
+- `pnpm respaldo:completo --destino=<carpeta>` — respaldo de producción COMPLETO y solo
+  lectura: las 11 tablas en JSON (paginadas con `order`), cuentas de admin/revisor, la vista
+  en `catalogo.csv` y copia de todo el bucket `telas`, con verificación al final. Correrlo
+  antes de cualquier `--aplicar` y guardarlo FUERA del worktree (`…/Respaldos/<fecha>-<motivo>`).
+  `pnpm respaldo` (6 tablas a un JSON) sigue existiendo para los scripts de curaduría.
+- `pnpm separar:tiras-tul` — pasa las "Tira de tul bordado…" de la categoría de tela
+  `tul-bordado` a `tira-de-tul-bordado` (mercería). Simulacro por defecto; `--aplicar` exige
+  `--respaldo=<carpeta>` y deja ahí `deshacer-tiras-tul.json`. Solo toca `tela.categoria_id`.
 - `pnpm clasificar` — sobre lo YA SUBIDO: asigna categoría a cada tela según el prefijo
   de su código (`lib/ingesta/categorias.ts`) y le quita a las bolsitas de piedra el
   número de cámara del nombre. **Simulacro por defecto**: `--aplicar` escribe,
@@ -73,6 +81,16 @@ medios metros; un botón no se parte a la mitad. Está usada en `ProductCard`,
 formularios de `/admin`. `unidadDe(null)` cae a **metro** a propósito: es como se
 comportaba todo antes de que existiera la columna, así que un dato faltante —o un
 carrito ya guardado en localStorage— no le cambia el pedido a nadie.
+
+**Dos catálogos públicos, Mercería y Telas** (`lib/catalogos.ts`): viven en las mismas
+tablas y los separa la CATEGORÍA del modelo. `catalogoDeCategoria()` es la única regla —una
+lista corta de categorías de tela; lo desconocido o sin categoría va a mercería— y las
+consultas la aplican vía `categoriasPermitidas` en `aplicarFiltros`, no con un filtro SQL
+aparte. La portada (`/`) es `CATALOGO_PORTADA` (hoy mercería: el catálogo es casi todo
+avíos); `/merceria` y `/telas` existen siempre. Mercería se recorre por SECCIONES
+(`SECCIONES_MERCERIA`: Cristalería, Pedrería, Encajes y tiras, Flores, Costura; URL `?sec=`)
+y los chips de categoría salen dentro de la sección. Una categoría nueva de mercería debe
+entrar a una sección: `catalogos.test.ts` lo exige para las de la ingesta.
 
 `tela` (modelo) → `variante` (SKU/color, con precio/stock/propiedades ópticas) → `foto`
 (en bucket Storage `telas`). N:N: `tela↔caso_uso`, `tela↔oportunidad`. Lookups: `color`

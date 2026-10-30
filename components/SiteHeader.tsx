@@ -8,6 +8,7 @@ import { useCartStore } from "@/lib/store";
 import { useGuideStore } from "@/lib/guide-store";
 import { useScrollCompacto } from "@/lib/useScrollCompacto";
 import { ShareCatalog } from "@/components/ShareCatalog";
+import { CATALOGOS, ORDEN_CATALOGOS, esRutaDeCatalogo, rutaDeCatalogo } from "@/lib/catalogos";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -22,7 +23,6 @@ export function SiteHeader() {
   }, []);
 
   const itemCount = items.length;
-  const isCatalogo = pathname === "/" || pathname.startsWith("/tela/");
   const isInspiracion = pathname === "/inspiracion";
 
   // /admin y /revision son herramientas internas con su propia nav (AdminNav,
@@ -78,16 +78,24 @@ export function SiteHeader() {
 
         {/* Links de navegación para desktop / tablet */}
         <nav className="hidden md:flex items-center gap-1">
-          <Link
-            href="/"
-            className={`rounded px-4 py-2 text-sm font-semibold transition-all ${
-              isCatalogo
-                ? "bg-heritage-navy text-white shadow-xs"
-                : "text-ink-soft hover:bg-surface-container hover:text-ink-text"
-            }`}
-          >
-            Catálogo
-          </Link>
+          {/* Un link por catálogo: Mercería y Telas no se mezclan. */}
+          {ORDEN_CATALOGOS.map((c) => {
+            const activo = esRutaDeCatalogo(pathname, c);
+            return (
+              <Link
+                key={c}
+                href={rutaDeCatalogo(c)}
+                aria-current={activo ? "page" : undefined}
+                className={`inline-flex min-h-[44px] items-center rounded px-4 text-sm font-semibold transition-all ${
+                  activo
+                    ? "bg-heritage-navy text-white shadow-xs"
+                    : "text-ink-soft hover:bg-surface-container hover:text-ink-text"
+                }`}
+              >
+                {CATALOGOS[c].nombre}
+              </Link>
+            );
+          })}
           <Link
             href="/inspiracion"
             className={`rounded px-4 py-2 text-sm font-semibold transition-all ${

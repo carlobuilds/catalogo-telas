@@ -2,12 +2,42 @@
 
 import Image from "next/image";
 import { TutorialTrigger } from "@/components/tutorial/TutorialTrigger";
+import type { Catalogo } from "@/lib/catalogos";
 
 interface HeroSectionProps {
+  catalogo: Catalogo;
   totalModelos?: number;
 }
 
-export function HeroSection({ totalModelos }: HeroSectionProps) {
+/**
+ * Lo que cambia entre catálogos. La mercería no se corta a la medida ni se
+ * cotiza en metros: prometer eso en su portada sería mentirle al cliente.
+ */
+const TEXTO: Record<
+  Catalogo,
+  { sello: string; titulo: string; parrafo: string; pildora: { icono: string; texto: string }; insignia: string }
+> = {
+  merceria: {
+    sello: "Fresnillo, Zac. · Mercería fina",
+    titulo: "Cristalería, pedrería y mercería para tus creaciones.",
+    parrafo:
+      "Piedra suelta, aplicaciones, tiras y cintillos de pedrería, encajes, flores y todo lo de costura. Cotiza por pieza, par o bolsa y recibe atención directa por WhatsApp.",
+    pildora: { icono: "category", texto: "Por pieza, par o bolsa" },
+    // La foto del hero es de encajes (no hay otra): la insignia la describe a ella.
+    insignia: "Encajes & Pedrería Fina",
+  },
+  telas: {
+    sello: "Fresnillo, Zac. · Tienda Textil",
+    titulo: "Telas finas para tus creaciones.",
+    parrafo:
+      "Tul, chifón y tul bordado para vestidos de fiesta, novia y XV años. Cotiza fácilmente tus metros y recibe atención directa por WhatsApp.",
+    pildora: { icono: "straighten", texto: "Corte a tu medida" },
+    insignia: "Encajes & Tul Bordado",
+  },
+};
+
+export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
+  const texto = TEXTO[catalogo];
   const scrollToCatalog = () => {
     const catalogElement = document.getElementById("catalogo-seccion");
     if (catalogElement) {
@@ -40,25 +70,25 @@ export function HeroSection({ totalModelos }: HeroSectionProps) {
             <div className="mb-3.5 inline-flex items-center gap-2 self-start rounded-full border border-amber/30 bg-surface-container-lowest/80 px-3 py-1 shadow-xs backdrop-blur-xs">
               <span className="flex h-2 w-2 rounded-full bg-amber animate-pulse" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber">
-                Fresnillo, Zac. · Tienda Textil y Mercería
+                {texto.sello}
               </span>
             </div>
 
             {/* Título Principal de Alto Impacto */}
             <h1 className="font-display text-3xl font-bold tracking-tight text-ink-display sm:text-5xl lg:text-[3.25rem] sm:leading-[1.15]">
-              Telas finas y mercería para tus creaciones y manualidades.
+              {texto.titulo}
             </h1>
 
             {/* Descripción / Propuesta de Valor */}
             <p className="mt-3.5 text-base sm:text-lg text-ink-text/85 max-w-2xl leading-relaxed">
-              Explora nuestra colección selecta de encajes bordados, pedrería, linos, sedas y mercería fina. Cotiza fácilmente tus metros y recibe atención directa por WhatsApp.
+              {texto.parrafo}
             </p>
 
             {/* Píldoras de valor y ventajas */}
             <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-semibold text-ink-soft">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/40 bg-surface-container-lowest/90 px-3 py-1.5 shadow-2xs">
-                <span className="material-symbols-outlined text-[16px] text-amber">straighten</span>
-                <span>Corte a tu medida</span>
+                <span className="material-symbols-outlined text-[16px] text-amber">{texto.pildora.icono}</span>
+                <span>{texto.pildora.texto}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/40 bg-surface-container-lowest/90 px-3 py-1.5 shadow-2xs">
                 <span className="material-symbols-outlined text-[16px] text-whatsapp">chat</span>
@@ -105,7 +135,7 @@ export function HeroSection({ totalModelos }: HeroSectionProps) {
               {/* Insignia Flotante Superior: Colección Destacada */}
               <div className="absolute left-3.5 top-3.5 sm:left-4 sm:top-4 flex items-center gap-1.5 rounded-full border border-white/20 bg-ink-deep/75 px-3 py-1 text-xs font-semibold text-white shadow-md backdrop-blur-md">
                 <span className="material-symbols-outlined text-[15px] text-amber-300">auto_awesome</span>
-                <span>Encajes & Pedrería Fina</span>
+                <span>{texto.insignia}</span>
               </div>
 
               {/* Insignia Flotante Inferior: Disponibilidad / Muestrario */}

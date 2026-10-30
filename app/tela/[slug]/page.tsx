@@ -10,6 +10,7 @@ import { AttributeBadges } from "@/components/AttributeBadges";
 import { AddToCart } from "@/components/AddToCart";
 import { VolverAlCatalogo } from "@/components/VolverAlCatalogo";
 import { unidadDe } from "@/lib/unidades";
+import { CATALOGOS, catalogoDeCategoria, rutaDeCatalogo } from "@/lib/catalogos";
 
 const pesos = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -88,6 +89,8 @@ export default async function TelaDetallePage({
   };
 
   const tags = [...seleccionada.casos_uso, ...seleccionada.oportunidades];
+  // Todas las variantes comparten la categoría del modelo.
+  const catalogo = catalogoDeCategoria(seleccionada.categoria_slug);
 
   const fotos = await getFotosDeVariantes(variantes.map((v) => v.variante_id));
   const slides = construirSlides({ variantes, fotos, seleccionada });
@@ -98,7 +101,7 @@ export default async function TelaDetallePage({
   // dos miden ~9.25rem + safe-area. En sm+ ninguna es fixed.
   return (
     <main className="mx-auto max-w-6xl px-4 pt-8 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pb-8 lg:px-8">
-      <VolverAlCatalogo />
+      <VolverAlCatalogo href={rutaDeCatalogo(catalogo)} nombre={CATALOGOS[catalogo].nombre} />
 
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
         {/* Columna Izquierda: Galería / Imagen & Swatches */}
@@ -176,13 +179,19 @@ export default async function TelaDetallePage({
           </div>
 
           {/* Chips de propiedades */}
+          {/* El ancho de rollo solo existe en la tela: en una bolsita de
+              piedras o un botón era un dato falso. */}
           <div className="flex flex-wrap gap-2">
-            <span className="rounded bg-surface-container px-3.5 py-1.5 text-xs font-bold text-ink-display border border-outline-variant/30">
-              Ancho: 1.40m – 1.50m
-            </span>
-            <span className="rounded bg-surface-container px-3.5 py-1.5 text-xs font-bold text-ink-display border border-outline-variant/30">
-              Venta por metro o pieza
-            </span>
+            {catalogo === "telas" && (
+              <>
+                <span className="rounded bg-surface-container px-3.5 py-1.5 text-xs font-bold text-ink-display border border-outline-variant/30">
+                  Ancho: 1.40m – 1.50m
+                </span>
+                <span className="rounded bg-surface-container px-3.5 py-1.5 text-xs font-bold text-ink-display border border-outline-variant/30">
+                  Venta por metro o pieza
+                </span>
+              </>
+            )}
             <AttributeBadges atributos={atributos} />
           </div>
 
