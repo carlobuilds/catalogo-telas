@@ -4,5 +4,4 @@ import { crearIcono } from "../IconoBase";
 
 export const CaretLeft = /* @__PURE__ */ crearIcono("CaretLeft", {
   bold: ["M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"],
-  fill: ["M168,48V208a8,8,0,0,1-13.66,5.66l-80-80a8,8,0,0,1,0-11.32l80-80A8,8,0,0,1,168,48Z"],
 });

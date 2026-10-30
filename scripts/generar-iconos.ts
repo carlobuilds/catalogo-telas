@@ -5,9 +5,11 @@
  *   pnpm iconos      → reescribe components/ui/iconos/ (un módulo por icono
  *                      más el index que los re-exporta)
  *
- * Un icono nuevo se agrega a `ICONOS` y se corre `pnpm iconos`; si además va
- * de estado vacío, a `CON_DUOTONO`. Nunca se edita a mano la carpeta: la
- * próxima corrida la tira completa.
+ * Un icono nuevo se agrega a `ICONOS` y se corre `pnpm iconos`. Solo trae
+ * bold: si se dibuja relleno (estado activo) va además en `CON_FILL`, y si es
+ * de estado vacío, en `CON_DUOTONO`. No hace falta adivinar: pedirle a un
+ * icono un peso que no trae es error de TypeScript en el componente que lo
+ * pide. Nunca se edita a mano la carpeta: la próxima corrida la tira completa.
  *
  * De dónde salen los trazos: se renderiza el componente SSR de Phosphor (su
  * export público, `@phosphor-icons/react/dist/ssr/<Icono>`) con cada peso y
@@ -90,6 +92,19 @@ const ICONOS = [
   "X",
 ];
 
+/**
+ * Estados activos. Cada fill extra cuesta ~100 bytes comprimidos en cada
+ * página que use el icono; por eso no va en todos.
+ */
+const CON_FILL = new Set([
+  "CheckCircle", // filtro "solo disponibles" puesto (CatalogToolbar)
+  "Question", // ┐
+  "ShoppingBag", // │ pestaña activa de la barra inferior (MobileBottomNav)
+  "Sparkle", // │ — también en el hero
+  "SquaresFour", // ┘
+  "WhatsappLogo", // botones de WhatsApp (HeroSection, CartDrawer)
+]);
+
 /** Estados vacíos (app/page.tsx: "sin resultados"). */
 const CON_DUOTONO = new Set(["MagnifyingGlass"]);
 
@@ -139,7 +154,9 @@ function moduloDe(nombre: string, trazos: Partial<Record<Peso, Trazo[]>>): strin
 async function main() {
   const repetidos = ICONOS.filter((n, i) => ICONOS.indexOf(n) !== i);
   if (repetidos.length > 0) throw new Error(`Repetidos en ICONOS: ${repetidos.join(", ")}`);
-  for (const n of CON_DUOTONO) if (!ICONOS.includes(n)) throw new Error(`${n} está en CON_DUOTONO y no en ICONOS`);
+  for (const [lista, nombres] of [["CON_FILL", CON_FILL], ["CON_DUOTONO", CON_DUOTONO]] as const) {
+    for (const n of nombres) if (!ICONOS.includes(n)) throw new Error(`${n} está en ${lista} y no en ICONOS`);
+  }
 
   const archivos = new Map<string, string>();
   let bytes = 0;
@@ -148,7 +165,11 @@ async function main() {
       throw new Error(`Phosphor no tiene un icono "${nombre}" — revisa el nombre en phosphoricons.com`);
     });
     const Componente = modulo[`${nombre}Icon`];
-    const pesos: Peso[] = CON_DUOTONO.has(nombre) ? ["bold", "fill", "duotone"] : ["bold", "fill"];
+    const pesos: Peso[] = [
+      "bold",
+      ...(CON_FILL.has(nombre) ? (["fill"] as const) : []),
+      ...(CON_DUOTONO.has(nombre) ? (["duotone"] as const) : []),
+    ];
     const trazos = Object.fromEntries(pesos.map((p) => [p, trazosDe(Componente, nombre, p)]));
     const codigo = moduloDe(nombre, trazos);
     bytes += codigo.length;
@@ -171,7 +192,7 @@ async function main() {
   for (const [archivo, codigo] of archivos) await writeFile(path.join(DESTINO, archivo), codigo);
 
   console.log(
-    `✔ ${ICONOS.length} iconos (${CON_DUOTONO.size} con duotone) en components/ui/iconos/ — ` +
+    `✔ ${ICONOS.length} iconos (${CON_FILL.size} con fill, ${CON_DUOTONO.size} con duotone) en components/ui/iconos/ — ` +
       `${(bytes / 1024).toFixed(1)} kB de fuente, Phosphor ${VERSION}`,
   );
 }

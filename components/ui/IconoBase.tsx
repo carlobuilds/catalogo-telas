@@ -9,7 +9,7 @@
  * Por qué no se importa `@phosphor-icons/react` directo (medido con
  * `pnpm build`, la portada pasó de 120 a 146 kB de JS):
  * - Cada icono de Phosphor trae los SEIS pesos (thin…duotone) aunque se dibuje
- *   uno. Aquí viajan bold y fill, y duotone solo en el icono que lo pide.
+ *   uno. Aquí viaja bold, y fill o duotone solo en los iconos que los usan.
  * - Un barrel que ENVUELVE iconos es un solo módulo, y webpack no parte un
  *   módulo entre páginas: la portada cargaba los 40 iconos de todo el sitio,
  *   incluidos los del curador de fotos de /admin. El barrel generado solo
@@ -19,12 +19,14 @@
  * - Peso `bold` por defecto. El `regular` de Phosphor traza 1.5px a 24px, más
  *   fino que el lucide que reemplazó (2px); para quien tiene 40+ y ve la
  *   pantalla de una tablet a medio brazo, un icono delgado se pierde.
- * - `fill` para estados ACTIVOS (pestaña actual, filtro puesto, portada) — se
- *   pasa explícito: `<Star weight="fill" />`. Todos los iconos lo traen porque
- *   suele decidirse en tiempo de ejecución (`activa ? "fill" : "bold"`).
- * - `duotone` solo en ilustraciones de estados vacíos (40px o más), y solo
- *   los iconos que lo declaran en el generador lo traen. Pedírselo a otro es
- *   error de TypeScript, no un icono en blanco.
+ * - `fill` para estados ACTIVOS (pestaña actual, filtro puesto) — se pasa
+ *   explícito: `<CheckCircle weight="fill" />`.
+ * - `duotone` solo en ilustraciones de estados vacíos (40px o más).
+ * - fill y duotone los traen únicamente los iconos que los declaran en el
+ *   generador (`CON_FILL`, `CON_DUOTONO`). Pedírselos a otro es error de
+ *   TypeScript, no un icono en blanco. Donde el peso se decide en ejecución
+ *   (`activa ? "fill" : "bold"`), la prop se tipa `Icon<"bold" | "fill">` y
+ *   TypeScript exige que cada icono que se pase traiga fill.
  * - Decorativo por defecto (`aria-hidden`): el texto del botón ya dice qué
  *   hace. Si el icono va SOLO, pásale `aria-label` y deja de ser invisible.
  *
@@ -41,7 +43,7 @@ export type Peso = "bold" | "fill" | "duotone";
 export type Trazo = string | readonly [d: string, opacidad: string];
 
 /** Las mismas props que el `IconProps` de Phosphor, con los pesos que hay. */
-export interface IconProps<P extends Peso = "bold" | "fill">
+export interface IconProps<P extends Peso = "bold">
   extends ComponentPropsWithoutRef<"svg">,
     RefAttributes<SVGSVGElement> {
   alt?: string;
@@ -52,10 +54,10 @@ export interface IconProps<P extends Peso = "bold" | "fill">
 }
 
 /**
- * Una firma de función y no `ForwardRefExoticComponent`: así un icono con
- * duotone sigue cabiendo donde se espera un `Icon` a secas (bold/fill).
+ * `Icon` a secas es cualquier icono (todos traen bold). `Icon<"bold" | "fill">`
+ * es uno que además sabe rellenarse: ahí solo caben iconos de `CON_FILL`.
  */
-export type Icon<P extends Peso = "bold" | "fill"> = {
+export type Icon<P extends Peso = "bold"> = {
   (props: IconProps<P>): ReactNode;
   displayName?: string;
 };

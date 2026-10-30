@@ -21,19 +21,19 @@ describe("iconos generados vs Phosphor", () => {
 
   // Si se actualiza @phosphor-icons/react y cambia algún trazo, esto falla:
   // toca volver a correr `pnpm iconos`.
-  it.each(nombres)("%s dibuja bold y fill exactamente como Phosphor", async (nombre) => {
+  it.each(nombres)("%s dibuja bold exactamente como Phosphor", async (nombre) => {
     const original = await phosphor(nombre);
     const nuestro = Iconos[nombre as keyof typeof Iconos];
-    for (const weight of ["bold", "fill"]) {
-      expect(interior(html(nuestro, { weight }))).toBe(interior(html(original, { weight })));
-    }
+    expect(interior(html(nuestro, { weight: "bold" }))).toBe(interior(html(original, { weight: "bold" })));
   });
 
-  it.each(nombres)("%s: duotone es el de Phosphor o, si no se generó, cae a bold", async (nombre) => {
+  it.each(nombres)("%s: fill y duotone son los de Phosphor o, si no se generaron, cae a bold", async (nombre) => {
     const original = await phosphor(nombre);
     const nuestro = Iconos[nombre as keyof typeof Iconos];
-    const duotono = interior(html(nuestro, { weight: "duotone" }));
-    expect([interior(html(original, { weight: "duotone" })), interior(html(nuestro))]).toContain(duotono);
+    for (const weight of ["fill", "duotone"]) {
+      const dibujado = interior(html(nuestro, { weight }));
+      expect([interior(html(original, { weight })), interior(html(nuestro))]).toContain(dibujado);
+    }
   });
 
   it("MagnifyingGlass trae duotone de verdad (estado vacío de la portada)", async () => {
@@ -47,8 +47,8 @@ describe("iconos generados vs Phosphor", () => {
 
 describe("política de iconos", () => {
   it("bold por defecto", () => {
-    expect(html(Iconos.Star)).toBe(html(Iconos.Star, { weight: "bold" }));
-    expect(html(Iconos.Star)).not.toBe(html(Iconos.Star, { weight: "fill" }));
+    expect(html(Iconos.CheckCircle)).toBe(html(Iconos.CheckCircle, { weight: "bold" }));
+    expect(html(Iconos.CheckCircle)).not.toBe(html(Iconos.CheckCircle, { weight: "fill" }));
   });
 
   it("decorativo por defecto: aria-hidden y fuera del orden de foco", () => {

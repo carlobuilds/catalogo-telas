@@ -16,8 +16,8 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
 - **Phosphor** para iconos, importados SOLO desde `@/components/ui/iconos` (ESLint
   bloquea cualquier otro import). Esa carpeta la GENERA `pnpm iconos`
   (`scripts/generar-iconos.ts`): un módulo por icono con solo los trazos de los pesos
-  que se usan —bold y fill en todos, duotone solo en los de `CON_DUOTONO`— y un
-  `index.ts` que únicamente re-exporta. `@phosphor-icons/react` es devDependency: el
+  que se usan —bold en todos, fill solo en los de `CON_FILL`, duotone solo en los de
+  `CON_DUOTONO`— y un `index.ts` que únicamente re-exporta. `@phosphor-icons/react` es devDependency: el
   sitio no lo carga, solo el generador y la prueba que compara contra él. Las dos
   piezas pesan: Phosphor trae SEIS pesos por icono, y un barrel que envuelve iconos es
   un solo módulo que webpack no parte entre páginas (la portada cargaba los 40 iconos
@@ -25,8 +25,11 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   false`. La política vive en `components/ui/IconoBase.tsx`: sin hooks (sirve en
   Server y Client Components), peso `bold` por defecto —el `regular` es más fino que
   el lucide anterior y se pierde para usuarios de 40+—, `fill` para estados activos,
-  `duotone` solo en estados vacíos (pedirlo a un icono sin él es error de TypeScript),
-  y `aria-hidden` salvo que lleve `aria-label`. Tamaño con clases (`size-5`). Un icono
+  `duotone` solo en estados vacíos, y `aria-hidden` salvo que lleve `aria-label`.
+  Pedirle a un icono un peso que no trae es error de TypeScript, no un icono en
+  blanco: se agrega a `CON_FILL`/`CON_DUOTONO` y se corre `pnpm iconos`. Donde el peso
+  se decide en ejecución (`activa ? "fill" : "bold"`) la prop se tipa
+  `Icon<"bold" | "fill">`; `Icon` a secas es cualquier icono. Tamaño con clases (`size-5`). Un icono
   nuevo se agrega a la lista del generador, nunca a mano en la carpeta. Ya no hay
   fuente Material Symbols ni lucide-react.
   Sin librerías de UI pesadas: componentes propios.
