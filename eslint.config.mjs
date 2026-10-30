@@ -15,8 +15,9 @@ const eslintConfig = [
     ignores: [".next/**", "node_modules/**", "Fotos_Telas/**", "next-env.d.ts"],
   },
   {
-    // Los iconos salen SOLO de components/ui/iconos.tsx: ahí vive la política
-    // de peso (bold) y de accesibilidad, y el import SSR-safe de Phosphor.
+    // Los iconos salen SOLO de @/components/ui/iconos (generado por
+    // `pnpm iconos`): un Phosphor importado directo trae sus seis pesos al
+    // bundle y se salta la política de components/ui/IconoBase.tsx.
     rules: {
       "no-restricted-imports": [
         "error",
@@ -31,7 +32,8 @@ const eslintConfig = [
     },
   },
   {
-    files: ["components/ui/iconos.tsx"],
+    // Los únicos que leen Phosphor: el generador y la prueba que lo compara.
+    files: ["scripts/generar-iconos.ts", "components/ui/iconos.test.ts"],
     rules: { "no-restricted-imports": "off" },
   },
 ];

@@ -20,6 +20,16 @@ const nextConfig: NextConfig = {
     // verdad.
     staleTimes: { dynamic: 120 },
   },
+  webpack(config) {
+    // components/ui/iconos/ (generado por `pnpm iconos`) es un barrel que SOLO
+    // re-exporta. Marcarlo sin efectos deja que webpack lo atraviese y mande a
+    // cada página nada más los iconos que importa. Su propio análisis no llega
+    // a esa conclusión: cada icono importa react, que es CommonJS y por lo
+    // tanto "puede tener efectos", y entonces la portada cargaba los 40 iconos
+    // de todo el sitio (los del curador de fotos de /admin incluidos).
+    config.module.rules.push({ test: /[\\/]components[\\/]ui[\\/]iconos[\\/]/, sideEffects: false });
+    return config;
+  },
   images: {
     remotePatterns: supabaseHost
       ? [

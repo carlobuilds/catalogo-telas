@@ -12,6 +12,9 @@ export default defineConfig({
     // fallas que no son de este árbol de trabajo.
     exclude: [...defaultExclude, "**/.claude/**"],
   },
+  // tsconfig dice `jsx: "preserve"` porque el JSX lo compila Next; sin esto
+  // vitest no puede importar ningún .tsx (components/ui/iconos.test.ts).
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),

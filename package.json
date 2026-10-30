@@ -39,10 +39,10 @@
     "backfill:derivados": "tsx scripts/backfill-derivados.ts",
     "resubir": "tsx scripts/resubir-fotos.ts",
     "og": "tsx scripts/generar-og.ts",
-    "admin:crear": "tsx scripts/crear-admin.ts"
+    "admin:crear": "tsx scripts/crear-admin.ts",
+    "iconos": "tsx scripts/generar-iconos.ts"
   },
   "dependencies": {
-    "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "next": "^15.0.3",
@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
+    "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",

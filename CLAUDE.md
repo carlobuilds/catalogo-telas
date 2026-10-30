@@ -13,18 +13,29 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   (pesos 400/600/700), como manda el design system de Stitch "Artisanal Modernity"
   (`design-system/stitch/`). Los tokens `--font-display`/`--font-body`/`--font-serif`
   se conservan por historia y todos apuntan a ella — no reintroducir Bodoni/Inter.
-- **Phosphor** (`@phosphor-icons/react`) para iconos, importados SOLO desde
-  `components/ui/iconos.tsx` (ESLint bloquea cualquier otro import). Ahí vive la
-  política: build SSR (sirve en Server y Client Components), peso `bold` por defecto
-  —el `regular` es más fino que el lucide anterior y se pierde para usuarios de 40+—,
-  `fill` para estados activos, `duotone` solo en estados vacíos, y `aria-hidden`
-  salvo que lleve `aria-label`. Tamaño con clases (`size-5`). Un icono nuevo se agrega
-  al barrel, nunca directo. Ya no hay fuente Material Symbols ni lucide-react.
+- **Phosphor** para iconos, importados SOLO desde `@/components/ui/iconos` (ESLint
+  bloquea cualquier otro import). Esa carpeta la GENERA `pnpm iconos`
+  (`scripts/generar-iconos.ts`): un módulo por icono con solo los trazos de los pesos
+  que se usan —bold y fill en todos, duotone solo en los de `CON_DUOTONO`— y un
+  `index.ts` que únicamente re-exporta. `@phosphor-icons/react` es devDependency: el
+  sitio no lo carga, solo el generador y la prueba que compara contra él. Las dos
+  piezas pesan: Phosphor trae SEIS pesos por icono, y un barrel que envuelve iconos es
+  un solo módulo que webpack no parte entre páginas (la portada cargaba los 40 iconos
+  del sitio; +26 kB de JS). Por eso `next.config.ts` marca la carpeta `sideEffects:
+  false`. La política vive en `components/ui/IconoBase.tsx`: sin hooks (sirve en
+  Server y Client Components), peso `bold` por defecto —el `regular` es más fino que
+  el lucide anterior y se pierde para usuarios de 40+—, `fill` para estados activos,
+  `duotone` solo en estados vacíos (pedirlo a un icono sin él es error de TypeScript),
+  y `aria-hidden` salvo que lleve `aria-label`. Tamaño con clases (`size-5`). Un icono
+  nuevo se agrega a la lista del generador, nunca a mano en la carpeta. Ya no hay
+  fuente Material Symbols ni lucide-react.
   Sin librerías de UI pesadas: componentes propios.
 
 ## Comandos (gestor: **pnpm**)
 - `pnpm dev` — servidor de desarrollo
 - `pnpm build` / `pnpm start` — producción
+- `pnpm iconos` — regenera `components/ui/iconos/` desde Phosphor (tras agregar un
+  icono a `scripts/generar-iconos.ts` o subir de versión el paquete)
 - `pnpm preparar --in=<carpeta>` — RAW de cámara (.ARW…) → JPEG recortado al producto
   (`sips` + `lib/images/recorte.ts`; macOS-only, el original no se toca). Correr ANTES de
   la ingesta cuando las fotos vengan en RAW o sin encuadrar.
