@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { FormGuardable } from "@/components/admin/FormGuardable";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { OrdenColores } from "@/components/admin/OrdenColores";
 import { GaleriaFotos } from "@/components/admin/GaleriaFotos";
@@ -177,8 +178,9 @@ export default async function EditarTelaPage({
         <h2 id="datos-tela" className="mb-3 font-display text-xl text-ink">
           Datos del modelo
         </h2>
-        <form
-          action={actualizarTela}
+        <FormGuardable
+          accion={actualizarTela}
+          etiqueta="Guardar datos del producto"
           className="space-y-5 rounded-2xl border border-line bg-surface p-6 shadow-sm"
         >
           <input type="hidden" name="tela_id" value={tela.id} />
@@ -283,8 +285,7 @@ export default async function EditarTelaPage({
             </div>
           </fieldset>
 
-          <SubmitButton label="Guardar datos del modelo" pendingLabel="Guardando…" />
-        </form>
+        </FormGuardable>
       </section>
 
       {/* ------------------------------------------------------- Variantes */}
@@ -325,7 +326,12 @@ export default async function EditarTelaPage({
                 {v.sku && <span className="ml-2 text-sm font-normal text-ink/50">SKU {v.sku}</span>}
               </h3>
 
-              <form action={actualizarVarianteDetalle} className="space-y-4">
+              <FormGuardable
+                accion={actualizarVarianteDetalle}
+                etiqueta="Guardar este color"
+                size="sm"
+                className="space-y-4"
+              >
                 <input type="hidden" name="variante_id" value={v.id} />
                 <input type="hidden" name="tela_id" value={tela.id} />
                 <CamposVariante
@@ -333,8 +339,7 @@ export default async function EditarTelaPage({
                   acabados={acabados ?? []}
                   valores={v}
                 />
-                <SubmitButton label="Guardar variante" pendingLabel="Guardando…" size="sm" />
-              </form>
+              </FormGuardable>
 
               {/* Subir fotos: sigue siendo por color porque el archivo llega a
                   UN color concreto. Verlas y reclasificarlas es lo que subió a
@@ -388,11 +393,17 @@ export default async function EditarTelaPage({
         {/* Nueva variante */}
         <article className="mt-6 rounded-2xl border border-dashed border-line bg-surface/60 p-6">
           <h3 className="mb-4 font-semibold text-ink">Agregar variante (color/SKU)</h3>
-          <form action={crearVariante} className="space-y-4">
+          <FormGuardable
+            accion={crearVariante}
+            etiqueta="Agregar color"
+            etiquetaPendiente="Agregando…"
+            size="sm"
+            reiniciarAlGuardar
+            className="space-y-4"
+          >
             <input type="hidden" name="tela_id" value={tela.id} />
             <CamposVariante colores={colores ?? []} acabados={acabados ?? []} />
-            <SubmitButton label="Agregar variante" pendingLabel="Agregando…" size="sm" />
-          </form>
+          </FormGuardable>
         </article>
       </section>
     </main>
@@ -444,6 +455,7 @@ function CamposVariante({
             name="sku"
             defaultValue={valores?.sku ?? ""}
             placeholder="solo si existe físico"
+            data-confirmar-vaciado="el código (SKU)"
             className={inputClase}
           />
         </label>
@@ -491,6 +503,7 @@ function CamposVariante({
             type="number"
             name="precio"
             defaultValue={valores?.precio ?? ""}
+            data-confirmar-vaciado="el precio"
             min="0"
             step="0.01"
             inputMode="decimal"
