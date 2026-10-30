@@ -42,8 +42,7 @@ function claseChip(activo: boolean, grande = false): string {
 }
 
 function Conteo({ n, activo }: { n: number; activo: boolean }) {
-  // El conteo es un dato secundario del chip: text-xs es su mínimo legible.
-  return <span className={`text-xs ${activo ? "text-white/90" : "text-ink-soft"}`}>{n}</span>;
+  return <span className={`text-sm ${activo ? "text-white/90" : "text-ink-soft"}`}>{n}</span>;
 }
 
 export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarProps) {
@@ -99,7 +98,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
   return (
     <div
       id="catalogo-seccion"
-      className={`sticky z-30 w-full border-b border-line/60 bg-sand-bg/90 pb-2.5 pt-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all sm:top-16 sm:pb-3 sm:pt-3 ${
+      className={`sticky z-30 w-full border-b border-line/60 bg-sand-bg/95 pb-2.5 pt-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all sm:top-16 sm:pb-3 sm:pt-3 ${
         compacto ? "top-12" : "top-16"
       }`}
     >
@@ -144,8 +143,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
             <SearchBar catalogo={catalogo} filtros={filtros} />
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Botón Filtros Detallados */}
+          <div className="flex shrink-0 items-center gap-2">
             {hayAvanzados && (
               <button
                 type="button"
@@ -159,23 +157,22 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                     ? `Filtros por color y acabado, ${totalFiltrosAvanzados} activos`
                     : "Filtros por color y acabado"
                 }
-                className={`inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 sm:gap-2 rounded border px-3 sm:px-4 text-xs font-bold uppercase tracking-wider transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
+                className={`inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 sm:gap-2 rounded border px-3 sm:px-4 text-sm font-bold uppercase tracking-wider transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                   panelFiltrosAbierto || totalFiltrosAvanzados > 0
                     ? "border-heritage-navy bg-heritage-navy text-white shadow-xs"
-                    : "border-outline-variant/40 bg-surface-container-lowest/90 text-ink-display hover:bg-surface-container shadow-xs"
+                    : "border-outline-variant/40 bg-surface-container-lowest/90 text-ink-display shadow-xs hover:bg-surface-container"
                 }`}
               >
                 {panelFiltrosAbierto ? <X className="size-4.5" /> : <SlidersHorizontal className="size-4.5" />}
                 <span className="hidden sm:inline" aria-hidden>Filtros</span>
                 {totalFiltrosAvanzados > 0 && (
-                  <span aria-hidden className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-white">
+                  <span aria-hidden className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-sm font-bold text-white">
                     {totalFiltrosAvanzados}
                   </span>
                 )}
               </button>
             )}
 
-            {/* Limpiar Filtros si hay algo activo */}
             {(activos > 0 || filtros.q) && (
               <Link
                 href={base}
@@ -277,10 +274,9 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
           </div>
         )}
 
-        {/* Panel Desplegable de Filtros Avanzados (Colores, Acabados, Stock).
-            Vive dentro de la barra sticky, no en un modal — sin límite de
-            alto, si hay muchos colores/acabados el final del panel se salía
-            de la pantalla en móvil y esas opciones no se podían tocar. */}
+        {/* Panel de más filtros (colores, acabados, existencia). Vive dentro
+            de la barra sticky, no en un modal — con alto máximo y scroll
+            propio, para que con muchos colores el final siga alcanzable. */}
         {panelFiltrosAbierto && hayAvanzados && (
           <div id="panel-filtros-avanzados" className="mt-3 max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface-container-lowest p-5 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between border-b border-line pb-3">
@@ -290,7 +286,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                   Filtros Avanzados
                 </span>
                 {totalFiltrosAvanzados > 0 && (
-                  <span className="rounded bg-amber px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="rounded bg-amber px-2 py-0.5 text-sm font-bold text-white">
                     {totalFiltrosAvanzados} activos
                   </span>
                 )}
@@ -331,7 +327,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                         <span>{c.nombre}</span>
                         {c.conteo != null && (
                           <span
-                            className={`text-xs ${
+                            className={`text-sm ${
                               activo ? "text-white/90" : "text-ink-soft"
                             }`}
                           >
@@ -368,7 +364,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                         <span>{p.etiqueta}</span>
                         {p.conteo != null && (
                           <span
-                            className={`text-xs ${
+                            className={`text-sm ${
                               activo ? "text-white/90" : "text-ink-soft"
                             }`}
                           >

@@ -9,7 +9,10 @@ interface TutorialTriggerProps {
 }
 
 /**
- * Puerta de entrada al tutorial del catálogo con estilos refinados "Artisanal Modernity".
+ * Puerta de entrada a la guía "Cómo pedir". Todas las variantes son un
+ * `<button>` de verdad (antes el banner era un `div role=button`) y ninguna
+ * recorta su texto con "…": a quien busca ayuda no se le esconde la mitad
+ * de la frase que le dice dónde está.
  */
 export function TutorialTrigger({
   variant = "hero-banner",
@@ -44,10 +47,10 @@ export function TutorialTrigger({
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                <span className="text-label-caps text-xs text-amber">
+                <span className="text-sm font-semibold text-amber">
                   Guía interactiva
                 </span>
-                <span className="inline-flex items-center rounded bg-amber/15 px-1.5 py-0.5 text-xs font-bold text-amber">
+                <span className="inline-flex items-center rounded bg-amber/15 px-1.5 py-0.5 text-sm font-bold text-amber">
                   4 pasos
                 </span>
               </span>
@@ -87,7 +90,7 @@ export function TutorialTrigger({
           <Question className="size-4.5" />
         </span>
         <span className="flex flex-col text-left">
-          <span className="text-label-caps text-xs text-amber">
+          <span className="text-sm font-semibold text-amber">
             ¿Dudas?
           </span>
           <span className="text-sm font-bold text-ink-display">
@@ -117,8 +120,8 @@ export function TutorialTrigger({
       onClick={openTutorial}
       className={`inline-flex min-h-[44px] items-center gap-2 rounded border border-outline-variant/50 bg-surface-container-lowest px-4 py-2 text-sm font-semibold text-ink-display shadow-xs transition-all hover:bg-surface-container hover:border-heritage-navy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${className}`}
     >
-      <Question className="size-4.5 text-amber" />
-      <span>¿Primera vez? Mira cómo pedir en 4 pasos</span>
+      <Question className="size-5 text-amber" />
+      ¿Primera vez? Mira cómo pedir en 4 pasos
     </button>
   );
 }

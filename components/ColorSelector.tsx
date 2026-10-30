@@ -45,7 +45,7 @@ export function ColorSelector({
   return (
     <div>
       <div className="mb-4 flex items-baseline justify-between border-b border-line-strong/30 pb-2">
-        <p className="text-label-caps text-sm text-ink-display">
+        <p className="text-sm font-semibold text-ink-display">
           Tonos disponibles
         </p>
         <span className="text-base font-medium text-ink" aria-live="polite">

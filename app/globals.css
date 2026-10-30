@@ -48,6 +48,10 @@
   --color-amber: #7a4e0d; /* acento mostaza: precios, etiquetas, admin */
   --color-amber-soft: #5c3c0a; /* hover del acento y texto secundario apagado */
   --color-success: #157a3a;
+  /* Errores, borrar, agotado. 5.6:1 sobre arena (AA). Reemplaza los rojos
+     de Tailwind (bg-red-50, text-red-600…), que no son de la paleta. */
+  --color-peligro: #b42318;
+  --color-peligro-suave: #fdecea;
   --color-line: #dfd8c7;
   --color-line-strong: #c4c6cc;
   --color-outline: #74777d;

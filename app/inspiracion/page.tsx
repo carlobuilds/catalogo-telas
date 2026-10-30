@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // aún no está lista para mostrarse tal cual al público.
 function BadgeEnDesarrollo() {
   return (
-    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber px-3 py-1 text-sm font-semibold text-white shadow-sm">
       <Barricade className="h-3 w-3" aria-hidden />
       En desarrollo
     </span>
@@ -28,14 +28,14 @@ export default function InspiracionPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="mb-4 inline-flex items-center gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-ink-soft shadow-xs transition-all hover:bg-surface-container hover:text-ink-display active:scale-95"
+            className="mb-4 inline-flex min-h-12 items-center gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-4 text-base font-semibold text-ink-display shadow-xs transition-all hover:bg-surface-container active:scale-95"
           >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            <ArrowLeft className="size-5" />
             Volver al catálogo
           </Link>
           <div className="flex items-center gap-2">
             <span className="h-0.5 w-6 bg-amber" />
-            <span className="text-xs font-bold uppercase tracking-widest text-amber">
+            <span className="text-sm font-semibold text-amber">
               Editorial & Creación
             </span>
           </div>
@@ -54,7 +54,7 @@ export default function InspiracionPage() {
           <BadgeEnDesarrollo />
           <div className="flex items-center gap-2">
             <span className="h-px w-8 bg-heritage-navy" />
-            <span className="text-xs font-bold uppercase tracking-widest text-ink-display">
+            <span className="text-sm font-semibold text-ink-display">
               Tendencia de Temporada
             </span>
           </div>
@@ -68,7 +68,7 @@ export default function InspiracionPage() {
               }}
             />
             <div className="flex flex-col justify-center p-6 sm:p-10 md:p-12">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber">
+              <span className="text-sm font-semibold text-amber">
                 Terciopelo & Riqueza Táctil
               </span>
               <h2 className="mt-2 font-display text-2xl font-bold text-ink-display sm:text-4xl">
@@ -99,7 +99,7 @@ export default function InspiracionPage() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded bg-surface-container text-amber">
                 <PencilRuler className="size-7" />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber">
+              <span className="text-sm font-semibold text-amber">
                 Guía de Atelier
               </span>
               <h3 className="mt-1 font-display text-xl font-bold text-ink-display sm:text-2xl">
@@ -122,7 +122,7 @@ export default function InspiracionPage() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded bg-surface-container text-amber">
                 <Ruler className="size-7" />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber">
+              <span className="text-sm font-semibold text-amber">
                 Cálculo de Metraje
               </span>
               <h3 className="mt-1 font-display text-xl font-bold text-ink-display sm:text-2xl">
@@ -164,7 +164,7 @@ export default function InspiracionPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-ink-display">Carmen L.</p>
-                  <p className="text-xs text-ink-soft">Fresnillo, Zacatecas</p>
+                  <p className="text-sm text-ink-soft">Fresnillo, Zacatecas</p>
                 </div>
               </div>
               <div
@@ -179,14 +179,14 @@ export default function InspiracionPage() {
                   <h3 className="font-display text-lg font-bold text-ink-display">
                     Ensamble Cobrizo de Temporada
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+                  <p className="mt-2 text-base leading-relaxed text-ink-soft">
                     Confeccionado con tejido fino y botones de concha nácar. Perfecto para el clima de otoño.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-line/60 flex flex-wrap gap-2">
                   <Link
                     href="/?q=cobre"
-                    className="inline-flex items-center gap-1 rounded bg-surface-container px-3 py-1 text-xs font-semibold text-ink-display hover:bg-surface-container-high"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded bg-surface-container px-3 text-sm font-semibold text-ink-display hover:bg-surface-container-high"
                   >
                     <Swatches className="size-3.5" />
                     Tono Cobre
@@ -203,7 +203,7 @@ export default function InspiracionPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-ink-display">Marta Taller Textil</p>
-                  <p className="text-xs text-ink-soft">Zacatecas Centro</p>
+                  <p className="text-sm text-ink-soft">Zacatecas Centro</p>
                 </div>
               </div>
               <div
@@ -218,14 +218,14 @@ export default function InspiracionPage() {
                   <h3 className="font-display text-lg font-bold text-ink-display">
                     Vestido de Gala en Seda Esmeralda
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+                  <p className="mt-2 text-base leading-relaxed text-ink-soft">
                     Caída fluida con brillo sutil y costuras invisibles. El color esmeralda cambia con la luz.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-line/60 flex flex-wrap gap-2">
                   <Link
                     href="/?q=seda"
-                    className="inline-flex items-center gap-1 rounded bg-surface-container px-3 py-1 text-xs font-semibold text-ink-display hover:bg-surface-container-high"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded bg-surface-container px-3 text-sm font-semibold text-ink-display hover:bg-surface-container-high"
                   >
                     <Swatches className="size-3.5" />
                     Seda Natural
@@ -242,7 +242,7 @@ export default function InspiracionPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-ink-display">Lucía Fernández</p>
-                  <p className="text-xs text-ink-soft">Fresnillo, Zacatecas</p>
+                  <p className="text-sm text-ink-soft">Fresnillo, Zacatecas</p>
                 </div>
               </div>
               <div
@@ -257,14 +257,14 @@ export default function InspiracionPage() {
                   <h3 className="font-display text-lg font-bold text-ink-display">
                     Velo de Novia con Encaje Italiano
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+                  <p className="mt-2 text-base leading-relaxed text-ink-soft">
                     Bordado floral sobre tul ilusión con aplicaciones de pedrería fina en el orillo.
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-line/60 flex flex-wrap gap-2">
                   <Link
                     href="/?q=encaje"
-                    className="inline-flex items-center gap-1 rounded bg-surface-container px-3 py-1 text-xs font-semibold text-ink-display hover:bg-surface-container-high"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded bg-surface-container px-3 text-sm font-semibold text-ink-display hover:bg-surface-container-high"
                   >
                     <Swatches className="size-3.5" />
                     Encaje & Tul

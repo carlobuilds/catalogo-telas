@@ -29,6 +29,12 @@ export function ProductCard({
     ).values()
   );
 
+  // "desde" solo cuando de verdad hay varios precios: con un solo precio
+  // la palabra hace pensar que hay algo más barato escondido.
+  const preciosDistintos = new Set(
+    tela.variantes.map((v) => v.precio_metro).filter((p) => p != null)
+  ).size;
+
   const atributos = {
     es_bordado: tela.variantes.some((v) => v.es_bordado),
     es_brillante: tela.variantes.some((v) => v.es_brillante),
@@ -58,9 +64,7 @@ export function ProductCard({
       <div className="flex flex-1 flex-col justify-between gap-2">
         <div className="flex flex-col gap-1">
           {tela.categoria && (
-            <p className="text-label-caps text-xs text-amber">
-              {tela.categoria}
-            </p>
+            <p className="text-sm font-semibold text-amber">{tela.categoria}</p>
           )}
 
           <h3 className="font-display text-base font-semibold leading-snug text-ink-display transition-colors group-hover:text-amber sm:text-lg">
@@ -71,10 +75,12 @@ export function ProductCard({
         <div className="flex flex-col gap-2 pt-1 border-t border-line/60">
           {tela.precio_desde != null ? (
             <div>
-              <p className="text-base sm:text-lg font-bold text-amber">
-                <span className="text-sm font-normal text-ink-soft">desde </span>
+              <p className="text-lg font-bold tabular-nums text-amber sm:text-xl">
+                {preciosDistintos > 1 && (
+                  <span className="text-sm font-normal text-ink-soft">desde </span>
+                )}
                 {pesos.format(tela.precio_desde)}
-                <span className="text-sm font-medium text-ink-soft ml-0.5">
+                <span className="ml-0.5 text-sm font-medium text-ink-soft">
                   {unidadDe(tela.precio_desde_unidad).sufijoPrecio}
                 </span>
               </p>
@@ -85,7 +91,7 @@ export function ProductCard({
               )}
             </div>
           ) : (
-            <p className="text-sm font-medium text-ink-soft">A consultar</p>
+            <p className="text-base font-medium text-ink-soft">Precio a consultar</p>
           )}
 
           {/* Los puntos son una muestra visual, no información que se pueda
@@ -96,10 +102,10 @@ export function ProductCard({
             <>
               <div aria-hidden className="flex flex-wrap items-center gap-1.5 pt-0.5">
                 {swatches.slice(0, 6).map((v) => (
-                  <ColorSwatch key={v.color_hex} hex={v.color_hex} nombre={v.color_nombre} size="sm" />
+                  <ColorSwatch key={v.color_hex} hex={v.color_hex} nombre={v.color_nombre} size="md" />
                 ))}
                 {swatches.length > 6 && (
-                  <span className="text-xs font-semibold text-ink-soft">+{swatches.length - 6}</span>
+                  <span className="text-sm font-semibold text-ink-soft">+{swatches.length - 6}</span>
                 )}
               </div>
               <span className="sr-only">

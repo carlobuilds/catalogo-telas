@@ -125,7 +125,7 @@ export function CartDrawer() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <ShoppingBag className="size-5 text-amber" />
-              <span className="text-label-caps text-xs text-amber">
+              <span className="text-sm font-semibold text-amber">
                 Cotización de Telas
               </span>
             </div>
@@ -155,8 +155,8 @@ export function CartDrawer() {
                 <Basket className="size-8" />
               </div>
               <p className="font-display text-xl font-bold text-ink-display">Tu cesta está vacía</p>
-              <p className="mt-2 max-w-xs text-sm text-ink-soft">
-                Explora el catálogo, elige tus metros favoritos y agrégalos aquí.
+              <p className="mt-2 max-w-xs text-base text-ink-soft">
+                Explora el catálogo, elige lo que te guste y agrégalo aquí.
               </p>
               <Button
                 variant="primary"
@@ -243,6 +243,9 @@ export function CartDrawer() {
                           <Trash className="h-5 w-5" />
                         </button>
                       </div>
+                      <span className="text-base font-bold tabular-nums text-amber">
+                        {item.precio != null ? pesos.format(item.precio * item.cantidad) : "Por consultar"}
+                      </span>
                     </div>
                   </div>
                 </li>
@@ -255,7 +258,7 @@ export function CartDrawer() {
         {items.length > 0 && (
           <div className="border-t border-line/60 bg-surface-container-lowest p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-lg sm:p-6 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-bold uppercase tracking-wider text-ink-soft">
+              <span className="text-base font-semibold text-ink-soft">
                 {haySinPrecio ? "Total parcial" : "Total estimado"}
               </span>
               <span className="font-display text-2xl sm:text-3xl font-bold text-amber">
@@ -279,7 +282,7 @@ export function CartDrawer() {
               onClick={() => setIsOpen(false)}
               className="h-14"
             >
-              <WhatsappLogo className="h-5 w-5" aria-hidden />
+              <WhatsappLogo className="size-6" weight="fill" />
               Enviar pedido por WhatsApp
             </Button>
             <Button
@@ -289,7 +292,7 @@ export function CartDrawer() {
               className="mt-2.5"
               onClick={() => setIsOpen(false)}
             >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
+              <ArrowLeft className="size-5" />
               Seguir explorando
             </Button>
           </div>

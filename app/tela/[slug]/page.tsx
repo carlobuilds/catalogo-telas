@@ -122,8 +122,8 @@ export default async function TelaDetallePage({
 
   // pb extra en móvil: reserva espacio para la barra fija de AddToCart
   // (~5.1rem). La de MobileBottomNav (4rem + safe-area) ya la reserva el
-  // `pb` del <body> en el layout; antes se contaba aquí también y sobraban
-  // 4rem bajo la ficha. En sm+ ninguna de las dos es fixed.
+  // hueco de `ChromeTienda`; antes se contaba aquí también y sobraban 4rem
+  // bajo la ficha. En sm+ ninguna de las dos es fixed.
   return (
     <main className="mx-auto max-w-6xl px-4 pt-8 pb-[5.5rem] sm:px-6 sm:pb-8 lg:px-8">
       <VolverAlCatalogo href={rutaDeCatalogo(catalogo)} nombre={CATALOGOS[catalogo].nombre} />
@@ -173,7 +173,7 @@ export default async function TelaDetallePage({
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             {seleccionada.categoria && (
-              <span className="text-label-caps text-xs text-amber">
+              <span className="text-base font-semibold text-amber">
                 {seleccionada.categoria}
               </span>
             )}
@@ -183,22 +183,22 @@ export default async function TelaDetallePage({
               </h1>
               {seleccionada.precio_metro != null ? (
                 <div className="shrink-0 text-right">
-                  <p className="text-2xl sm:text-3xl font-bold text-amber">
+                  <p className="text-2xl font-bold tabular-nums text-amber sm:text-3xl">
                     {pesos.format(seleccionada.precio_metro)}
                   </p>
-                  <p className="text-sm font-semibold text-ink-soft">
-                    {unidad.sufijoPrecio}
+                  <p className="text-base font-semibold text-ink-soft">
+                    por {unidad.singular}
                   </p>
                 </div>
               ) : (
-                <p className="shrink-0 pt-1 text-sm font-medium text-ink-soft">
+                <p className="shrink-0 pt-1 text-base font-medium text-ink-soft">
                   Precio a consultar
                 </p>
               )}
             </div>
             {seleccionada.precio_es_referencia && (
-              <p className="text-sm text-amber-soft font-medium">
-                * Precio de referencia · confirmamos disponibilidad por WhatsApp
+              <p className="text-sm font-medium text-amber-soft">
+                Precio de referencia: te confirmamos el precio y la existencia por WhatsApp.
               </p>
             )}
           </div>
@@ -242,7 +242,7 @@ export default async function TelaDetallePage({
             <dl className="grid grid-cols-2 gap-3.5">
               {seleccionada.sku && (
                 <div className="min-w-0 rounded border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-2xs">
-                  <dt className="text-label-caps text-xs text-amber">Código</dt>
+                  <dt className="text-sm font-semibold text-amber">Código</dt>
                   {/* break-all: un código largo sin espacios desbordaba la
                       media columna a 375px. */}
                   <dd className="mt-1 break-all font-mono text-base font-bold text-ink-display">
@@ -252,7 +252,7 @@ export default async function TelaDetallePage({
               )}
               {seleccionada.stock != null && (
                 <div className="min-w-0 rounded border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-2xs">
-                  <dt className="text-label-caps text-xs text-amber">
+                  <dt className="text-sm font-semibold text-amber">
                     Existencia
                   </dt>
                   {seleccionada.stock > 0 ? (
@@ -277,9 +277,7 @@ export default async function TelaDetallePage({
           {/* Tags de ocasión */}
           {tags.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-label-caps text-xs text-ink-display">
-                Ocasión & Estilo
-              </p>
+              <p className="text-base font-semibold text-ink-display">Ocasión y estilo</p>
               <div className="flex flex-wrap gap-2">
                 {tags.map((t) => (
                   <span

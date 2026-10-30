@@ -70,7 +70,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
             {/* Eyebrow de atelier con sello de Fresnillo */}
             <div className="mb-3.5 inline-flex items-center gap-2 self-start rounded-full border border-amber/30 bg-surface-container-lowest/80 px-3 py-1 shadow-xs backdrop-blur-xs">
               <span aria-hidden className="flex h-2 w-2 shrink-0 rounded-full bg-amber animate-pulse" />
-              <span className="text-label-caps text-xs text-amber">
+              <span className="text-sm font-semibold text-amber">
                 {texto.sello}
               </span>
             </div>
@@ -114,8 +114,8 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
                 onClick={scrollToCatalog}
                 className="group inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded bg-heritage-navy px-6 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-deep-slate hover:shadow-lg active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2"
               >
-                <span>Explorar Catálogo</span>
-                <ArrowDown className="size-5 transition-transform group-hover:translate-y-0.5" />
+                Ver el catálogo
+                <ArrowDown className="size-6 transition-transform group-hover:translate-y-0.5" />
               </button>
 
               <TutorialTrigger variant="hero-banner" className="flex-1 md:max-w-md" />
@@ -155,7 +155,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
                   </div>
                 </div>
                 {totalModelos != null && totalModelos > 0 && (
-                  <span className="shrink-0 rounded bg-white/20 px-2 py-1 text-xs font-bold text-white tracking-wide">
+                  <span className="shrink-0 rounded bg-white/20 px-2 py-1 text-sm font-bold text-white tracking-wide">
                     {totalModelos}+ modelos
                   </span>
                 )}
@@ -174,7 +174,7 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
             onClick={scrollToCatalog}
             className="group flex min-h-[44px] flex-col items-center justify-center gap-1 rounded px-3 text-sm font-bold text-ink-soft transition-colors hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
           >
-            <span className="text-label-caps text-sm text-ink-soft group-hover:text-amber">
+            <span className="text-sm font-semibold text-ink-soft group-hover:text-amber">
               Ver colección completa
             </span>
             <CaretDown className="size-5 text-amber animate-bounce" />

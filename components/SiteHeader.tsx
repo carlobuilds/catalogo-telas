@@ -32,10 +32,6 @@ export function SiteHeader() {
       ? `Ver mi cotización, ${itemCount} ${itemCount === 1 ? "artículo" : "artículos"}`
       : "Ver mi cotización";
 
-  // /admin y /revision son herramientas internas con su propia nav (AdminNav,
-  // RevisionNav) — el header de vitrina (logo, cesta) no aplica ahí.
-  if (pathname.startsWith("/admin") || pathname.startsWith("/revision")) return null;
-
   return (
     /* Mismo blanco que las tarjetas (`--color-surface-container-lowest`, #fff),
         no un `bg-white` suelto: la paleta vive en globals.css. Al 60% deja
@@ -74,7 +70,7 @@ export function SiteHeader() {
                 sacrifica al hacer scroll: no aporta orientación una vez que
                 ya se sabe en qué sitio se está, y es puro alto reclamado. */}
             <span
-              className={`text-label-caps truncate text-xs text-amber sm:block ${
+              className={`truncate text-sm font-semibold text-amber sm:block ${
                 compacto ? "hidden" : "block"
               }`}
             >
@@ -136,7 +132,7 @@ export function SiteHeader() {
             <span>¿Cómo pedir?</span>
             {/* El distintivo sale hasta `xl`: entre 640 y 1279px su ancho era
                 justo lo que le faltaba al nombre de la tienda para no cortarse. */}
-            <span className="hidden rounded bg-amber/15 px-1.5 py-0.5 text-xs font-bold text-amber xl:inline-flex">
+            <span className="hidden rounded bg-amber/15 px-1.5 py-0.5 text-sm font-bold text-amber xl:inline-flex">
               4 pasos
             </span>
           </button>
@@ -160,7 +156,7 @@ export function SiteHeader() {
             {mounted && itemCount > 0 && (
               <span
                 aria-hidden
-                className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-white shadow-xs ring-2 ring-sand-bg"
+                className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-amber px-1.5 text-sm font-bold text-white shadow-xs ring-2 ring-sand-bg"
               >
                 {itemCount}
               </span>

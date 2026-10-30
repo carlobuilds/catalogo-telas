@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useCartStore } from "@/lib/store";
 import { useGuideStore } from "@/lib/guide-store";
-import { Question, ShoppingBag, Sparkle, SquaresFour } from "@/components/ui/iconos";
+import { Question, ShoppingBag, Sparkle, SquaresFour, type Icon } from "@/components/ui/iconos";
 
+/**
+ * Barra inferior del celular. Mide 4rem (h-16): `AddToCart` y la ficha de
+ * tela calculan su propio `bottom` con ese número, no cambiarlo a la ligera.
+ *
+ * La pestaña activa se marca con el icono RELLENO sobre un bloque púrpura —
+ * el púrpura es color de acción y nunca va en texto, así que la etiqueta se
+ * queda en tinta—. Antes era un punto de 4px bajo un texto de 11px al 70% de
+ * opacidad (contraste 2.97:1): para quien tiene 40+ no se distinguía qué
+ * pestaña estaba abierta.
+ */
 export function MobileBottomNav() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -31,96 +41,81 @@ export function MobileBottomNav() {
     pathname.startsWith("/tela/");
   const isInspiracion = pathname === "/inspiracion";
 
-  // /admin y /revision son herramientas internas: esta barra fija (Catálogo,
-  // Inspiración, Cesta) no aplica y su `fixed bottom-0` chocaría con los
-  // botones/sheets propios de esas pantallas.
-  if (pathname.startsWith("/admin") || pathname.startsWith("/revision")) return null;
-
   return (
     <nav
       aria-label="Navegación principal móvil"
-      className="fixed bottom-0 left-0 right-0 z-40 block border-t border-line/60 bg-sand-bg/90 pb-safe shadow-[0_-2px_12px_rgba(0,0,0,0.05)] backdrop-blur-xl sm:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 block border-t border-line/60 bg-sand-bg/95 pb-safe shadow-[0_-2px_12px_rgba(0,0,0,0.05)] backdrop-blur-xl sm:hidden"
     >
-      <div className="flex h-16 items-center justify-around px-2">
-        {/* Tab 1: Catálogo */}
-        <Link
-          href="/"
-          className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${
-            isCatalogo ? "text-ink-display font-bold" : inactivo
-          }`}
-          aria-current={isCatalogo ? "page" : undefined}
-        >
-          <SquaresFour className="size-5.5" />
-          <span className="mt-0.5 text-xs">Catálogo</span>
-          {/* El morado no va en texto, así que la pestaña activa se marca con
-              un punto de relleno: sin él, activo e inactivo solo se distinguen
-              por peso y eso casi no se ve a 12px. */}
-          <span
-            aria-hidden
-            className={`mt-1 h-1 w-1 rounded-full ${isCatalogo ? "bg-heritage-navy" : "bg-transparent"}`}
-          />
-        </Link>
-
-        {/* Tab 2: Inspiración */}
-        <Link
-          href="/inspiracion"
-          className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${
-            isInspiracion ? "text-ink-display font-bold" : inactivo
-          }`}
-          aria-current={isInspiracion ? "page" : undefined}
-        >
-          <Sparkle className="size-5.5" />
-          <span className="mt-0.5 text-xs">Inspiración</span>
-          <span
-            aria-hidden
-            className={`mt-1 h-1 w-1 rounded-full ${isInspiracion ? "bg-heritage-navy" : "bg-transparent"}`}
-          />
-        </Link>
-
-        {/* Tab 3: Cesta / Cotización.
-            Sin `aria-label`: el nombre accesible sale del texto visible
-            ("Cesta") para que quien navega por voz pueda decir lo que ve. El
-            conteo del globo se oculta (es un número suelto) y se repite en
-            palabras, DESPUÉS de "Cesta", para que el nombre siga empezando
-            por la etiqueta visible: "Cesta, 3 artículos". */}
-        <button
-          type="button"
+      <div className="flex h-16 items-stretch justify-around px-1">
+        <Pestana href="/" icono={SquaresFour} etiqueta="Catálogo" activa={isCatalogo} />
+        <Pestana href="/inspiracion" icono={Sparkle} etiqueta="Inspiración" activa={isInspiracion} />
+        <Pestana
+          icono={ShoppingBag}
+          etiqueta="Cesta"
           onClick={() => setIsOpen(true)}
-          className={`relative flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${inactivo}`}
-        >
-          <span className="relative">
-            <ShoppingBag className="size-5.5" />
-            {mounted && itemCount > 0 && (
-              <span
-                aria-hidden
-                className="absolute -right-2.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1 text-xs font-bold text-white shadow-xs"
-              >
+          detalle={mounted && itemCount > 0 ? `, ${itemCount} ${itemCount === 1 ? "artículo" : "artículos"}` : undefined}
+          insignia={
+            mounted &&
+            itemCount > 0 && (
+              <span aria-hidden className="absolute -right-2.5 -top-1.5 flex h-5.5 min-w-5.5 items-center justify-center rounded-full bg-amber px-1 text-sm font-bold leading-none text-white shadow-xs">
                 {itemCount}
               </span>
-            )}
-          </span>
-          <span className="mt-0.5 text-xs">Cesta</span>
-          {mounted && itemCount > 0 && (
-            <span className="sr-only">
-              , {itemCount} {itemCount === 1 ? "artículo" : "artículos"}
-            </span>
-          )}
-          {/* Cesta y Ayuda abren paneles, nunca son "página actual": el punto va
-              transparente solo para que los cuatro iconos queden a la misma altura. */}
-          <span aria-hidden className="mt-1 h-1 w-1" />
-        </button>
-
-        {/* Tab 4: Ayuda / Tutorial. Nombre = texto visible ("Ayuda"). */}
-        <button
-          type="button"
-          onClick={openTutorial}
-          className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${inactivo}`}
-        >
-          <Question className="size-5.5" />
-          <span className="mt-0.5 text-xs">Ayuda</span>
-          <span aria-hidden className="mt-1 h-1 w-1" />
-        </button>
+            )
+          }
+        />
+        <Pestana icono={Question} etiqueta="Ayuda" onClick={openTutorial} />
       </div>
     </nav>
+  );
+}
+
+function Pestana({
+  icono: Icono,
+  etiqueta,
+  activa = false,
+  href,
+  onClick,
+  insignia,
+  detalle,
+}: {
+  icono: Icon<"bold" | "fill">;
+  etiqueta: string;
+  activa?: boolean;
+  href?: string;
+  onClick?: () => void;
+  insignia?: ReactNode;
+  /** Solo lector de pantalla, DESPUÉS de la etiqueta: quien navega por voz dice lo que ve. */
+  detalle?: string;
+}) {
+  const clase = `flex min-w-16 flex-1 flex-col items-center justify-center gap-1 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-heritage-navy ${
+    activa ? "font-bold text-ink-display" : "font-medium text-ink-soft hover:text-ink-display"
+  }`;
+
+  const contenido = (
+    <>
+      <span
+        className={`relative flex h-7 w-12 items-center justify-center rounded-lg transition-colors ${
+          activa ? "bg-heritage-navy text-white" : ""
+        }`}
+      >
+        <Icono className="size-6" weight={activa ? "fill" : "bold"} />
+        {insignia}
+      </span>
+      <span className="text-sm leading-none">{etiqueta}</span>
+      {detalle && <span className="sr-only">{detalle}</span>}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={clase} aria-current={activa ? "page" : undefined}>
+        {contenido}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={clase}>
+      {contenido}
+    </button>
   );
 }

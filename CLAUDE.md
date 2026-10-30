@@ -204,11 +204,24 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
   el significado vive en `globals.css`, no en el nombre. No hay ningún azul en
 - **Border-radius del design.md de Stitch "Artisanal Modernity"** (tokens en `globals.css`; es la escala default de Tailwind, Stitch no la personalizó). Base de **4px** (`rounded`) en cards de producto, imágenes, inputs, chips y botones; **8px** (`rounded-lg`) en paneles e imágenes enmarcadas; **12px** (`rounded-xl` y `rounded-2xl`, mismo valor: Stitch no define 2xl) en contenedores destacados y modales; **24px** (`rounded-3xl`) en bottom-sheets; **9999px** (`rounded-full`) exclusivamente en swatches de color circulares y puntos de estado.
 - Accesibilidad AA: contraste, focus visible, navegable por teclado, `alt` en imágenes.
-- **Móvil para clientela de 40+** (plan UX, Fase 3): nada con significado de menos de 14px
-  (`text-sm`; `text-xs` solo para conteos y etiquetas cortas); inputs en `text-base` (16px, o
-  iOS hace zoom al enfocarlos); botones y links de al menos 44px (`min-h-[44px]`); nunca
-  `text-ink-soft/70` ni `/50` en texto; un botón que en móvil solo muestra icono lleva
-  `aria-label`, y el nombre accesible de uno con texto EMPIEZA por ese texto.
+- **Legibilidad para 40+** (la mayoría de quien usa el catálogo y el admin). Reglas, no
+  sugerencias — se midieron en el navegador al aplicarlas:
+  - Nada con significado por debajo de **14px** (`text-sm`); cuerpo ≥ 16px. Las únicas
+    excepciones son las miniaturas de la guía (`data-maqueta` en `Maquetas.tsx`).
+  - **Inputs siempre `text-base`**: con menos de 16px, Safari de iPhone hace zoom a la
+    página al tocar el campo.
+  - Etiquetas en minúsculas normales, no MAYÚSCULAS con `tracking-wider`.
+  - Objetivos táctiles ≥ **44px** (`min-h-11`), acciones principales 48–56px. `Button`
+    ya no tiene tamaño menor a 44px.
+  - Contraste: prohibido `text-ink/40`, `text-ink/50` y `text-ink-soft/70` en texto
+    (2.6–3.5:1, fallan AA). `text-ink-soft` da 5.5:1 sobre arena.
+  - Rojo de error/borrar = token `peligro` (`peligro-suave` de fondo), no `red-*` de Tailwind.
+  - Nada de recortar con `truncate` un texto que explica algo (botones de ayuda, avisos).
+  - Un botón que en móvil solo muestra icono lleva `aria-label`, y el nombre accesible de
+    uno con texto EMPIEZA por ese texto (WCAG 2.5.3: quien navega por voz dice lo que ve).
+- **Vitrina vs. herramientas internas**: cabecera, barra inferior, cesta y guía viven en
+  `components/ChromeTienda.tsx` y NO se montan en `/admin` ni `/revision`
+  (`lib/rutas.ts`). Antes la guía se abría sola encima del formulario de captura.
 - Estado de filtros/búsqueda en la **URL (querystring)** para que sea compartible.
   **Compartir la selección** (`lib/compartir.ts`, `components/CompartirVista.tsx`): el link es
   la ruta del catálogo con sus filtros y sin `ver`; quien lo abre ve pastillas con lo activo

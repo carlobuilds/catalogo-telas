@@ -65,7 +65,7 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex min-w-0 flex-1 flex-col items-center justify-center"
             >
               <span className="text-base font-bold leading-none text-ink-display">{cantidad}</span>
-              <span className="text-label-caps mt-0.5 text-xs text-amber">
+              <span className="mt-0.5 text-sm font-semibold text-amber">
                 {nombreUnidad}
               </span>
             </div>
@@ -129,7 +129,7 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex min-w-[3.75rem] flex-col items-center justify-center px-1 text-center"
             >
               <span className="text-base font-bold leading-none text-ink-display">{cantidad}</span>
-              <span className="text-label-caps mt-0.5 text-xs text-amber">
+              <span className="mt-0.5 text-sm font-semibold text-amber">
                 {nombreUnidad}
               </span>
             </span>

@@ -9,8 +9,11 @@ import { MagnifyingGlass, ShoppingBag, WhatsappLogo, SlidersHorizontal, Check, S
 
 function Marco({ children }: { children: React.ReactNode }) {
   return (
+    // `data-maqueta`: estas miniaturas imitan la pantalla en chiquito y quedan
+    // FUERA de la regla de 14px mínimos — son ilustración, no texto a leer.
     <div
       aria-hidden
+      data-maqueta
       className="select-none overflow-hidden rounded border border-line/80 bg-surface-container-lowest shadow-sm"
     >
       {/* Barra superior de la maqueta (Atelier Window Bar) */}

@@ -27,9 +27,9 @@ export function VolverAlCatalogo({ href, nombre }: { href: string; nombre: strin
           router.push(href);
         }
       }}
-      className="mb-6 inline-flex min-h-[44px] items-center gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-4 text-sm font-bold text-ink-display shadow-xs transition-all hover:bg-surface-container active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+      className="mb-6 inline-flex min-h-12 items-center gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-4 text-base font-semibold text-ink-display shadow-xs transition-all hover:bg-surface-container active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
     >
-      <ArrowLeft className="h-4 w-4" aria-hidden />
+      <ArrowLeft className="size-5" />
       Volver a {nombre}
     </button>
   );
