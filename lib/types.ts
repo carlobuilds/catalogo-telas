@@ -101,6 +101,12 @@ export type CatalogoTela = {
    * la columna solo existe tras correr la sección 15 del SQL.
    */
   nota?: string | null;
+  /**
+   * Slugs de las categorías "también aparece en" (tabla `tela_categoria`).
+   * Opcional porque la columna solo existe tras correr la sección 16 del SQL.
+   * El catálogo lo decide SOLO `categoria_slug`; ver lib/busqueda/indice.ts.
+   */
+  categorias_extra?: string[] | null;
 };
 
 /**

@@ -22,6 +22,7 @@ import {
   textoOpcional,
   uuidOpcional,
 } from "@/lib/admin/campos";
+import { reemplazarCategoriasExtra } from "@/lib/categorias-extra";
 
 // ---------------------------------------------------------------------------
 // Sesión
@@ -254,6 +255,8 @@ export async function actualizarTela(formData: FormData) {
   const slug = slugify(String(formData.get("slug") ?? "")) || slugify(nombre);
   if (!slug) throw new Error("La URL (slug) no puede quedar vacía.");
 
+  const categoriaId = uuidOpcional(formData.get("categoria_id"), "categoría");
+
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("tela")
@@ -261,7 +264,7 @@ export async function actualizarTela(formData: FormData) {
       nombre,
       slug,
       descripcion: textoOpcional(formData.get("descripcion")),
-      categoria_id: uuidOpcional(formData.get("categoria_id"), "categoría"),
+      categoria_id: categoriaId,
     })
     .eq("id", telaId);
 
@@ -288,6 +291,17 @@ export async function actualizarTela(formData: FormData) {
       .from("tela_oportunidad")
       .insert(oportunidades.map((oportunidad_id) => ({ tela_id: telaId, oportunidad_id })));
     if (e) throw new Error(`No se pudieron guardar las oportunidades: ${e.message}`);
+  }
+
+  // "También aparece en" (sección 16 del SQL): solo si el formulario pintó
+  // las casillas. Sin la tabla, el editor no las pinta y esto no corre.
+  if (formData.has("categorias_extra_presentes")) {
+    const extras = formData
+      .getAll("categorias_extra")
+      .map((v) => requireUuid(v, "categoría extra"))
+      .filter((id) => id !== categoriaId);
+    const { error: e } = await reemplazarCategoriasExtra(supabase, telaId, extras);
+    if (e) throw new Error(e);
   }
 
   refrescarCatalogo(telaId);

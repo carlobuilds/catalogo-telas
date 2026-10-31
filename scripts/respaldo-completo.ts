@@ -61,7 +61,15 @@ const TABLAS: Record<string, string[]> = {
   tela_caso_uso: ["tela_id", "caso_uso_id"],
   tela_oportunidad: ["tela_id", "oportunidad_id"],
   movimiento_inventario: ["id"],
+  // Sección 16 del SQL: puede no existir todavía (ver TABLAS_OPCIONALES).
+  tela_categoria: ["tela_id", "categoria_id"],
 };
+
+/**
+ * Tablas de migraciones que Carlo corre a mano: si aún no existen, el
+ * respaldo las omite y lo dice, en vez de reintentar seis veces y fallar.
+ */
+const TABLAS_OPCIONALES = new Set(["tela_categoria"]);
 
 const destinoArg = process.argv.find((a) => a.startsWith("--destino="))?.slice(10);
 if (!destinoArg) {
@@ -177,6 +185,13 @@ async function main() {
   const conteos: Record<string, number> = {};
   const tablas: Record<string, Record<string, unknown>[]> = {};
   for (const [tabla, orden] of Object.entries(TABLAS)) {
+    if (TABLAS_OPCIONALES.has(tabla)) {
+      const { error } = await sb.from(tabla).select("*", { head: true, count: "exact" });
+      if (error?.code === "PGRST205" || error?.code === "42P01") {
+        console.log(`   ${tabla.padEnd(22)} (no existe aún: se omite)`);
+        continue;
+      }
+    }
     const filas = await leerTodo(tabla, orden);
     tablas[tabla] = filas;
     conteos[tabla] = filas.length;
@@ -260,7 +275,8 @@ async function main() {
       "Restaurar: el esquema está en catalogo_telas_supabase.sql; cada datos/<tabla>.json",
       "se puede reinsertar con upsert por llave primaria (primero los catálogos — color,",
       "categoria, acabado, caso_uso, oportunidad —, luego tela, variante, foto, las tablas",
-      "puente y movimiento_inventario). fotos/ se sube tal cual al bucket `telas`.",
+      "puente (tela_caso_uso, tela_oportunidad, tela_categoria) y movimiento_inventario).",
+      "fotos/ se sube tal cual al bucket `telas`.",
     ].join("\n")
   );
 
@@ -271,7 +287,7 @@ async function main() {
     console.error(`✖ ${malos.length} objetos no quedaron completos en disco; vuelve a correr el script`);
     process.exit(1);
   }
-  console.log(`✓ Respaldo verificado: ${objetos.length} objetos completos y ${Object.keys(TABLAS).length} tablas`);
+  console.log(`✓ Respaldo verificado: ${objetos.length} objetos completos y ${Object.keys(tablas).length} tablas`);
 }
 
 main().catch((e) => {

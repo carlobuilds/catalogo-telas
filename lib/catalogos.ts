@@ -121,3 +121,17 @@ export function seccionPorSlug(slug: string | null | undefined): Seccion | null 
 export function seccionDeCategoria(slug: string | null | undefined): Seccion | null {
   return slug ? (SECCIONES_MERCERIA.find((s) => s.categorias.includes(slug)) ?? null) : null;
 }
+
+/**
+ * Categorías que se le pueden dar a un producto como "también aparece en":
+ * las de SU catálogo (el de su categoría principal), menos la principal. Una
+ * extra del otro catálogo no tendría efecto —el catálogo lo decide solo la
+ * principal—, así que ni se ofrece.
+ */
+export function categoriasExtraPosibles<T extends { slug: string }>(
+  todas: readonly T[],
+  principal: string | null | undefined
+): T[] {
+  const catalogo = catalogoDeCategoria(principal);
+  return todas.filter((c) => c.slug !== principal && catalogoDeCategoria(c.slug) === catalogo);
+}

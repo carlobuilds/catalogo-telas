@@ -4,6 +4,7 @@ import {
   CATEGORIAS_DE_TELA,
   SECCIONES_MERCERIA,
   catalogoDeCategoria,
+  categoriasExtraPosibles,
   esRutaDeCatalogo,
   rutaDeCatalogo,
   seccionDeCategoria,
@@ -78,5 +79,18 @@ describe("rutas", () => {
     expect(esRutaDeCatalogo("/telas", "telas")).toBe(true);
     expect(esRutaDeCatalogo("/telas", "merceria")).toBe(false);
     expect(esRutaDeCatalogo("/tela/chifon-lunares", "telas")).toBe(false);
+  });
+});
+
+describe("categoriasExtraPosibles", () => {
+  const TODAS = [{ slug: "flores" }, { slug: "tira-de-pedreria" }, { slug: "chifon" }, { slug: "tul" }];
+
+  it("ofrece solo las del mismo catálogo que la principal, sin repetirla", () => {
+    expect(categoriasExtraPosibles(TODAS, "flores").map((c) => c.slug)).toEqual(["tira-de-pedreria"]);
+    expect(categoriasExtraPosibles(TODAS, "chifon").map((c) => c.slug)).toEqual(["tul"]);
+  });
+
+  it("sin principal, el producto es de Mercería y se le ofrece mercería", () => {
+    expect(categoriasExtraPosibles(TODAS, null).map((c) => c.slug)).toEqual(["flores", "tira-de-pedreria"]);
   });
 });
