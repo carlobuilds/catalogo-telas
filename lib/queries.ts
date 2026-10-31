@@ -1,22 +1,23 @@
+import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogoTela } from "@/lib/types";
 import type { FotoVariante } from "@/lib/fotos";
-import { aplicarPreciosDemo } from "@/lib/demo-prices";
+import { aplicarPreciosDemo, resolveDemoPrice } from "@/lib/demo-prices";
 import {
   type Filtros,
   FILTROS_VACIOS,
   PROPIEDADES,
   aQuerystring,
 } from "@/lib/filtros";
-import {
-  type Catalogo,
-  CATALOGO_PORTADA,
-  SECCIONES_MERCERIA,
-  catalogoDeCategoria,
-  seccionPorSlug,
-} from "@/lib/catalogos";
+import { type Catalogo, CATALOGO_PORTADA } from "@/lib/catalogos";
+import { type FilaIndice, type ModeloIndice, construirIndice } from "@/lib/busqueda/indice";
+import { FACETAS_VACIAS, type Facetas, facetasDeIndice } from "@/lib/busqueda/facetas";
+import { type PrecioVisible, seleccionarModelos } from "@/lib/busqueda/seleccion";
+
+// Los tipos de las facetas viven con el índice; se re-exportan aquí porque
+// los componentes ya los importaban de este módulo.
+export { FACETAS_VACIAS, type Faceta, type Facetas } from "@/lib/busqueda/facetas";
 
 /** ¿Están las variables de entorno de Supabase configuradas? */
 export function isSupabaseConfigured(): boolean {
@@ -36,6 +37,8 @@ export type ResultadoCatalogo = {
    * "Ver más".
    */
   totalModelos: number;
+  /** La búsqueda no encontró todas las palabras juntas: se muestra lo más parecido. */
+  aproximado: boolean;
 };
 
 /** Cuántos modelos trae cada "Ver más". */
@@ -52,10 +55,8 @@ export const MODELOS_POR_PAGINA = 48;
  */
 const REVALIDATE_SEGUNDOS = 60;
 
-/** 42703 = "undefined_column": la sección 11 del SQL (variante_orden) aún no corre. */
+/** 42703 = "undefined_column": una columna de una sección del SQL que aún no corre. */
 const COLUMNA_INEXISTENTE = "42703";
-/** PGRST202 = la función `buscar_telas` todavía no existe en la BD. */
-const FUNCION_INEXISTENTE = "PGRST202";
 
 /**
  * PostgREST devuelve el mismo builder en cada `.in()/.eq()/.gt()`, pero
@@ -65,63 +66,119 @@ const FUNCION_INEXISTENTE = "PGRST202";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Consulta = any;
 
-/**
- * Qué categorías puede devolver una consulta: las del catálogo, acotadas por
- * la sección y luego por los chips de categoría. `sinCategoria` dice si
- * también entran los modelos que no tienen categoría.
- */
-export type CategoriasPermitidas = { slugs: string[]; sinCategoria: boolean };
+// ---------------------------------------------------------------------------
+// Índice del catálogo (lib/busqueda): filtrar, buscar y contar sin ir a la BD
+// ---------------------------------------------------------------------------
+
+/** Lo que el índice lee de la vista; nada pesado (sin descripción, sin arreglos de usos). */
+const COLUMNAS_INDICE = [
+  "variante_id",
+  "tela_id",
+  "tela_slug",
+  "tela_nombre",
+  "categoria",
+  "categoria_slug",
+  "sku",
+  "color_nombre",
+  "color_slug",
+  "color_hex",
+  "precio_metro",
+  "unidad_venta",
+  "stock",
+  ...PROPIEDADES.map((p) => p.columna),
+  "foto_principal",
+  "foto_principal_derivados",
+  "variante_orden",
+].join(",");
+
+/** La vista se lee de mil en mil: es el tope de filas por respuesta de PostgREST. */
+const FILAS_POR_LECTURA = 1000;
 
 /**
- * Calcula `CategoriasPermitidas` con `catalogoDeCategoria`, que es la ÚNICA
- * regla de qué es tela y qué es mercería. Por eso recibe la lista de slugs de
- * la tabla `categoria` en vez de escribir la regla como filtro de PostgREST:
- * así no hay dos copias de la regla que se puedan desincronizar.
+ * Toda la vista, paginada con `order`: sin orden, dos páginas consecutivas
+ * pueden encimarse y el índice duplicaría o perdería variantes.
  *
- * La sección solo existe en Mercería; en Telas un `sec` se ignora.
- * Exportada para poder probarla sin BD.
+ * `categorias_extra` llega con la sección 16 del SQL (producto en varias
+ * secciones). Mientras Carlo no la corra, la vista no la tiene (42703) y se
+ * lee sin ella: cada producto queda solo en su categoría principal.
  */
-export function categoriasPermitidas(
-  todas: string[],
-  catalogo: Catalogo,
-  f: Filtros
-): CategoriasPermitidas {
-  const seccion = catalogo === "merceria" ? seccionPorSlug(f.seccion) : null;
-  const slugs = todas.filter(
-    (slug) =>
-      catalogoDeCategoria(slug) === catalogo &&
-      (!seccion || seccion.categorias.includes(slug)) &&
-      (f.categorias.length === 0 || f.categorias.includes(slug))
-  );
-  // Un modelo sin categoría no pertenece a ninguna sección ni a ningún chip.
-  const sinCategoria =
-    catalogoDeCategoria(null) === catalogo && !seccion && f.categorias.length === 0;
-  return { slugs, sinCategoria };
+async function leerFilasIndice(): Promise<FilaIndice[]> {
+  const supabase = createPublicClient();
+  const leer = async (columnas: string) => {
+    const filas: FilaIndice[] = [];
+    for (let desde = 0; ; desde += FILAS_POR_LECTURA) {
+      const { data, error } = await supabase
+        .from("catalogo_telas")
+        .select(columnas)
+        .order("variante_id", { ascending: true })
+        .range(desde, desde + FILAS_POR_LECTURA - 1);
+      if (error) return { filas, error };
+      filas.push(...((data ?? []) as unknown as FilaIndice[]));
+      if ((data?.length ?? 0) < FILAS_POR_LECTURA) return { filas, error: null };
+    }
+  };
+
+  let r = await leer(`${COLUMNAS_INDICE},categorias_extra`);
+  if (r.error?.code === COLUMNA_INEXISTENTE) r = await leer(COLUMNAS_INDICE);
+  if (r.error) throw new Error(r.error.message);
+  return r.filas;
 }
 
 /**
- * Traduce los filtros a condiciones SQL sobre la vista `catalogo_telas`.
- *
- * FILTRA A NIVEL VARIANTE, no modelo: al filtrar "oro", la card del modelo
- * muestra solo sus variantes doradas (un swatch), no todos sus colores. Es lo
- * que espera quien filtró —pidió oro, ve oro— y además hace que el "desde $X"
- * de la card corresponda a lo que quedó visible.
+ * El índice, cacheado 60s con el tag `catalogo` (las acciones de /admin y
+ * /revision lo invalidan al guardar). Cada visita, cada tecla del buscador y
+ * cada vista previa de un link leen de aquí, no de Supabase.
+ */
+const indiceCached = unstable_cache(
+  async (): Promise<ModeloIndice[]> => {
+    const supabase = createPublicClient();
+    const [filas, { data: categorias, error }] = await Promise.all([
+      leerFilasIndice(),
+      supabase.from("categoria").select("slug,nombre"),
+    ]);
+    if (error) throw new Error(error.message);
+    const nombres = Object.fromEntries((categorias ?? []).map((c) => [c.slug as string, c.nombre as string]));
+    return construirIndice(filas, nombres);
+  },
+  ["catalogo-indice"],
+  { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
+);
+
+/**
+ * `cache` de React encima: la portada pide el índice dos veces en el mismo
+ * render (grid y chips) y así se resuelve una sola.
+ */
+export const getIndiceCatalogo = cache(async (): Promise<ModeloIndice[]> => {
+  if (!isSupabaseConfigured()) return [];
+  return indiceCached();
+});
+
+/**
+ * Precio que se ve en pantalla de una variante del índice: el real, o el de
+ * demo si está prendido. El tope `max` filtra por lo que la clienta ve.
+ */
+const precioEnPantalla: PrecioVisible = (m, v) =>
+  resolveDemoPrice({
+    variante_id: v.id,
+    categoria_slug: m.categoria?.slug ?? null,
+    precio_metro: v.precio,
+  });
+
+// ---------------------------------------------------------------------------
+// Filas de una página del grid
+// ---------------------------------------------------------------------------
+
+/**
+ * Los filtros que se deciden POR VARIANTE, traducidos a la vista: al filtrar
+ * "oro", la card del modelo muestra solo sus variantes doradas (un swatch), no
+ * todos sus colores. Es lo que espera quien filtró —pidió oro, ve oro— y además
+ * hace que el "desde $X" de la card corresponda a lo que quedó visible.
  *
  * El precio NO se filtra aquí: los precios de demo se rellenan en JS después
  * de la query (`aplicarPreciosDemo`), así que un `lte` en SQL descartaría
  * productos que en pantalla sí muestran un precio dentro del tope.
  */
-function aplicarFiltros(q: Consulta, f: Filtros, permitidas: CategoriasPermitidas): Consulta {
-  // El catálogo (y la sección y los chips de categoría, ya resueltos en
-  // `permitidas`). Una lista vacía devuelve cero filas, que es lo correcto.
-  if (permitidas.sinCategoria) {
-    const lista = permitidas.slugs.map((s) => `"${s}"`).join(",");
-    q = lista
-      ? q.or(`categoria_slug.is.null,categoria_slug.in.(${lista})`)
-      : q.is("categoria_slug", null);
-  } else {
-    q = q.in("categoria_slug", permitidas.slugs);
-  }
+function aplicarFiltrosDeVariante(q: Consulta, f: Pick<Filtros, "colores" | "propiedades" | "soloDisponibles">): Consulta {
   if (f.colores.length) q = q.in("color_slug", f.colores);
   // Varias propiedades = intersección: "bordado + brillante" pide las dos.
   for (const clave of f.propiedades) {
@@ -164,76 +221,114 @@ async function leerOrdenado(consulta: () => Consulta): Promise<CatalogoTela[]> {
 }
 
 /**
+ * Cuántos `tela_id` caben en un `.in()`: la lista viaja en la URL, y con
+ * "Ver más" una página puede llegar a cientos de modelos. Por eso se parte.
+ */
+const IDS_POR_LECTURA = 48;
+
+export function enTrozos<T>(lista: readonly T[], tamano: number): T[][] {
+  const trozos: T[][] = [];
+  for (let i = 0; i < lista.length; i += tamano) trozos.push(lista.slice(i, i + tamano));
+  return trozos;
+}
+
+/**
+ * Todas las filas (variantes) de los modelos de una página, en el orden de la
+ * página. Vuelve a aplicar los filtros de variante para que "oro" siga
+ * mostrando solo los dorados.
+ *
+ * Los grupos se reordenan al final según `pagina`: el orden ya lo decidió el
+ * índice (con precio primero, relevancia), y SQL solo sabe ordenar por nombre.
+ */
+const filasDePaginaCached = unstable_cache(
+  async (paginaJson: string, filtrosVarianteJson: string): Promise<CatalogoTela[]> => {
+    const pagina = JSON.parse(paginaJson) as string[];
+    const filtros = JSON.parse(filtrosVarianteJson) as Pick<
+      Filtros,
+      "colores" | "propiedades" | "soloDisponibles"
+    >;
+    const supabase = createPublicClient();
+
+    const filas: CatalogoTela[] = [];
+    for (const ids of enTrozos(pagina, IDS_POR_LECTURA)) {
+      filas.push(
+        ...(await leerOrdenado(() =>
+          aplicarFiltrosDeVariante(supabase.from("catalogo_telas").select("*"), filtros).in("tela_id", ids)
+        ))
+      );
+    }
+    return ordenarPorPagina(filas, pagina);
+  },
+  ["catalogo-pagina-filas"],
+  { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
+);
+
+/**
+ * Agrupa las filas por modelo en el orden de `pagina`, sin mover el orden de
+ * los colores dentro de cada modelo (sort estable). Exportada para probarla.
+ */
+export function ordenarPorPagina<T extends { tela_id: string }>(filas: T[], pagina: readonly string[]): T[] {
+  const posicion = new Map(pagina.map((id, i) => [id, i]));
+  return [...filas].sort(
+    (a, b) => (posicion.get(a.tela_id) ?? Infinity) - (posicion.get(b.tela_id) ?? Infinity)
+  );
+}
+
+/**
  * Una página del catálogo, PAGINADA POR MODELO.
  * ---------------------------------------------------------------------------
  * La vista trae una fila por VARIANTE pero el grid pinta una card por MODELO,
  * así que paginar por filas parte un modelo entre dos páginas: la card sale
  * con la mitad de sus colores y el "desde $X" cambia según en qué página caiga.
- * Por eso son dos lecturas:
+ * Por eso son dos pasos:
  *
- *   1. Qué modelos cumplen los filtros, en orden. Proyección mínima
- *      (tela_id + nombre), que es barata aunque el catálogo crezca, y de paso
- *      da el TOTAL honesto de productos para el contador.
- *   2. Todas las filas de los modelos de esta página. Vuelve a aplicar los
- *      filtros de variante para que "oro" siga mostrando solo los dorados.
+ *   1. Sobre el índice (en memoria): qué modelos cumplen los filtros y la
+ *      búsqueda, en orden —con precio real primero; con búsqueda, por
+ *      relevancia y el SKU exacto hasta arriba—. Da el TOTAL honesto.
+ *   2. Las filas completas de los modelos de esta página.
  *
- * Los grupos se reordenan al final según la lista del paso 1: si dos modelos
- * se llaman igual, el orden entre ellos ya no depende de cómo desempate SQL en
- * cada una de las dos consultas.
+ * La búsqueda (`q`) se resuelve en el paso 1 con `lib/busqueda`: insensible a
+ * acentos y mayúsculas, tolera errores de dedo y entiende sinónimos. Los chips
+ * se aplican igual con o sin búsqueda: buscar "piedra" y luego acotar a
+ * "Piedra suelta" funciona como sin búsqueda.
  */
-const paginaCatalogoCached = unstable_cache(
-  async (
-    filtrosJson: string,
-    permitidasJson: string,
-    hasta: number
-  ): Promise<{ filas: CatalogoTela[]; totalModelos: number }> => {
-    const filtros = JSON.parse(filtrosJson) as Filtros;
-    const permitidas = JSON.parse(permitidasJson) as CategoriasPermitidas;
-    const supabase = createPublicClient();
+export async function getCatalogo(
+  {
+    catalogo = CATALOGO_PORTADA,
+    hasta = MODELOS_POR_PAGINA,
+    filtros = FILTROS_VACIOS,
+  }: { catalogo?: Catalogo; hasta?: number; filtros?: Filtros } = {}
+): Promise<ResultadoCatalogo> {
+  if (!isSupabaseConfigured()) {
+    return { data: [], error: null, configurado: false, totalModelos: 0, aproximado: false };
+  }
 
-    const ordenados = await leerOrdenado(() =>
-      aplicarFiltros(supabase.from("catalogo_telas").select("tela_id,tela_nombre"), filtros, permitidas)
-    );
-
-    // Dedupe preservando el orden: una fila por variante, un id por modelo.
-    const ids: string[] = [];
-    const vistos = new Set<string>();
-    for (const f of ordenados) {
-      if (vistos.has(f.tela_id)) continue;
-      vistos.add(f.tela_id);
-      ids.push(f.tela_id);
-    }
-
+  try {
+    const indice = await getIndiceCatalogo();
+    const { ids, aproximado } = seleccionarModelos(indice, catalogo, filtros, precioEnPantalla);
     const pagina = ids.slice(0, hasta);
-    if (pagina.length === 0) return { filas: [], totalModelos: ids.length };
-
-    const filas = await leerOrdenado(() =>
-      aplicarFiltros(supabase.from("catalogo_telas").select("*"), filtros, permitidas).in(
-        "tela_id",
-        pagina
-      )
-    );
-
-    const posicion = new Map(pagina.map((id, i) => [id, i]));
-    filas.sort((a, b) => (posicion.get(a.tela_id) ?? 0) - (posicion.get(b.tela_id) ?? 0));
-
-    return { filas, totalModelos: ids.length };
-  },
-  ["catalogo-pagina"],
-  { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
-);
-
-/** Todos los slugs de la tabla `categoria`: la materia prima de `categoriasPermitidas`. */
-const slugsCategoriaCached = unstable_cache(
-  async (): Promise<string[]> => {
-    const supabase = createPublicClient();
-    const { data, error } = await supabase.from("categoria").select("slug");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((c) => c.slug as string);
-  },
-  ["catalogo-categorias"],
-  { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
-);
+    const filas = pagina.length
+      ? await filasDePaginaCached(
+          JSON.stringify(pagina),
+          JSON.stringify({
+            colores: filtros.colores,
+            propiedades: filtros.propiedades,
+            soloDisponibles: filtros.soloDisponibles,
+          })
+        )
+      : [];
+    return {
+      data: filtrarPorPrecio(aplicarPreciosDemo(filas), filtros.precioMax),
+      error: null,
+      configurado: true,
+      totalModelos: ids.length,
+      aproximado,
+    };
+  } catch (e) {
+    const mensaje = e instanceof Error ? e.message : String(e);
+    return { data: [], error: mensaje, configurado: true, totalModelos: 0, aproximado: false };
+  }
+}
 
 const telaPorSlugCached = unstable_cache(
   async (slug: string): Promise<CatalogoTela[]> => {
@@ -259,142 +354,6 @@ const telaPorSlugCached = unstable_cache(
   ["catalogo-tela"],
   { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
 );
-
-/**
- * Lee la vista `catalogo_telas` (una fila por variante).
- * Server-side, llave anon → respeta RLS de lectura pública.
- *
- * Sin `q`: listado cacheado por (filtros, limit, offset), revalida cada 60s.
- * Con `q`: busca EN VIVO por nombre de modelo, color o SKU usando la función
- * `buscar_telas` (f_unaccent + pg_trgm → insensible a acentos). Los términos
- * de búsqueda son de cola larga, así que cachearlos aporta poco. Si esa función
- * aún no existe en la BD, cae a un ILIKE básico para no romper la búsqueda.
- *
- * Los filtros de chip se aplican en AMBOS caminos: buscar "piedra" y luego
- * acotar a "Piedra suelta" tiene que funcionar igual que sin búsqueda.
- */
-export async function getCatalogo(
-  {
-    catalogo = CATALOGO_PORTADA,
-    hasta = MODELOS_POR_PAGINA,
-    filtros = FILTROS_VACIOS,
-  }: { catalogo?: Catalogo; hasta?: number; filtros?: Filtros } = {}
-): Promise<ResultadoCatalogo> {
-  if (!isSupabaseConfigured()) {
-    return { data: [], error: null, configurado: false, totalModelos: 0 };
-  }
-
-  let permitidas: CategoriasPermitidas;
-  try {
-    permitidas = categoriasPermitidas(await slugsCategoriaCached(), catalogo, filtros);
-  } catch (e) {
-    const mensaje = e instanceof Error ? e.message : String(e);
-    return { data: [], error: mensaje, configurado: true, totalModelos: 0 };
-  }
-
-  const termino = filtros.q?.trim();
-  if (termino) return buscarCatalogo(termino, filtros, permitidas, hasta);
-
-  try {
-    // Filtros y categorías permitidas forman parte de la llave de caché: dos
-    // combinaciones distintas no pueden compartir resultado.
-    const { filas, totalModelos } = await paginaCatalogoCached(
-      JSON.stringify(filtros),
-      JSON.stringify(permitidas),
-      hasta
-    );
-    return {
-      data: filtrarPorPrecio(aplicarPreciosDemo(filas), filtros.precioMax),
-      error: null,
-      configurado: true,
-      totalModelos,
-    };
-  } catch (e) {
-    const mensaje = e instanceof Error ? e.message : String(e);
-    return { data: [], error: mensaje, configurado: true, totalModelos: 0 };
-  }
-}
-
-/**
- * Recorta un resultado de búsqueda a los primeros `hasta` MODELOS.
- * La búsqueda no se pagina en SQL —`buscar_telas` devuelve el conjunto
- * completo y el propio término ya lo acota— así que se corta aquí, cuidando
- * de no partir un modelo: se cuentan modelos, no filas.
- */
-export function recortarAModelos(
-  filas: CatalogoTela[],
-  hasta: number
-): { filas: CatalogoTela[]; totalModelos: number } {
-  const orden: string[] = [];
-  const vistos = new Set<string>();
-  for (const f of filas) {
-    if (vistos.has(f.tela_id)) continue;
-    vistos.add(f.tela_id);
-    orden.push(f.tela_id);
-  }
-  const permitidos = new Set(orden.slice(0, hasta));
-  return {
-    filas: filas.filter((f) => permitidos.has(f.tela_id)),
-    totalModelos: orden.length,
-  };
-}
-
-async function buscarCatalogo(
-  termino: string,
-  filtros: Filtros,
-  permitidas: CategoriasPermitidas,
-  hasta: number
-): Promise<ResultadoCatalogo> {
-  const supabase = createPublicClient();
-  const { data, error } = await aplicarFiltros(
-    supabase.rpc("buscar_telas", { termino }),
-    filtros,
-    permitidas
-  );
-
-  if (error?.code === FUNCION_INEXISTENTE)
-    return buscarConIlike(supabase, termino, filtros, permitidas, hasta);
-  if (error) return { data: [], error: error.message, configurado: true, totalModelos: 0 };
-
-  const conPrecio = filtrarPorPrecio(
-    aplicarPreciosDemo((data ?? []) as CatalogoTela[]),
-    filtros.precioMax
-  );
-  const { filas, totalModelos } = recortarAModelos(conPrecio, hasta);
-  return { data: filas, error: null, configurado: true, totalModelos };
-}
-
-/**
- * Fallback de búsqueda mientras `buscar_telas` no esté creada en la BD.
- * ILIKE sobre la vista: funciona, pero es sensible a acentos. Se limpia el
- * término de caracteres que rompen la sintaxis del filtro `.or()` de PostgREST.
- */
-async function buscarConIlike(
-  supabase: SupabaseClient,
-  termino: string,
-  filtros: Filtros,
-  permitidas: CategoriasPermitidas,
-  hasta: number
-): Promise<ResultadoCatalogo> {
-  const patron = `%${termino.replace(/[,()"\\]/g, " ")}%`;
-  const { data, error } = await aplicarFiltros(
-    supabase.from("catalogo_telas").select("*"),
-    filtros,
-    permitidas
-  )
-    .or(`tela_nombre.ilike.${patron},color_nombre.ilike.${patron},sku.ilike.${patron}`)
-    .order("tela_nombre", { ascending: true })
-    .order("color_nombre", { ascending: true });
-
-  if (error) return { data: [], error: error.message, configurado: true, totalModelos: 0 };
-
-  const conPrecio = filtrarPorPrecio(
-    aplicarPreciosDemo((data ?? []) as CatalogoTela[]),
-    filtros.precioMax
-  );
-  const { filas, totalModelos } = recortarAModelos(conPrecio, hasta);
-  return { data: filas, error: null, configurado: true, totalModelos };
-}
 
 /**
  * Todas las variantes (colores) de un modelo, por su slug.
@@ -466,168 +425,16 @@ export async function getFotosDeVariantes(
 // Facetas: qué chips pintar y con cuántos productos cada uno
 // ---------------------------------------------------------------------------
 
-export type Faceta = {
-  slug: string;
-  nombre: string;
-  /** Solo colores: para pintar el punto del chip. */
-  hex?: string | null;
-  /** Cuántos MODELOS (no variantes) caen aquí. */
-  conteo: number;
-};
-
-/** Lo que se cuenta sobre las filas de UN catálogo. */
-type FacetasBase = {
-  categorias: Faceta[];
-  colores: Faceta[];
-  propiedades: { clave: string; etiqueta: string; conteo: number }[];
-  /** ¿Alguien tiene stock capturado? Si no, el chip de disponibilidad sobra. */
-  hayStock: boolean;
-};
-
-export type Facetas = FacetasBase & {
-  /** Solo Mercería: modelos por sección, en el orden de `SECCIONES_MERCERIA`. */
-  secciones: Faceta[];
-  /** Modelos de cada catálogo, para el selector Mercería | Telas. */
-  porCatalogo: Record<Catalogo, number>;
-};
-
-export const FACETAS_VACIAS: Facetas = {
-  categorias: [],
-  colores: [],
-  propiedades: [],
-  hayStock: false,
-  secciones: [],
-  porCatalogo: { merceria: 0, telas: 0 },
-};
-
-/** Fila mínima para contar facetas: se pide poco para que la lectura sea barata. */
-type FilaFaceta = Pick<
-  CatalogoTela,
-  | "tela_id"
-  | "categoria"
-  | "categoria_slug"
-  | "color_nombre"
-  | "color_slug"
-  | "color_hex"
-  | "stock"
-  | "es_bordado"
-  | "es_brillante"
-  | "es_traslucida"
-  | "es_tornasol"
->;
-
-const COLUMNAS_FACETA =
-  "tela_id,categoria,categoria_slug,color_nombre,color_slug,color_hex,stock," +
-  PROPIEDADES.map((p) => p.columna).join(",");
-
-/**
- * Se cachean las FILAS y no las facetas ya contadas: los dos catálogos salen
- * de la misma lectura, y el selector necesita contar los dos a la vez.
- */
-const filasFacetaCached = unstable_cache(
-  async (): Promise<FilaFaceta[]> => {
-    const supabase = createPublicClient();
-    const { data, error } = await supabase.from("catalogo_telas").select(COLUMNAS_FACETA);
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as FilaFaceta[];
-  },
-  ["catalogo-facetas-filas"],
-  { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
-);
-
-/**
- * Cuenta MODELOS por faceta, no variantes: la card del grid es un modelo, así
- * que "Flores (5)" tiene que querer decir cinco cards, no cinco fotos.
- *
- * Exportada para poder probarla sin BD.
- */
-export function contarFacetas(filas: FilaFaceta[]): FacetasBase {
-  const porCategoria = new Map<string, { nombre: string; telas: Set<string> }>();
-  const porColor = new Map<string, { nombre: string; hex: string | null; telas: Set<string> }>();
-  const porPropiedad = new Map<string, Set<string>>();
-  let hayStock = false;
-
-  for (const f of filas) {
-    if (f.categoria_slug && f.categoria) {
-      const e = porCategoria.get(f.categoria_slug) ?? { nombre: f.categoria, telas: new Set() };
-      e.telas.add(f.tela_id);
-      porCategoria.set(f.categoria_slug, e);
-    }
-    if (f.color_slug && f.color_nombre) {
-      const e =
-        porColor.get(f.color_slug) ?? { nombre: f.color_nombre, hex: f.color_hex, telas: new Set() };
-      e.telas.add(f.tela_id);
-      porColor.set(f.color_slug, e);
-    }
-    for (const p of PROPIEDADES) {
-      if (!f[p.columna]) continue;
-      const s = porPropiedad.get(p.clave) ?? new Set<string>();
-      s.add(f.tela_id);
-      porPropiedad.set(p.clave, s);
-    }
-    if (f.stock != null && f.stock > 0) hayStock = true;
-  }
-
-  const porConteoLuegoNombre = (a: Faceta, b: Faceta) =>
-    b.conteo - a.conteo || a.nombre.localeCompare(b.nombre, "es");
-
-  return {
-    categorias: [...porCategoria.entries()]
-      .map(([slug, e]) => ({ slug, nombre: e.nombre, conteo: e.telas.size }))
-      .sort(porConteoLuegoNombre),
-    colores: [...porColor.entries()]
-      .map(([slug, e]) => ({ slug, nombre: e.nombre, hex: e.hex, conteo: e.telas.size }))
-      .sort(porConteoLuegoNombre),
-    // Solo las propiedades que alguien tiene: sin esto la portada pinta cuatro
-    // chips ("Bordado", "Brillante"…) que no filtran nada porque nadie las
-    // capturó. Los chips aparecen solos conforme la tienda llene esos datos.
-    propiedades: PROPIEDADES.filter((p) => porPropiedad.has(p.clave)).map((p) => ({
-      clave: p.clave,
-      etiqueta: p.etiqueta,
-      conteo: porPropiedad.get(p.clave)!.size,
-    })),
-    hayStock,
-  };
-}
-
-/**
- * Facetas de UN catálogo a partir de las filas de toda la vista: los chips de
- * Telas no ofrecen colores que solo existen en mercería, y el selector sabe
- * cuántos modelos hay del otro lado.
- *
- * Una sección sin productos no se pinta, igual que una categoría vacía.
- * Exportada para poder probarla sin BD.
- */
-export function facetasDeCatalogo(filas: FilaFaceta[], catalogo: Catalogo): Facetas {
-  const propias = filas.filter((f) => catalogoDeCategoria(f.categoria_slug) === catalogo);
-  const modelos = (de: FilaFaceta[]) => new Set(de.map((f) => f.tela_id)).size;
-
-  return {
-    ...contarFacetas(propias),
-    secciones:
-      catalogo === "merceria"
-        ? SECCIONES_MERCERIA.map((s) => ({
-            slug: s.slug,
-            nombre: s.nombre,
-            conteo: modelos(propias.filter((f) => s.categorias.includes(f.categoria_slug ?? ""))),
-          })).filter((s) => s.conteo > 0)
-        : [],
-    porCatalogo: {
-      merceria: modelos(filas.filter((f) => catalogoDeCategoria(f.categoria_slug) === "merceria")),
-      telas: modelos(filas.filter((f) => catalogoDeCategoria(f.categoria_slug) === "telas")),
-    },
-  };
-}
-
 /**
  * Facetas del catálogo COMPLETO, no del resultado filtrado: los conteos de los
  * chips no bailan al picar uno, y nunca queda un chip que ya no se puede
- * despicar porque desapareció de la lista.
+ * despicar porque desapareció de la lista. Salen del mismo índice que la
+ * búsqueda, así que cuentan las categorías "también aparece en".
  */
 export async function getFacetas(catalogo: Catalogo = CATALOGO_PORTADA): Promise<Facetas> {
   if (!isSupabaseConfigured()) return FACETAS_VACIAS;
   try {
-    return facetasDeCatalogo(await filasFacetaCached(), catalogo);
+    return facetasDeIndice(await getIndiceCatalogo(), catalogo);
   } catch {
     return FACETAS_VACIAS;
   }

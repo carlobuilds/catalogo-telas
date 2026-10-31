@@ -26,7 +26,10 @@ export const PROPIEDADES = [
 export type ClavePropiedad = (typeof PROPIEDADES)[number]["clave"];
 
 export type Filtros = {
-  /** Texto libre; se resuelve con `buscar_telas` (unaccent + trigram). */
+  /**
+   * Texto libre; se resuelve en JS sobre el índice del catálogo
+   * (`lib/busqueda`): sin acentos ni mayúsculas, con errores de dedo y sinónimos.
+   */
   q: string;
   /**
    * Sección de Mercería (`lib/catalogos.ts`): agrupa categorías. Una sola a la

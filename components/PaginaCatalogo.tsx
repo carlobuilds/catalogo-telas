@@ -48,7 +48,7 @@ export async function PaginaCatalogo({
   const filtros = leerFiltros(searchParams);
   const hasta = leerHasta(searchParams.ver);
 
-  const [{ data, error, configurado, totalModelos }, facetas] = await Promise.all([
+  const [{ data, error, configurado, totalModelos, aproximado }, facetas] = await Promise.all([
     getCatalogo({ catalogo, filtros, hasta }),
     getFacetas(catalogo),
   ]);
@@ -89,7 +89,9 @@ export async function PaginaCatalogo({
               </h1>
               <p className="text-sm text-ink-soft">
                 {filtros.q
-                  ? `Buscando en ${CATALOGOS[catalogo].nombre}.`
+                  ? aproximado
+                    ? `No encontramos todas las palabras juntas en ${CATALOGOS[catalogo].nombre}; esto es lo más parecido.`
+                    : `Buscando en ${CATALOGOS[catalogo].nombre}.`
                   : "Explora y filtra entre nuestra colección disponible."}
               </p>
             </div>
