@@ -41,9 +41,11 @@ export async function generateMetadata({
     variantes.map((v) => v.color_slug ?? v.variante_id)
   ).size;
 
+  // Sin `descripcion` a propósito: la tienda pidió que no se muestre en el
+  // catálogo público, y la vista previa del link en WhatsApp también es público.
   const descripcion = [
-    seleccionada.descripcion ?? seleccionada.categoria,
-    totalColores > 1 ? `${totalColores} colores disponibles` : null,
+    seleccionada.categoria,
+    totalColores > 1 ? `${totalColores} colores` : null,
     "Telas La Jalisciense · Fresnillo",
   ]
     .filter(Boolean)
@@ -195,19 +197,10 @@ export default async function TelaDetallePage({
             <AttributeBadges atributos={atributos} />
           </div>
 
-          {/* Descripción */}
-          {seleccionada.descripcion && (
-            <div className="space-y-4 rounded border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-2xs">
-              {seleccionada.descripcion
-                .split(/\n\s*\n/)
-                .filter((p) => p.trim())
-                .map((parrafo, i) => (
-                  <p key={i} className="text-base sm:text-lg leading-relaxed text-ink-soft">
-                    {parrafo.trim()}
-                  </p>
-                ))}
-            </div>
-          )}
+          {/* La descripción NO se muestra en el catálogo público, por decisión
+              de la tienda: la clientela no la lee y alarga la ficha en el
+              celular. El dato sigue en la BD —se edita en /admin y lo puede
+              usar el agente de WhatsApp—, solo deja de pintarse aquí. */}
 
           {/* Selector de color en Desktop */}
           <div className="hidden lg:block">

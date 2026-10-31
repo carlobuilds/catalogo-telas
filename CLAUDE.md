@@ -142,6 +142,9 @@ entrar a una sección: `catalogos.test.ts` lo exige para las de la ingesta.
   mirando; aquí hay alguien decidiendo y la previsualización promete "así se va a ver".
 
 ## Convenciones
+- **La descripción no se muestra en el catálogo público**, por decisión de la tienda: ni en
+  la ficha, ni en la metadata/vista previa del link, ni en el índice de búsqueda. La columna
+  `tela.descripcion` se queda: /admin la edita y el agente de WhatsApp puede usarla.
 - Paleta (tokens en `app/globals.css`, que es la ÚNICA fuente): fondo arena
   `#F1EDE2`, superficie crema `#FFF9ED`, tinta de párrafo `#0A0F14`, tinta de
   títulos `#26262B` (`ink-display`), **primario púrpura `#6E4B7A`**

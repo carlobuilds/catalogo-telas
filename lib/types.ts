@@ -28,6 +28,11 @@ export type CatalogoTela = {
   tela_id: string;
   tela_slug: string;
   tela_nombre: string;
+  /**
+   * Se edita en /admin y la puede usar el agente de WhatsApp, pero NO se
+   * muestra en el catálogo público ni entra al índice de búsqueda: decisión
+   * de la tienda.
+   */
   descripcion: string | null;
   categoria: string | null;
   categoria_slug: string | null;
