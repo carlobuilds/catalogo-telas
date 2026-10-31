@@ -20,10 +20,18 @@ const hankenGrotesk = Hanken_Grotesk({
 // Base absoluta de los metadatos. `app/opengraph-image.png` se anuncia como
 // URL COMPLETA: los scrapers de WhatsApp y Facebook no resuelven rutas
 // relativas, así que sin esto la miniatura del enlace no carga.
-// En producción hay que definir NEXT_PUBLIC_SITE_URL con el dominio real;
-// en local cae al dev server. Si la variable trae basura, `new URL` truena
-// en el build a propósito: es preferible a publicar enlaces sin miniatura.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// En producción hay que definir NEXT_PUBLIC_SITE_URL con el dominio real.
+// Mientras no esté, en Vercel se usa su variable de sistema con el dominio de
+// producción (`VERCEL_PROJECT_PRODUCTION_URL`, sin protocolo): sin ella, la
+// og:url de cada link compartido decía "localhost:3000" y Facebook/WhatsApp
+// la toman como la dirección canónica. En local cae al dev server. Si la
+// variable trae basura, `new URL` truena en el build a propósito: es
+// preferible a publicar enlaces sin miniatura.
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
