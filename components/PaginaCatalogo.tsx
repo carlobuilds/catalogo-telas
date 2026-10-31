@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { X } from "lucide-react";
 import { getCatalogo, getFacetas, MODELOS_POR_PAGINA } from "@/lib/queries";
 import { agruparPorModelo } from "@/lib/types";
 import { leerFiltros, cuentaFiltros, aQuerystring, FILTROS_VACIOS } from "@/lib/filtros";
@@ -14,6 +15,8 @@ import { CatalogToolbar } from "@/components/CatalogToolbar";
 import { TutorialTrigger } from "@/components/tutorial/TutorialTrigger";
 import { VerMasButton } from "@/components/VerMasButton";
 import { HeroSection } from "@/components/HeroSection";
+import { CompartirVista } from "@/components/CompartirVista";
+import { describirVista, nombresDeFacetas, pastillasDeVista, rutaDeVista } from "@/lib/compartir";
 
 const VER_MAXIMO = 1000;
 
@@ -56,6 +59,8 @@ export async function PaginaCatalogo({
   const faltan = totalModelos - modelos.length;
   const tieneFiltrosOBusqueda = cuentaFiltros(filtros) > 0 || filtros.q.length > 0;
   const seccion = catalogo === "merceria" ? seccionPorSlug(filtros.seccion) : null;
+  const nombres = nombresDeFacetas(facetas);
+  const pastillas = tieneFiltrosOBusqueda ? pastillasDeVista(filtros, catalogo, nombres) : [];
 
   return (
     <main className="min-h-screen bg-sand-bg text-ink-text">
@@ -78,10 +83,13 @@ export async function PaginaCatalogo({
 
       {/* 3. Contenedor de Productos del Catálogo */}
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Encabezado de sección cuando se está buscando o filtrando */}
+        {/* Encabezado de sección cuando se está buscando o filtrando. Es
+            también la "vista enfocada" de quien abre un link compartido:
+            dice qué está viendo, deja quitar cada filtro y volver a todo. */}
         {tieneFiltrosOBusqueda && (
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
+          <div className="mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
               <h1 className="font-display text-2xl font-bold text-ink-display sm:text-3xl">
                 {filtros.q
                   ? `Resultados para “${filtros.q}”`
@@ -95,6 +103,40 @@ export async function PaginaCatalogo({
                   : "Explora y filtra entre nuestra colección disponible."}
               </p>
             </div>
+            {configurado && !error && totalModelos > 0 && (
+              <CompartirVista
+                ruta={rutaDeVista(catalogo, filtros)}
+                descripcion={describirVista(filtros, catalogo, nombres)}
+              />
+            )}
+          </div>
+
+          <ul aria-label="Lo que estás viendo" className="mt-4 flex flex-wrap items-center gap-2">
+            {pastillas.map((p) => (
+              <li
+                key={p.clave}
+                className="inline-flex min-h-[44px] max-w-full items-center rounded border border-outline-variant/40 bg-surface-container-lowest pl-3 text-sm font-semibold text-ink-display shadow-xs"
+              >
+                <span className="min-w-0 truncate">{p.etiqueta}</span>
+                <Link
+                  href={p.sinEsta}
+                  scroll={false}
+                  aria-label={`Quitar ${p.etiqueta}`}
+                  className="ml-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-soft transition-colors hover:bg-surface-container hover:text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link
+                href={rutaDeCatalogo(catalogo)}
+                className="inline-flex min-h-[44px] items-center rounded px-2 text-sm font-semibold text-ink-display underline decoration-heritage-navy/50 underline-offset-4 transition-colors hover:decoration-heritage-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+              >
+                Ver todo el catálogo
+              </Link>
+            </li>
+          </ul>
           </div>
         )}
 
@@ -118,10 +160,10 @@ export async function PaginaCatalogo({
           <>
             {/* Conteo de productos */}
             <div className="mb-5 flex items-center justify-between">
-              <p className="text-xs sm:text-sm font-semibold text-ink-soft" aria-live="polite">
+              <p className="text-sm font-semibold text-ink-soft" aria-live="polite">
                 {faltan > 0
                   ? `Mostrando ${modelos.length} de ${totalModelos} artículos`
-                  : `${totalModelos} ${totalModelos === 1 ? "artículo disponible" : "artículos disponibles"}`}
+                  : `${totalModelos} ${totalModelos === 1 ? "artículo" : "artículos"}`}
               </p>
             </div>
 

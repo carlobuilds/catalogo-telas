@@ -421,6 +421,24 @@ export async function getFotosDeVariantes(
   }
 }
 
+/**
+ * El primer modelo de una vista y cuántos tiene, con el mismo orden que el
+ * grid. Es la foto y el conteo de la vista previa del link (og:image).
+ */
+export async function getPortadaDeVista(
+  catalogo: Catalogo,
+  filtros: Filtros
+): Promise<{ modelo: ModeloIndice | null; total: number }> {
+  try {
+    const indice = await getIndiceCatalogo();
+    const { ids } = seleccionarModelos(indice, catalogo, filtros, precioEnPantalla);
+    const conFoto = ids.map((id) => indice.find((m) => m.tela_id === id)).find((m) => m?.foto);
+    return { modelo: conFoto ?? null, total: ids.length };
+  } catch {
+    return { modelo: null, total: 0 };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Facetas: qué chips pintar y con cuántos productos cada uno
 // ---------------------------------------------------------------------------

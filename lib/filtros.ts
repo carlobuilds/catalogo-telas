@@ -111,7 +111,10 @@ export function aQuerystring(f: Filtros): string {
   if (f.propiedades.length) p.set("prop", f.propiedades.join(","));
   if (f.precioMax != null) p.set("max", String(f.precioMax));
   if (f.soloDisponibles) p.set("disp", "1");
-  return p.toString();
+  // La coma es el separador de las listas y es válida en un querystring:
+  // dejarla literal hace que el link pegado en WhatsApp se lea
+  // ("color=oro,plata" y no "color=oro%2Cplata").
+  return p.toString().replace(/%2C/gi, ",");
 }
 
 /** ¿Hay algo activo? Decide si se muestra el botón de limpiar. */

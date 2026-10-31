@@ -56,6 +56,11 @@ describe("leerFiltros", () => {
 });
 
 describe("aQuerystring", () => {
+  it("deja las comas de las listas legibles en el link", () => {
+    expect(aQuerystring({ ...FILTROS_VACIOS, colores: ["oro", "plata"] })).toBe("color=oro,plata");
+  });
+
+
   it("omite lo que está en su valor por defecto", () => {
     expect(aQuerystring(FILTROS_VACIOS)).toBe("");
   });

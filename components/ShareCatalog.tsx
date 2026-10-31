@@ -59,15 +59,13 @@ export function ShareCatalog({
   };
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={compartir}
-      className={className}
-      aria-label="Compartir el catálogo"
-    >
+    // Sin aria-label: el nombre accesible es el texto visible (WCAG 2.5.3,
+    // quien usa control por voz dice lo que ve). La parte oculta solo aclara
+    // QUÉ se comparte ahora que también existe "Compartir esta selección".
+    <Button variant={variant} size={size} onClick={compartir} className={className}>
       <Share2 className="h-5 w-5" aria-hidden />
       {label}
+      {!/cat[aá]logo/i.test(label) && <span className="sr-only"> el catálogo</span>}
     </Button>
   );
 }
