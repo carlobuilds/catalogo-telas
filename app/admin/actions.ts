@@ -296,11 +296,8 @@ export async function actualizarTela(formData: FormData) {
   // "También aparece en" (sección 16 del SQL): solo si el formulario pintó
   // las casillas. Sin la tabla, el editor no las pinta y esto no corre.
   if (formData.has("categorias_extra_presentes")) {
-    const extras = formData
-      .getAll("categorias_extra")
-      .map((v) => requireUuid(v, "categoría extra"))
-      .filter((id) => id !== categoriaId);
-    const { error: e } = await reemplazarCategoriasExtra(supabase, telaId, extras);
+    const extras = formData.getAll("categorias_extra").map((v) => requireUuid(v, "categoría extra"));
+    const { error: e } = await reemplazarCategoriasExtra(supabase, telaId, extras, categoriaId);
     if (e) throw new Error(e);
   }
 

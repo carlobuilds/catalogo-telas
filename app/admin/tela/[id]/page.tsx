@@ -14,7 +14,7 @@ import { CuradorFotos } from "@/components/admin/CuradorFotos";
 import { UNIDADES_VENTA, unidadDe } from "@/lib/unidades";
 import { CAMPOS_PRESENTES, CASILLAS_VARIANTE } from "@/lib/admin/campos";
 import { categoriasExtraPosibles } from "@/lib/catalogos";
-import { FALTA_MIGRACION_EXTRAS, leerCategoriasExtra } from "@/lib/categorias-extra";
+import { leerCategoriasExtra } from "@/lib/categorias-extra";
 import {
   actualizarTela,
   actualizarVarianteDetalle,
@@ -217,9 +217,11 @@ export default async function EditarTelaPage({
               Además de su categoría principal, en qué otras categorías sale este producto en el catálogo.
               Si cambias la principal, guarda primero para ver sus opciones.
             </p>
-            {extrasActuales.faltaMigracion ? (
+            {/* Si no se pudieron leer, NO se pintan las casillas: vacías,
+                guardar borraría las que sí existen (lib/categorias-extra.ts). */}
+            {extrasActuales.aviso ? (
               <p className="rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-ink">
-                {FALTA_MIGRACION_EXTRAS}
+                {extrasActuales.aviso}
               </p>
             ) : (
               <>

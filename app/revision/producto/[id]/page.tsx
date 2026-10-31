@@ -14,7 +14,7 @@ import { CategoriaProductoForm, type CategoriaLookup } from "@/components/revisi
 import { NombreProductoForm } from "@/components/revision/NombreProductoForm";
 import { CategoriasExtraForm } from "@/components/revision/CategoriasExtraForm";
 import { categoriasExtraPosibles } from "@/lib/catalogos";
-import { FALTA_MIGRACION_EXTRAS, leerCategoriasExtra } from "@/lib/categorias-extra";
+import { leerCategoriasExtra } from "@/lib/categorias-extra";
 
 export const metadata: Metadata = {
   title: "Revisar producto — Revisión de catálogo",
@@ -92,7 +92,7 @@ export default async function RevisionProductoPage({
           telaId={tela.id}
           opciones={extrasPosibles}
           marcadas={extras.ids}
-          avisoMigracion={extras.faltaMigracion ? FALTA_MIGRACION_EXTRAS : null}
+          aviso={extras.aviso}
         />
       </div>
 

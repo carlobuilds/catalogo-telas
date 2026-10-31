@@ -191,13 +191,14 @@ export async function actualizarCategoriasExtra(formData: FormData): Promise<Est
   }
 
   const supabase = createAdminClient();
-  // La principal no se repite como extra, aunque llegue marcada.
-  const { data: tela } = await supabase.from("tela").select("categoria_id").eq("id", telaId).single();
-  const { error } = await reemplazarCategoriasExtra(
-    supabase,
-    telaId,
-    ids.filter((id) => id !== tela?.categoria_id)
-  );
+  // La principal decide qué extras valen (mismo catálogo, sin repetirla).
+  const { data: tela, error: errorTela } = await supabase
+    .from("tela")
+    .select("categoria_id")
+    .eq("id", telaId)
+    .single();
+  if (errorTela || !tela) return { ok: false, error: "Ese producto ya no existe. Recarga la página." };
+  const { error } = await reemplazarCategoriasExtra(supabase, telaId, ids, tela.categoria_id);
   if (error) return { ok: false, error };
 
   refrescarRevision(telaId);

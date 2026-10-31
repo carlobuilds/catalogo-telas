@@ -19,14 +19,17 @@ export function CategoriasExtraForm({
   telaId,
   opciones,
   marcadas,
-  avisoMigracion,
+  aviso,
 }: {
   telaId: string;
   /** Solo las del mismo catálogo que la principal (`categoriasExtraPosibles`). */
   opciones: CategoriaLookup[];
   marcadas: string[];
-  /** El texto de "falta correr la migración", o null si la tabla ya existe. */
-  avisoMigracion: string | null;
+  /**
+   * Por qué no se pueden editar (falta la migración, o no se pudieron leer).
+   * Con aviso no se pinta el formulario: casillas vacías borrarían al guardar.
+   */
+  aviso: string | null;
 }) {
   const [estado, setEstado] = useState<EstadoGuardado | null>(null);
   const [pendiente, startTransition] = useTransition();
@@ -49,8 +52,8 @@ export function CategoriasExtraForm({
         Marca otras categorías donde la clientela también debería encontrar este producto.
       </p>
 
-      {avisoMigracion ? (
-        <p className="rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-sm text-ink">{avisoMigracion}</p>
+      {aviso ? (
+        <p className="rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-sm text-ink">{aviso}</p>
       ) : (
         <form onSubmit={guardar} className="space-y-3">
           <input type="hidden" name="tela_id" value={telaId} />
