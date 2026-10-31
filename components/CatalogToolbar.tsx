@@ -33,7 +33,7 @@ interface CatalogToolbarProps {
 /** Clases de un chip de la barra; el activo es el único púrpura (color de acción). */
 function claseChip(activo: boolean, grande = false): string {
   return `inline-flex shrink-0 snap-start items-center justify-center gap-1.5 whitespace-nowrap rounded transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
-    grande ? "min-h-[44px] px-4 text-sm font-bold" : "min-h-[40px] px-3.5 text-xs font-semibold sm:text-sm"
+    grande ? "min-h-[44px] px-4 text-sm font-bold" : "min-h-[44px] px-3.5 text-sm font-semibold"
   } ${
     activo
       ? "bg-heritage-navy text-white shadow-xs"
@@ -42,7 +42,8 @@ function claseChip(activo: boolean, grande = false): string {
 }
 
 function Conteo({ n, activo }: { n: number; activo: boolean }) {
-  return <span className={`text-[11px] ${activo ? "text-white/80" : "text-ink-soft"}`}>{n}</span>;
+  // El conteo es un dato secundario del chip: text-xs es su mínimo legible.
+  return <span className={`text-xs ${activo ? "text-white/90" : "text-ink-soft"}`}>{n}</span>;
 }
 
 export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarProps) {
@@ -105,13 +106,14 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Fila 0: Mercería | Telas. Son dos catálogos, no un filtro: ninguno
             muestra productos del otro. En móvil se esconde al hacer scroll,
-            igual que los chips; arriba siempre está a un toque. Desde md los
-            links del header ya hacen este trabajo: repetirlo aquí pintaba el
-            mismo estado de púrpura tres veces. */}
+            igual que los chips; arriba siempre está a un toque. Desde lg los
+            links del header ya hacen este trabajo (la nav del header sale en
+            lg: en tablet no cabía); repetirlo aquí pintaba el mismo estado de
+            púrpura tres veces. */}
         <nav
           aria-label="Catálogo"
-          className={`overflow-hidden transition-all sm:mb-2 sm:max-h-none sm:overflow-visible sm:opacity-100 md:hidden ${
-            compacto ? "mb-0 max-h-0 opacity-0" : "mb-2 max-h-16 opacity-100"
+          className={`overflow-hidden transition-all sm:mb-2 sm:max-h-none sm:overflow-visible sm:opacity-100 lg:hidden ${
+            compacto ? "mb-0 max-h-0 opacity-0" : "mb-2 max-h-24 opacity-100"
           }`}
         >
           <div className="flex w-full gap-1 rounded border border-outline-variant/40 bg-surface-container-lowest/90 p-1 shadow-xs sm:w-auto">
@@ -149,19 +151,26 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                 type="button"
                 onClick={() => setPanelFiltrosAbierto((prev) => !prev)}
                 aria-expanded={panelFiltrosAbierto}
-                className={`inline-flex h-11 items-center gap-1.5 sm:gap-2 rounded border px-3 sm:px-4 text-xs font-bold uppercase tracking-wider transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
+                aria-controls="panel-filtros-avanzados"
+                // En móvil solo se ve el icono: el nombre va aquí, y el número
+                // de filtros activos también, que el globito no se anuncia.
+                aria-label={
+                  totalFiltrosAvanzados > 0
+                    ? `Filtros por color y acabado, ${totalFiltrosAvanzados} activos`
+                    : "Filtros por color y acabado"
+                }
+                className={`inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 sm:gap-2 rounded border px-3 sm:px-4 text-xs font-bold uppercase tracking-wider transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                   panelFiltrosAbierto || totalFiltrosAvanzados > 0
                     ? "border-heritage-navy bg-heritage-navy text-white shadow-xs"
                     : "border-outline-variant/40 bg-surface-container-lowest/90 text-ink-display hover:bg-surface-container shadow-xs"
                 }`}
-                title="Filtros avanzados por color y acabado"
               >
-                <span className="material-symbols-outlined text-[18px]">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden>
                   {panelFiltrosAbierto ? "close" : "tune"}
                 </span>
-                <span className="hidden sm:inline">Filtros</span>
+                <span className="hidden sm:inline" aria-hidden>Filtros</span>
                 {totalFiltrosAvanzados > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-[10px] font-bold text-white">
+                  <span aria-hidden className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-white">
                     {totalFiltrosAvanzados}
                   </span>
                 )}
@@ -173,11 +182,11 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
               <Link
                 href={base}
                 scroll={false}
-                className="inline-flex h-11 items-center gap-1.5 rounded border border-amber/40 bg-surface-container-lowest/80 px-3 text-xs font-bold text-amber shadow-xs transition-all hover:bg-surface-container hover:border-amber active:scale-95"
-                title="Limpiar búsqueda y filtros"
+                aria-label="Limpiar búsqueda y filtros"
+                className="inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded border border-amber/40 bg-surface-container-lowest/80 px-3 text-sm font-bold text-amber shadow-xs transition-all hover:bg-surface-container hover:border-amber active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
               >
-                <X className="h-3.5 w-3.5" aria-hidden />
-                <span className="hidden sm:inline">Limpiar</span>
+                <X className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline" aria-hidden>Limpiar</span>
               </Link>
             )}
           </div>
@@ -189,7 +198,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
         {catalogo === "merceria" && facetas.secciones.length > 0 && (
           <div
             className={`relative mt-2 overflow-hidden transition-all sm:max-h-none sm:opacity-100 ${
-              compacto ? "max-h-0 opacity-0" : "max-h-16 opacity-100"
+              compacto ? "max-h-0 opacity-0" : "max-h-24 opacity-100"
             }`}
           >
             <h2 className="sr-only">Secciones de mercería</h2>
@@ -233,7 +242,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
         {mostrarChipsCategoria && (
           <div
             className={`relative mt-2 overflow-hidden transition-all sm:max-h-none sm:opacity-100 ${
-              compacto ? "max-h-0 opacity-0" : "max-h-16 opacity-100"
+              compacto ? "max-h-0 opacity-0" : "max-h-24 opacity-100"
             }`}
           >
             <h2 className="sr-only">Categorías</h2>
@@ -275,17 +284,17 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
             alto, si hay muchos colores/acabados el final del panel se salía
             de la pantalla en móvil y esas opciones no se podían tocar. */}
         {panelFiltrosAbierto && hayAvanzados && (
-          <div className="mt-3 max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface-container-lowest p-5 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <div id="panel-filtros-avanzados" className="mt-3 max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface-container-lowest p-5 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px] text-amber">
+                <span className="material-symbols-outlined text-[20px] text-amber" aria-hidden>
                   tune
                 </span>
-                <span className="font-display text-sm font-bold text-ink-display">
+                <span className="font-display text-base font-bold text-ink-display">
                   Filtros Avanzados
                 </span>
                 {totalFiltrosAvanzados > 0 && (
-                  <span className="rounded bg-amber px-2 py-0.5 text-[10px] font-bold text-white">
+                  <span className="rounded bg-amber px-2 py-0.5 text-xs font-bold text-white">
                     {totalFiltrosAvanzados} activos
                   </span>
                 )}
@@ -293,16 +302,16 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
               <button
                 type="button"
                 onClick={() => setPanelFiltrosAbierto(false)}
-                className="rounded p-1 text-ink-soft hover:bg-surface-container hover:text-ink-text"
+                className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-surface-container hover:text-ink-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
                 aria-label="Cerrar panel de filtros"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
             {facetas.colores.length > 0 && (
               <div>
-                <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber">
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-amber">
                   Tonalidades
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -314,18 +323,20 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                         href={href("colores", c.slug)}
                         scroll={false}
                         aria-current={activo ? "true" : undefined}
-                        className={`inline-flex shrink-0 items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
+                        className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded px-3 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                           activo
                             ? "bg-heritage-navy text-white shadow-xs"
                             : "border border-outline-variant/30 bg-surface-container text-ink-text hover:bg-surface-container-high"
                         }`}
                       >
-                        <ColorSwatch hex={c.hex ?? null} nombre={c.nombre} size="sm" />
+                        <span aria-hidden>
+                          <ColorSwatch hex={c.hex ?? null} nombre={c.nombre} size="sm" />
+                        </span>
                         <span>{c.nombre}</span>
                         {c.conteo != null && (
                           <span
-                            className={`text-[10px] ${
-                              activo ? "text-white/80" : "text-ink-soft"
+                            className={`text-xs ${
+                              activo ? "text-white/90" : "text-ink-soft"
                             }`}
                           >
                             {c.conteo}
@@ -340,7 +351,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
 
             {facetas.propiedades.length > 0 && (
               <div>
-                <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber">
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-amber">
                   Acabado y Textura
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -352,7 +363,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                         href={href("propiedades", p.clave)}
                         scroll={false}
                         aria-current={activo ? "true" : undefined}
-                        className={`inline-flex shrink-0 items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
+                        className={`inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded px-3 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                           activo
                             ? "bg-heritage-navy text-white shadow-xs"
                             : "border border-outline-variant/30 bg-surface-container text-ink-text hover:bg-surface-container-high"
@@ -361,8 +372,8 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                         <span>{p.etiqueta}</span>
                         {p.conteo != null && (
                           <span
-                            className={`text-[10px] ${
-                              activo ? "text-white/80" : "text-ink-soft"
+                            className={`text-xs ${
+                              activo ? "text-white/90" : "text-ink-soft"
                             }`}
                           >
                             {p.conteo}
@@ -377,7 +388,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
 
             {facetas.hayStock && (
               <div>
-                <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber">
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-amber">
                   Disponibilidad
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -388,13 +399,13 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                     })}
                     scroll={false}
                     aria-current={filtros.soloDisponibles ? "true" : undefined}
-                    className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
+                    className={`inline-flex min-h-[44px] items-center gap-1.5 rounded px-3 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                       filtros.soloDisponibles
                         ? "bg-heritage-navy text-white shadow-xs"
                         : "border border-outline-variant/30 bg-surface-container text-ink-text hover:bg-surface-container-high"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[15px]">
+                    <span className="material-symbols-outlined text-[18px]" aria-hidden>
                       check_circle
                     </span>
                     <span>Solo con existencia inmediata</span>

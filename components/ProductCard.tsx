@@ -58,7 +58,7 @@ export function ProductCard({
       <div className="flex flex-1 flex-col justify-between gap-2">
         <div className="flex flex-col gap-1">
           {tela.categoria && (
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber">
+            <p className="text-label-caps text-xs text-amber">
               {tela.categoria}
             </p>
           )}
@@ -71,9 +71,9 @@ export function ProductCard({
         <div className="flex flex-col gap-2 pt-1 border-t border-line/60">
           {tela.precio_desde != null ? (
             <p className="text-base sm:text-lg font-bold text-amber">
-              <span className="text-xs font-normal text-ink-soft">desde </span>
+              <span className="text-sm font-normal text-ink-soft">desde </span>
               {pesos.format(tela.precio_desde)}
-              <span className="text-xs font-medium text-ink-soft ml-0.5">
+              <span className="text-sm font-medium text-ink-soft ml-0.5">
                 {unidadDe(tela.precio_desde_unidad).sufijoPrecio}
               </span>
             </p>
@@ -81,15 +81,24 @@ export function ProductCard({
             <p className="text-sm font-medium text-ink-soft">A consultar</p>
           )}
 
+          {/* Los puntos son una muestra visual, no información que se pueda
+              leer uno por uno: el lector de pantalla oiría "Rojo, Azul, …,
+              más 4" dentro del nombre del enlace. Se ocultan y se anuncia
+              solo cuántos colores hay. */}
           {swatches.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              {swatches.slice(0, 6).map((v) => (
-                <ColorSwatch key={v.color_hex} hex={v.color_hex} nombre={v.color_nombre} size="sm" />
-              ))}
-              {swatches.length > 6 && (
-                <span className="text-xs font-semibold text-ink-soft">+{swatches.length - 6}</span>
-              )}
-            </div>
+            <>
+              <div aria-hidden className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                {swatches.slice(0, 6).map((v) => (
+                  <ColorSwatch key={v.color_hex} hex={v.color_hex} nombre={v.color_nombre} size="sm" />
+                ))}
+                {swatches.length > 6 && (
+                  <span className="text-xs font-semibold text-ink-soft">+{swatches.length - 6}</span>
+                )}
+              </div>
+              <span className="sr-only">
+                {swatches.length === 1 ? "1 color" : `${swatches.length} colores`}
+              </span>
+            </>
           )}
 
           <AttributeBadges atributos={atributos} />

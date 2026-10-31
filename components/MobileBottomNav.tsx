@@ -18,6 +18,9 @@ export function MobileBottomNav() {
   }, []);
 
   const itemCount = items.length;
+  // Inactivo en `text-ink-soft` lleno (5.5:1 sobre el fondo): el `/70` que
+  // tenía antes daba 2.97:1, por debajo de AA para texto de 12px.
+  const inactivo = "text-ink-soft hover:text-ink-display";
   // Una sola pestaña para los dos catálogos: el selector Mercería | Telas de
   // la barra del catálogo hace la separación, y abajo no cabe otra pestaña.
   const isCatalogo =
@@ -42,15 +45,15 @@ export function MobileBottomNav() {
         <Link
           href="/"
           className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${
-            isCatalogo ? "text-ink-display font-bold" : "text-ink-soft/70 hover:text-ink-text"
+            isCatalogo ? "text-ink-display font-bold" : inactivo
           }`}
           aria-current={isCatalogo ? "page" : undefined}
         >
-          <span className="material-symbols-outlined text-[22px]">grid_view</span>
-          <span className="mt-0.5 text-[11px] tracking-tight">Catálogo</span>
+          <span aria-hidden className="material-symbols-outlined text-[22px]">grid_view</span>
+          <span className="mt-0.5 text-xs">Catálogo</span>
           {/* El morado no va en texto, así que la pestaña activa se marca con
               un punto de relleno: sin él, activo e inactivo solo se distinguen
-              por peso y eso casi no se ve a 11px. */}
+              por peso y eso casi no se ve a 12px. */}
           <span
             aria-hidden
             className={`mt-1 h-1 w-1 rounded-full ${isCatalogo ? "bg-heritage-navy" : "bg-transparent"}`}
@@ -61,48 +64,59 @@ export function MobileBottomNav() {
         <Link
           href="/inspiracion"
           className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${
-            isInspiracion ? "text-ink-display font-bold" : "text-ink-soft/70 hover:text-ink-text"
+            isInspiracion ? "text-ink-display font-bold" : inactivo
           }`}
           aria-current={isInspiracion ? "page" : undefined}
         >
-          <span className="material-symbols-outlined text-[22px]">auto_awesome</span>
-          <span className="mt-0.5 text-[11px] tracking-tight">Inspiración</span>
+          <span aria-hidden className="material-symbols-outlined text-[22px]">auto_awesome</span>
+          <span className="mt-0.5 text-xs">Inspiración</span>
           <span
             aria-hidden
             className={`mt-1 h-1 w-1 rounded-full ${isInspiracion ? "bg-heritage-navy" : "bg-transparent"}`}
           />
         </Link>
 
-        {/* Tab 3: Cesta / Cotización */}
+        {/* Tab 3: Cesta / Cotización.
+            Sin `aria-label`: el nombre accesible sale del texto visible
+            ("Cesta") para que quien navega por voz pueda decir lo que ve. El
+            conteo del globo se oculta (es un número suelto) y se repite en
+            palabras, DESPUÉS de "Cesta", para que el nombre siga empezando
+            por la etiqueta visible: "Cesta, 3 artículos". */}
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="relative flex min-h-[44px] min-w-[64px] flex-col items-center justify-center text-ink-soft/70 transition-colors hover:text-ink-text active:scale-95"
-          aria-label="Ver mi cotización"
+          className={`relative flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${inactivo}`}
         >
-          <div className="relative">
-            <span className="material-symbols-outlined text-[22px]">shopping_bag</span>
+          <span className="relative">
+            <span aria-hidden className="material-symbols-outlined text-[22px]">shopping_bag</span>
             {mounted && itemCount > 0 && (
-              <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber px-1 text-[10px] font-bold text-white shadow-xs">
+              <span
+                aria-hidden
+                className="absolute -right-2.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1 text-xs font-bold text-white shadow-xs"
+              >
                 {itemCount}
               </span>
             )}
-          </div>
-          <span className="mt-0.5 text-[11px] tracking-tight">Cesta</span>
+          </span>
+          <span className="mt-0.5 text-xs">Cesta</span>
+          {mounted && itemCount > 0 && (
+            <span className="sr-only">
+              , {itemCount} {itemCount === 1 ? "artículo" : "artículos"}
+            </span>
+          )}
           {/* Cesta y Ayuda abren paneles, nunca son "página actual": el punto va
               transparente solo para que los cuatro iconos queden a la misma altura. */}
           <span aria-hidden className="mt-1 h-1 w-1" />
         </button>
 
-        {/* Tab 4: Ayuda / Tutorial */}
+        {/* Tab 4: Ayuda / Tutorial. Nombre = texto visible ("Ayuda"). */}
         <button
           type="button"
           onClick={openTutorial}
-          className="flex min-h-[44px] min-w-[64px] flex-col items-center justify-center text-ink-soft/70 transition-colors hover:text-ink-text active:scale-95"
-          aria-label="Cómo funciona el catálogo"
+          className={`flex min-h-[44px] min-w-[64px] flex-col items-center justify-center transition-colors active:scale-95 ${inactivo}`}
         >
-          <span className="material-symbols-outlined text-[22px]">help_outline</span>
-          <span className="mt-0.5 text-[11px] tracking-tight">Ayuda</span>
+          <span aria-hidden className="material-symbols-outlined text-[22px]">help_outline</span>
+          <span className="mt-0.5 text-xs">Ayuda</span>
           <span aria-hidden className="mt-1 h-1 w-1" />
         </button>
       </div>

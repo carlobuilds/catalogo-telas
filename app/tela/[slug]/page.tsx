@@ -93,16 +93,38 @@ export default async function TelaDetallePage({
   const tags = [...seleccionada.casos_uso, ...seleccionada.oportunidades];
   // Todas las variantes comparten la categoría del modelo.
   const catalogo = catalogoDeCategoria(seleccionada.categoria_slug);
+  const unidad = unidadDe(seleccionada.unidad_venta);
+
+  // Chips de venta, salidos de los datos de ESTA variante y no de un texto
+  // fijo: antes decía "Venta por metro o pieza" en cualquier tela, y en la
+  // mercería no decía nada. La unidad decide todo (lib/unidades.ts):
+  //  - "Se vende por …" siempre, porque `unidadDe` cae a metro sin dato.
+  //  - Piezas por unidad solo en las EMPACADAS (bolsa, rollo, juego): "25
+  //    piezas por pieza" no significa nada, y el metro no empaqueta.
+  //  - La medida (diámetro de flor, ancho de tira…) solo si la capturaron.
+  // El ancho de rollo solo existe en la tela: en una bolsita de piedras o un
+  // botón era un dato falso.
+  const piezas = seleccionada.piezas_por_unidad;
+  const medida = seleccionada.medida?.trim();
+  const chipsVenta = [
+    catalogo === "telas" ? "Ancho: 1.40m – 1.50m" : null,
+    `Se vende por ${unidad.singular}`,
+    unidad.empacada && piezas
+      ? `${piezas} ${piezas === 1 ? "pieza" : "piezas"} por ${unidad.singular}`
+      : null,
+    medida ? `Medida: ${medida}` : null,
+  ].filter((c): c is string => c !== null);
 
   const fotos = await getFotosDeVariantes(variantes.map((v) => v.variante_id));
   const slides = construirSlides({ variantes, fotos, seleccionada });
   const usarCarrusel = slides.length > 1;
 
-  // pb extra en móvil: reserva espacio bajo el contenido para las DOS barras
-  // fijas que se le encimaban (MobileBottomNav + AddToCart), que entre las
-  // dos miden ~9.25rem + safe-area. En sm+ ninguna es fixed.
+  // pb extra en móvil: reserva espacio para la barra fija de AddToCart
+  // (~5.1rem). La de MobileBottomNav (4rem + safe-area) ya la reserva el
+  // `pb` del <body> en el layout; antes se contaba aquí también y sobraban
+  // 4rem bajo la ficha. En sm+ ninguna de las dos es fixed.
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-8 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pb-8 lg:px-8">
+    <main className="mx-auto max-w-6xl px-4 pt-8 pb-[5.5rem] sm:px-6 sm:pb-8 lg:px-8">
       <VolverAlCatalogo href={rutaDeCatalogo(catalogo)} nombre={CATALOGOS[catalogo].nombre} />
 
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
@@ -150,12 +172,12 @@ export default async function TelaDetallePage({
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             {seleccionada.categoria && (
-              <span className="text-xs font-bold uppercase tracking-wider text-amber">
+              <span className="text-label-caps text-xs text-amber">
                 {seleccionada.categoria}
               </span>
             )}
             <div className="flex items-start justify-between gap-4">
-              <h1 className="font-display text-3xl font-bold text-ink-display sm:text-4xl">
+              <h1 className="min-w-0 break-words font-display text-3xl font-bold text-ink-display sm:text-4xl">
                 {nombre}
               </h1>
               {seleccionada.precio_metro != null ? (
@@ -163,8 +185,8 @@ export default async function TelaDetallePage({
                   <p className="text-2xl sm:text-3xl font-bold text-amber">
                     {pesos.format(seleccionada.precio_metro)}
                   </p>
-                  <p className="text-xs font-semibold text-ink-soft">
-                    {unidadDe(seleccionada.unidad_venta).sufijoPrecio}
+                  <p className="text-sm font-semibold text-ink-soft">
+                    {unidad.sufijoPrecio}
                   </p>
                 </div>
               ) : (
@@ -174,26 +196,22 @@ export default async function TelaDetallePage({
               )}
             </div>
             {seleccionada.precio_es_referencia && (
-              <p className="text-xs text-amber-soft font-medium">
+              <p className="text-sm text-amber-soft font-medium">
                 * Precio de referencia · confirmamos disponibilidad por WhatsApp
               </p>
             )}
           </div>
 
-          {/* Chips de propiedades */}
-          {/* El ancho de rollo solo existe en la tela: en una bolsita de
-              piedras o un botón era un dato falso. */}
+          {/* Chips de propiedades (ver `chipsVenta` arriba) */}
           <div className="flex flex-wrap gap-2">
-            {catalogo === "telas" && (
-              <>
-                <span className="rounded bg-surface-container px-3.5 py-1.5 text-xs font-bold text-ink-display border border-outline-variant/30">
-                  Ancho: 1.40m – 1.50m
-                </span>
-                <span className="rounded bg-surface-container px-3.5 py-1.5 text-xs font-bold text-ink-display border border-outline-variant/30">
-                  Venta por metro o pieza
-                </span>
-              </>
-            )}
+            {chipsVenta.map((chip) => (
+              <span
+                key={chip}
+                className="rounded border border-outline-variant/30 bg-surface-container px-3.5 py-1.5 text-sm font-bold text-ink-display"
+              >
+                {chip}
+              </span>
+            ))}
             <AttributeBadges atributos={atributos} />
           </div>
 
@@ -222,22 +240,28 @@ export default async function TelaDetallePage({
           {(seleccionada.sku || seleccionada.stock != null) && (
             <dl className="grid grid-cols-2 gap-3.5">
               {seleccionada.sku && (
-                <div className="rounded border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-2xs">
-                  <dt className="text-[11px] font-bold uppercase tracking-wider text-amber">SKU de Almacén</dt>
-                  <dd className="mt-1 text-base font-bold text-ink-display font-mono">
+                <div className="min-w-0 rounded border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-2xs">
+                  <dt className="text-label-caps text-xs text-amber">Código</dt>
+                  {/* break-all: un código largo sin espacios desbordaba la
+                      media columna a 375px. */}
+                  <dd className="mt-1 break-all font-mono text-base font-bold text-ink-display">
                     {seleccionada.sku}
                   </dd>
                 </div>
               )}
               {seleccionada.stock != null && (
-                <div className="rounded border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-2xs">
-                  <dt className="text-[11px] font-bold uppercase tracking-wider text-amber">
+                <div className="min-w-0 rounded border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-2xs">
+                  <dt className="text-label-caps text-xs text-amber">
                     Existencia
                   </dt>
                   {seleccionada.stock > 0 ? (
-                    <dd className="mt-1 text-base font-bold text-success flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                      {seleccionada.stock} {unidadDe(seleccionada.unidad_venta).plural} disponibles
+                    <dd className="mt-1 flex items-start gap-1 text-base font-bold text-success">
+                      <span aria-hidden className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">check_circle</span>
+                      <span>
+                        {seleccionada.stock}{" "}
+                        {seleccionada.stock === 1 ? unidad.singular : unidad.plural}{" "}
+                        {seleccionada.stock === 1 ? "disponible" : "disponibles"}
+                      </span>
                     </dd>
                   ) : (
                     <dd className="mt-1 text-base font-semibold text-ink-soft">
@@ -252,14 +276,14 @@ export default async function TelaDetallePage({
           {/* Tags de ocasión */}
           {tags.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-ink-display">
+              <p className="text-label-caps text-xs text-ink-display">
                 Ocasión & Estilo
               </p>
               <div className="flex flex-wrap gap-2">
                 {tags.map((t) => (
                   <span
                     key={t}
-                    className="rounded border border-outline-variant/30 bg-surface-container-lowest px-3.5 py-1.5 text-xs font-medium capitalize text-ink-soft shadow-2xs"
+                    className="rounded border border-outline-variant/30 bg-surface-container-lowest px-3.5 py-1.5 text-sm font-medium capitalize text-ink-soft shadow-2xs"
                   >
                     {t.replace(/-/g, " ")}
                   </span>
