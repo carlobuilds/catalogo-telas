@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, Suspense } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
@@ -139,13 +139,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
         {/* Fila 1: Barra de Búsqueda + Botón de Filtros Detallados + Limpiar */}
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <Suspense
-              fallback={
-                <div className="h-11 w-full animate-pulse rounded bg-surface-container" />
-              }
-            >
-              <SearchBar />
-            </Suspense>
+            <SearchBar catalogo={catalogo} filtros={filtros} />
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

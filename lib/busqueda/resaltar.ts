@@ -3,12 +3,28 @@
  * negritas en las sugerencias del buscador. Compara en forma normalizada
  * (sin acentos ni mayúsculas) pero devuelve el texto ORIGINAL partido en
  * trozos: "pedreria" resalta "Pedrería" con su acento.
+ *
+ * Usa las mismas reglas que el motor, palabra por palabra: el prefijo marca
+ * solo lo tecleado ("pedr|ería"); la raíz y el error de dedo marcan la
+ * palabra entera ("pedreia" resalta "Pedrería"), porque ahí no hay un
+ * pedazo exacto que señalar.
  */
-import { palabrasDeConsulta, raiz } from "@/lib/busqueda/normalizar";
+import { distancia, palabrasDeConsulta, raiz } from "@/lib/busqueda/normalizar";
 
 export type Trozo = { texto: string; marcado: boolean };
 
 const DIACRITICOS = /\p{M}/gu;
+
+/** Cuántas letras de `w` marcar para la palabra de consulta `q` (0 = ninguna). */
+function cuantoMarcar(q: string, w: string): number {
+  if (w.startsWith(q)) return q.length;
+  if (raiz(q) === raiz(w)) return w.length;
+  if (q.length >= 4 && w.length >= 3) {
+    const maximo = q.length >= 7 ? 2 : 1;
+    if (distancia(q, w, maximo) <= maximo) return w.length;
+  }
+  return 0;
+}
 
 export function resaltar(texto: string, consulta: string): Trozo[] {
   // Texto normalizado letra por letra, recordando de qué letra original vino
@@ -24,19 +40,12 @@ export function resaltar(texto: string, consulta: string): Trozo[] {
     }
   }
 
+  const consultas = palabrasDeConsulta(consulta);
   const marcadas = new Array<boolean>(texto.length).fill(false);
-  for (const q of palabrasDeConsulta(consulta)) {
-    // Se prueba la palabra y luego su raíz: "botones" resalta "Botón".
-    for (const forma of new Set([q, raiz(q)])) {
-      let hubo = false;
-      for (let k = normal.indexOf(forma); k !== -1; k = normal.indexOf(forma, k + 1)) {
-        // Solo al inicio de una palabra: resaltar "oro" dentro de "tesoro" confunde.
-        if (k > 0 && normal[k - 1] !== " ") continue;
-        for (let j = k; j < k + forma.length; j++) marcadas[origen[j]] = true;
-        hubo = true;
-      }
-      if (hubo) break;
-    }
+  for (const m of normal.matchAll(/[a-z0-9]+/g)) {
+    const w = m[0];
+    const largo = Math.max(0, ...consultas.map((q) => cuantoMarcar(q, w)));
+    for (let j = m.index; j < m.index + largo; j++) marcadas[origen[j]] = true;
   }
 
   const trozos: Trozo[] = [];

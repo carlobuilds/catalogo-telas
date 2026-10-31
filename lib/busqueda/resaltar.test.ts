@@ -16,6 +16,10 @@ describe("resaltar", () => {
     expect(marcado("Botón de perlas", "botones")).toEqual(["Botón"]);
   });
 
+  it("con un error de dedo marca la palabra entera", () => {
+    expect(marcado("Tira de pedrería", "pedreia")).toEqual(["pedrería"]);
+  });
+
   it("solo al inicio de palabra", () => {
     expect(marcado("Tesoro", "oro")).toEqual([]);
   });
