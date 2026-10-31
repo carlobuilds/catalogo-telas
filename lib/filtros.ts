@@ -6,12 +6,14 @@
  * copia el link y se lo manda al cliente por WhatsApp. Eso también deja que la
  * portada siga siendo un Server Component y que el botón "atrás" funcione.
  *
- * Formato:  ?q=texto&cat=tira-de-pedreria,piedra-suelta&color=oro&prop=brillante&max=50&disp=1
+ * Formato:  ?q=texto&sec=pedreria&cat=tira-de-pedreria&color=oro&prop=brillante&max=50&disp=1
  *
  * Valores separados por coma en vez de la llave repetida (`cat=a&cat=b`):
  * la URL queda más corta y se lee de un vistazo cuando alguien la pega en un
  * chat, que es donde estos links terminan.
  */
+
+import { seccionPorSlug } from "@/lib/catalogos";
 
 /** Propiedades ópticas de la variante; los nombres son los de la vista. */
 export const PROPIEDADES = [
@@ -24,8 +26,16 @@ export const PROPIEDADES = [
 export type ClavePropiedad = (typeof PROPIEDADES)[number]["clave"];
 
 export type Filtros = {
-  /** Texto libre; se resuelve con `buscar_telas` (unaccent + trigram). */
+  /**
+   * Texto libre; se resuelve en JS sobre el índice del catálogo
+   * (`lib/busqueda`): sin acentos ni mayúsculas, con errores de dedo y sinónimos.
+   */
   q: string;
+  /**
+   * Sección de Mercería (`lib/catalogos.ts`): agrupa categorías. Una sola a la
+   * vez; `null` = "Todo". Los `cat` se aplican DENTRO de la sección.
+   */
+  seccion: string | null;
   /** Slugs de categoría. Varios = unión ("tira O piedra"). */
   categorias: string[];
   /** Slugs de color. Varios = unión. */
@@ -39,6 +49,7 @@ export type Filtros = {
 
 export const FILTROS_VACIOS: Filtros = {
   q: "",
+  seccion: null,
   categorias: [],
   colores: [],
   propiedades: [],
@@ -47,7 +58,7 @@ export const FILTROS_VACIOS: Filtros = {
 };
 
 /** Las llaves que este módulo maneja; el resto del querystring no se toca. */
-export const LLAVES = ["q", "cat", "color", "prop", "max", "disp"] as const;
+export const LLAVES = ["q", "sec", "cat", "color", "prop", "max", "disp"] as const;
 
 type Entrada = string | string[] | undefined;
 
@@ -74,6 +85,8 @@ export function leerFiltros(sp: Record<string, Entrada> = {}): Filtros {
 
   return {
     q: primero(sp.q),
+    // Una sección que ya no existe se ignora, igual que una propiedad vieja.
+    seccion: seccionPorSlug(primero(sp.sec))?.slug ?? null,
     categorias: lista(sp.cat),
     colores: lista(sp.color),
     // Se descarta lo que no sea una propiedad conocida: así un link viejo con
@@ -92,12 +105,16 @@ export function leerFiltros(sp: Record<string, Entrada> = {}): Filtros {
 export function aQuerystring(f: Filtros): string {
   const p = new URLSearchParams();
   if (f.q) p.set("q", f.q);
+  if (f.seccion) p.set("sec", f.seccion);
   if (f.categorias.length) p.set("cat", f.categorias.join(","));
   if (f.colores.length) p.set("color", f.colores.join(","));
   if (f.propiedades.length) p.set("prop", f.propiedades.join(","));
   if (f.precioMax != null) p.set("max", String(f.precioMax));
   if (f.soloDisponibles) p.set("disp", "1");
-  return p.toString();
+  // La coma es el separador de las listas y es válida en un querystring:
+  // dejarla literal hace que el link pegado en WhatsApp se lea
+  // ("color=oro,plata" y no "color=oro%2Cplata").
+  return p.toString().replace(/%2C/gi, ",");
 }
 
 /** ¿Hay algo activo? Decide si se muestra el botón de limpiar. */
@@ -108,6 +125,7 @@ export function hayFiltrosActivos(f: Filtros): boolean {
 /** Cuántos filtros hay puestos (para el contador del botón en mobile). */
 export function cuentaFiltros(f: Filtros): number {
   return (
+    (f.seccion ? 1 : 0) +
     f.categorias.length +
     f.colores.length +
     f.propiedades.length +

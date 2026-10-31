@@ -8,17 +8,19 @@ import { ArrowLeft } from "lucide-react";
 export default function NotFound() {
   return (
     <main className="mx-auto flex max-w-7xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
-      <p className="font-display text-7xl text-amber/30">404</p>
-      <h1 className="mt-2 font-display text-3xl text-ink">
+      {/* `text-amber` lleno (6.1:1 sobre el fondo): al 30% daba 1.58:1 y el
+          número que explica la página casi no se veía. */}
+      <p className="font-display text-7xl font-bold text-amber">404</p>
+      <h1 className="mt-2 font-display text-3xl font-bold text-ink-display">
         No encontramos esa página
       </h1>
-      <p className="mt-2 max-w-md text-sm text-ink-soft">
+      <p className="mt-2 max-w-md text-base text-ink-soft">
         Puede que la tela ya no esté disponible o que el enlace esté
         incompleto. Todo el catálogo sigue aquí:
       </p>
       <Link
         href="/"
-        className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-heritage-navy px-5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2"
+        className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded bg-heritage-navy px-5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-deep-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Volver al catálogo

@@ -10,9 +10,11 @@ import { ArrowLeft } from "lucide-react";
  * sin importar de dónde vino el cliente.
  *
  * Si no hay historial propio (llegó por un link compartido, nueva pestaña),
- * `history.length` es 1 y `back()` no tendría a dónde ir — ahí cae a "/".
+ * `history.length` es 1 y `back()` no tendría a dónde ir — ahí cae al
+ * catálogo DEL PRODUCTO (`href`): una bolsita de piedras regresa a Mercería
+ * aunque la portada algún día sea Telas.
  */
-export function VolverAlCatalogo() {
+export function VolverAlCatalogo({ href, nombre }: { href: string; nombre: string }) {
   const router = useRouter();
 
   return (
@@ -22,13 +24,13 @@ export function VolverAlCatalogo() {
         if (window.history.length > 1) {
           router.back();
         } else {
-          router.push("/");
+          router.push(href);
         }
       }}
-      className="mb-6 inline-flex items-center gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink-soft shadow-xs transition-all hover:bg-surface-container hover:text-ink-display active:scale-95"
+      className="mb-6 inline-flex min-h-[44px] items-center gap-2 rounded border border-outline-variant/40 bg-surface-container-lowest px-4 text-sm font-bold text-ink-display shadow-xs transition-all hover:bg-surface-container active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
     >
       <ArrowLeft className="h-4 w-4" aria-hidden />
-      Volver al catálogo
+      Volver a {nombre}
     </button>
   );
 }

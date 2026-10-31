@@ -81,6 +81,10 @@ const CLASIFICADOS: [string, string][] = [
   ["Tul Punto Lunares", CATEGORIAS.TUL.slug],
   ["Tul Bordado", CATEGORIAS.TUL_BORDADO.slug],
   ["Tul Bordado Margarita", CATEGORIAS.TUL_BORDADO.slug],
+
+  // Las tiras de tul bordado son avío, no tela: ni con código ni con nombre curado.
+  ["201 Tira Tul Bordado40mm", CATEGORIAS.TIRA_TUL_BORDADO.slug],
+  ["Tira de tul bordado festón · 105 mm", CATEGORIAS.TIRA_TUL_BORDADO.slug],
 ];
 
 describe("categoriaDeCodigo", () => {
@@ -139,7 +143,10 @@ describe("categoriaDeCodigo", () => {
 
 describe("unidadDeCategoria", () => {
   it("corta por metro solo lo que sale de un rollo", () => {
-    for (const c of [CATEGORIAS.TIRA, CATEGORIAS.GALON, CATEGORIAS.FLECO, CATEGORIAS.CINTA]) {
+    for (const c of [
+      CATEGORIAS.TIRA, CATEGORIAS.GALON, CATEGORIAS.FLECO, CATEGORIAS.CINTA,
+      CATEGORIAS.TIRA_TUL_BORDADO,
+    ]) {
       expect(unidadDeCategoria(c.slug), c.nombre).toBe("metro");
     }
     for (const c of [CATEGORIAS.CHIFON, CATEGORIAS.TUL, CATEGORIAS.TUL_BORDADO]) {

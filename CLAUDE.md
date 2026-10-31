@@ -52,6 +52,18 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   muestra UNA vez, sin caracteres ambiguos porque se dicta por teléfono y se
   teclea en tablet. `--listar` dice quién tiene cuenta y si está autorizado;
   `--reset --aplicar` repone la contraseña de una cuenta que ya existe.
+- `pnpm respaldo:completo --destino=<carpeta>` — respaldo de producción COMPLETO y solo
+  lectura: las 11 tablas en JSON (paginadas con `order`), cuentas de admin/revisor, la vista
+  en `catalogo.csv` y copia de todo el bucket `telas`, con verificación al final. Correrlo
+  antes de cualquier `--aplicar` y guardarlo FUERA del worktree (`…/Respaldos/<fecha>-<motivo>`).
+  `pnpm respaldo` (6 tablas a un JSON) sigue existiendo para los scripts de curaduría.
+- `pnpm diagnostico:precios [--respaldo=<carpeta>]` — SOLO LECTURA: compara `variante` contra
+  el `datos/variante.json` de un respaldo y lista precios/SKU que pasaron de tener valor a
+  vacío, más las variantes revisadas sin precio. Nació del bug del editor de /admin que
+  escribía `precio: null` al guardar (ver "Parche parcial" en Convenciones).
+- `pnpm separar:tiras-tul` — pasa las "Tira de tul bordado…" de la categoría de tela
+  `tul-bordado` a `tira-de-tul-bordado` (mercería). Simulacro por defecto; `--aplicar` exige
+  `--respaldo=<carpeta>` y deja ahí `deshacer-tiras-tul.json`. Solo toca `tela.categoria_id`.
 - `pnpm clasificar` — sobre lo YA SUBIDO: asigna categoría a cada tela según el prefijo
   de su código (`lib/ingesta/categorias.ts`) y le quita a las bolsitas de piedra el
   número de cámara del nombre. **Simulacro por defecto**: `--aplicar` escribe,
@@ -74,6 +86,26 @@ formularios de `/admin`. `unidadDe(null)` cae a **metro** a propósito: es como 
 comportaba todo antes de que existiera la columna, así que un dato faltante —o un
 carrito ya guardado en localStorage— no le cambia el pedido a nadie.
 
+**Dos catálogos públicos, Mercería y Telas** (`lib/catalogos.ts`): viven en las mismas
+tablas y los separa la CATEGORÍA del modelo. `catalogoDeCategoria()` es la única regla —una
+lista corta de categorías de tela; lo desconocido o sin categoría va a mercería— y se
+aplica al construir el índice del catálogo (`lib/busqueda/indice.ts`), no con un filtro SQL
+aparte. La portada (`/`) es `CATALOGO_PORTADA` (hoy mercería: el catálogo es casi todo
+avíos); `/merceria` y `/telas` existen siempre. Mercería se recorre por SECCIONES
+(`SECCIONES_MERCERIA`: Cristalería, Pedrería, Encajes y tiras, Flores, Costura; URL `?sec=`)
+y los chips de categoría salen dentro de la sección. Una categoría nueva de mercería debe
+entrar a una sección: `catalogos.test.ts` lo exige para las de la ingesta.
+
+**Un producto en varias secciones** (sección 16 del SQL, `sql/2026-10-31-categorias-extra.sql`):
+categoría PRINCIPAL (`tela.categoria_id`) + "también aparece en" (tabla `tela_categoria`, que la
+vista expone como `categorias_extra text[]`). El catálogo lo decide SOLO la principal; las extras
+del otro catálogo se ignoran (`categoriasExtraPosibles` ni las ofrece) y las del mismo cuentan
+para secciones, chips y conteos. La card muestra la principal. Se editan en `/admin/tela/[id]` y
+en `/revision/producto/[id]` (`lib/categorias-extra.ts`). Todo tolera que la migración no haya
+corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran el aviso
+(42P01/PGRST205). Falla CERRADO: si las extras no se pudieron leer no se pintan las casillas
+—vacías, guardar borraría las existentes— y el guardado inserta antes de quitar.
+
 `tela` (modelo) → `variante` (SKU/color, con precio/stock/propiedades ópticas) → `foto`
 (en bucket Storage `telas`). N:N: `tela↔caso_uso`, `tela↔oportunidad`. Lookups: `color`
 (con hex), `categoria`, `acabado`, `caso_uso`, `oportunidad`.
@@ -81,7 +113,18 @@ carrito ya guardado en localStorage— no le cambia el pedido a nadie.
 - `sku` es UNIQUE pero NULLABLE: hay fotos sin SKU; **nunca inventar SKU**.
 - `variante.orden` (sección 11 del SQL) = orden manual de colores; se edita con
   drag & drop en `/admin/tela/[id]` y la vista lo expone como `variante_orden`.
-- Búsqueda full-text con `f_unaccent` + `pg_trgm` (insensible a acentos, soporta substrings).
+- **Búsqueda en JS, no en SQL** (`lib/busqueda/`): `buscar_telas` no existe en producción.
+  `getIndiceCatalogo` (`lib/queries.ts`) lee la vista PAGINADA de mil en mil (`order
+  variante_id`, por el tope de filas de PostgREST) y arma un `ModeloIndice` por modelo,
+  cacheado 60s con el tag `catalogo`. Sobre él corren el filtrado por modelo, las facetas, la
+  búsqueda y las sugerencias. El motor (`motor.ts`) ignora acentos y mayúsculas, compara
+  singular/plural por raíz, tolera errores de dedo (Damerau-Levenshtein ≤1 en palabras de 4–6
+  letras, ≤2 de 7+) y entiende sinónimos (`sinonimos.ts`, EDITABLE: ahí van las palabras de la
+  clientela). Todas las palabras deben coincidir; si nada las tiene todas, relaja a la mayoría y
+  lo marca `aproximado`. El SKU exacto va primero. **Con precio real primero**: en cada vista,
+  los modelos con precio capturado (en las variantes que se ven) salen antes.
+  Las sugerencias del buscador vienen de `GET /api/sugerencias` (combobox ARIA en
+  `SearchBar.tsx`); el grid ya no cambia con cada tecla, solo con Enter o al elegir.
 - **Categoría desde el código**: la tienda codifica el tipo de producto en las letras del
   código (`HE`=hebilla, `BO`=botones, `JR`=corchetes, `BNK`/`KP`=tira de pedrería,
   `TGL`/`TG`/`G`=galón de ENCAJE —no es pedrería—, `BT`/`CT`/`TC`=cintillo, `D`/`DB`/`MC`=
@@ -120,6 +163,9 @@ carrito ya guardado en localStorage— no le cambia el pedido a nadie.
   mirando; aquí hay alguien decidiendo y la previsualización promete "así se va a ver".
 
 ## Convenciones
+- **La descripción no se muestra en el catálogo público**, por decisión de la tienda: ni en
+  la ficha, ni en la metadata/vista previa del link, ni en el índice de búsqueda. La columna
+  `tela.descripcion` se queda: /admin la edita y el agente de WhatsApp puede usarla.
 - Paleta (tokens en `app/globals.css`, que es la ÚNICA fuente): fondo arena
   `#F1EDE2`, superficie crema `#FFF9ED`, tinta de párrafo `#0A0F14`, tinta de
   títulos `#26262B` (`ink-display`), **primario púrpura `#6E4B7A`**
@@ -137,8 +183,25 @@ carrito ya guardado en localStorage— no le cambia el pedido a nadie.
   el significado vive en `globals.css`, no en el nombre. No hay ningún azul en
 - **Border-radius del design.md de Stitch "Artisanal Modernity"** (tokens en `globals.css`; es la escala default de Tailwind, Stitch no la personalizó). Base de **4px** (`rounded`) en cards de producto, imágenes, inputs, chips y botones; **8px** (`rounded-lg`) en paneles e imágenes enmarcadas; **12px** (`rounded-xl` y `rounded-2xl`, mismo valor: Stitch no define 2xl) en contenedores destacados y modales; **24px** (`rounded-3xl`) en bottom-sheets; **9999px** (`rounded-full`) exclusivamente en swatches de color circulares y puntos de estado.
 - Accesibilidad AA: contraste, focus visible, navegable por teclado, `alt` en imágenes.
+- **Móvil para clientela de 40+** (plan UX, Fase 3): nada con significado de menos de 14px
+  (`text-sm`; `text-xs` solo para conteos y etiquetas cortas); inputs en `text-base` (16px, o
+  iOS hace zoom al enfocarlos); botones y links de al menos 44px (`min-h-[44px]`); nunca
+  `text-ink-soft/70` ni `/50` en texto; un botón que en móvil solo muestra icono lleva
+  `aria-label`, y el nombre accesible de uno con texto EMPIEZA por ese texto.
 - Estado de filtros/búsqueda en la **URL (querystring)** para que sea compartible.
+  **Compartir la selección** (`lib/compartir.ts`, `components/CompartirVista.tsx`): el link es
+  la ruta del catálogo con sus filtros y sin `ver`; quien lo abre ve pastillas con lo activo
+  (cada una con su ✕) y "Ver todo el catálogo". `generateMetadata` de `/`, `/merceria` y
+  `/telas` (`lib/metadata-vista.ts`) describe la vista ("Pedrería › Tira de pedrería · Oro") y
+  usa como og:image el derivado `lg` del primer modelo. Las comas de las listas van literales en
+  el link (`color=oro,plata`).
 - No traer todo el catálogo al cliente: paginación/scroll infinito; cachear lecturas en Server Components.
+
+- **Parche parcial en los guardados de /admin**: una acción escribe SOLO las columnas que
+  trae el formulario (`lib/admin/campos.ts`, con pruebas). Un campo ausente es "no lo toqué",
+  nunca `null`. Las casillas viajan con `<input type="hidden" name="campos_presentes">`
+  porque una casilla desmarcada no llega en el FormData. El input del precio se llama
+  `precio` (la columna); `precio_metro` es solo el alias de la VISTA.
 
 ## Seguridad
 - RLS activo: lectura pública (anon SELECT), escritura solo `service_role`.
@@ -148,17 +211,17 @@ carrito ya guardado en localStorage— no le cambia el pedido a nadie.
 1. ✅ Esquema SQL (`catalogo_telas_supabase.sql`)
 2. ✅ Scaffolding + conexión lectura + grid mínimo
 3. ✅ Script de ingesta (manifest CSV primero)
-4. ✅ Filtros + detalle + selector de color. Los filtros son chips server-rendered
-   (`components/Filtros.tsx`) con el estado en la URL (`lib/filtros.ts`): categoría,
+4. ✅ Filtros + detalle + selector de color. Los filtros son chips de
+   `components/CatalogToolbar.tsx` con el estado en la URL (`lib/filtros.ts`): categoría,
    color, acabado y disponibilidad. Las facetas (`getFacetas`) se calculan sobre el
    catálogo COMPLETO y solo se pinta el chip de lo que algún producto tiene, así que
    la barra crece sola conforme la tienda captura más datos. La paginación es POR
    MODELO (`?ver=N`, 48 por tanda): la vista trae una fila por variante pero el grid
    pinta una card por modelo, así que cortar por filas partiría un modelo entre dos
-   páginas y la card saldría con la mitad de sus colores. `paginaCatalogoCached` hace
-   dos lecturas —qué modelos cumplen (proyección mínima, da el total honesto) y luego
-   las filas de esa página— y `recortarAModelos` hace lo mismo en el camino de
-   búsqueda. Cambiar un filtro o la búsqueda resetea `ver`.
+   páginas y la card saldría con la mitad de sus colores. `getCatalogo` va en dos
+   pasos —qué modelos cumplen y en qué orden, sobre el índice en memoria (da el total
+   honesto), y luego las filas de esa página con `.in(tela_id)` en trozos de 48 para no
+   reventar la URL—. Cambiar un filtro o la búsqueda resetea `ver`.
 5. ⏳ Cotización + WhatsApp (carrito y envío listos; pulido pendiente)
 6. ✅ Admin con Auth (allowlist `ADMIN_EMAILS`, altas con `pnpm admin:crear`):
    lista de productos en `/admin`, editor
@@ -178,7 +241,7 @@ carrito ya guardado en localStorage— no le cambia el pedido a nadie.
    en la lista —con ocho colores por card no cabía un formulario por color—:
    se editan en el editor, a un toque del swatch.
    La BÚSQUEDA de `/admin` es por PRODUCTO, en dos lecturas (qué telas casan →
-   sus filas completas), igual que `paginaCatalogoCached`: filtrar filas
+   sus filas completas), igual que `getCatalogo` en el público: filtrar filas
    mostraría 1 de 8 swatches y contaría solo las fotos del color que casó.
    El `in(tela_id, …)` viaja en la URL, así que va topado a 48 productos.
    Las dos pantallas que suben fotos (`/admin/tela/[id]` y `/admin/merceria/nueva`)

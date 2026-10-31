@@ -12,6 +12,9 @@ import {
 } from "@/components/revision/VarianteRevisionCard";
 import { CategoriaProductoForm, type CategoriaLookup } from "@/components/revision/CategoriaProductoForm";
 import { NombreProductoForm } from "@/components/revision/NombreProductoForm";
+import { CategoriasExtraForm } from "@/components/revision/CategoriasExtraForm";
+import { categoriasExtraPosibles } from "@/lib/catalogos";
+import { leerCategoriasExtra } from "@/lib/categorias-extra";
 
 export const metadata: Metadata = {
   title: "Revisar producto — Revisión de catálogo",
@@ -39,14 +42,14 @@ export default async function RevisionProductoPage({
 
   const supabase = createAdminClient();
 
-  const [{ data: tela }, { data: colores }, { data: categorias }, { data: variantesRaw }] = await Promise.all([
+  const [{ data: tela }, { data: colores }, { data: categorias }, { data: variantesRaw }, extras] = await Promise.all([
     supabase
       .from("tela")
       .select("id, nombre, categoria_id, categoria(slug, nombre)")
       .eq("id", id)
       .single(),
     supabase.from("color").select("id, nombre, hex").order("nombre"),
-    supabase.from("categoria").select("id, nombre").order("nombre"),
+    supabase.from("categoria").select("id, nombre, slug").order("nombre"),
     supabase
       .from("variante")
       .select(
@@ -54,6 +57,7 @@ export default async function RevisionProductoPage({
       )
       .eq("tela_id", id)
       .order("orden"),
+    leerCategoriasExtra(supabase, id),
   ]);
 
   if (!tela) notFound();
@@ -61,7 +65,10 @@ export default async function RevisionProductoPage({
   const categoria = tela.categoria as unknown as { slug: string; nombre: string } | null;
   const placeholderMedida = placeholderMedidaDeCategoria(categoria?.slug ?? null);
   const coloresLista = (colores ?? []) as ColorLookup[];
-  const categoriasLista = (categorias ?? []) as CategoriaLookup[];
+  const categoriasLista = (categorias ?? []) as (CategoriaLookup & { slug: string })[];
+  const extrasPosibles = categoriasExtraPosibles(categoriasLista, categoria?.slug ?? null).map(
+    ({ id, nombre }) => ({ id, nombre })
+  );
   const variantes = (variantesRaw ?? []) as unknown as VarianteRevision[];
 
   return (
@@ -80,6 +87,12 @@ export default async function RevisionProductoPage({
           telaId={tela.id}
           categoriaId={tela.categoria_id}
           categorias={categoriasLista}
+        />
+        <CategoriasExtraForm
+          telaId={tela.id}
+          opciones={extrasPosibles}
+          marcadas={extras.ids}
+          aviso={extras.aviso}
         />
       </div>
 

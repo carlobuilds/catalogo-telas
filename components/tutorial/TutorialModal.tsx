@@ -192,7 +192,7 @@ export function TutorialModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink-deep/65 p-3 sm:p-4 backdrop-blur-md transition-opacity duration-300 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink-deep/65 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md transition-opacity duration-300 sm:items-center sm:p-4"
       onClick={cerrar}
     >
       <div
@@ -201,28 +201,31 @@ export function TutorialModal() {
         aria-modal="true"
         aria-labelledby="tutorial-titulo"
         tabIndex={-1}
-        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-line/80 bg-surface-container-lowest shadow-2xl focus:outline-none"
+        className="relative max-h-[calc(100dvh-1.5rem-env(safe-area-inset-bottom,0px))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-line/80 bg-surface-container-lowest shadow-2xl focus:outline-none sm:max-h-[calc(100dvh-2rem)]"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
         {/* Cabecera del Atelier */}
-        <div className="flex items-center justify-between border-b border-line/60 bg-surface-container-low/60 px-5 py-3.5 sm:px-6">
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber text-white text-[11px] font-bold">
+        <div className="flex items-center justify-between gap-3 border-b border-line/60 bg-surface-container-low/60 px-5 py-2 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-bold text-white"
+            >
               {slide + 1}
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-amber">
+            <span className="text-label-caps text-xs text-amber">
               {actual.etiqueta}
             </span>
           </div>
           <button
             type="button"
             onClick={cerrar}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-container hover:text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+            className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-container hover:text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             aria-label="Cerrar guía del catálogo"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
 
@@ -240,14 +243,17 @@ export function TutorialModal() {
             >
               {actual.titulo}
             </h2>
-            <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm leading-relaxed text-ink-soft">
+            <p className="mx-auto mt-2 max-w-md text-base leading-relaxed text-ink-soft">
               {actual.texto}
             </p>
           </div>
         </div>
 
-        {/* Indicadores de Paso (Pills animados) */}
-        <div className="flex justify-center items-center gap-1.5 py-4">
+        {/* Indicadores de Paso (Pills animados). El punto se queda chico,
+            pero el botón que lo envuelve mide 44×44 para poder tocarlo. El
+            inactivo va en `outline` (4.5:1 sobre blanco): el gris claro de
+            antes no llegaba ni al 3:1 que pide un control no textual. */}
+        <div className="flex items-center justify-center py-2">
           {SLIDES.map((s, i) => (
             <button
               key={s.titulo}
@@ -255,13 +261,14 @@ export function TutorialModal() {
               onClick={() => irA(i)}
               aria-label={`Ir al paso ${i + 1}: ${s.titulo}`}
               aria-current={i === slide ? "step" : undefined}
-              className="group p-1 focus-visible:outline-none"
+              className="group flex h-11 min-w-[44px] items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             >
               <span
+                aria-hidden
                 className={`block h-2 rounded-full transition-all duration-300 ${
                   i === slide
                     ? "w-8 bg-heritage-navy shadow-xs"
-                    : "w-2 bg-line-strong/40 hover:bg-outline-variant/70"
+                    : "w-2 bg-outline group-hover:bg-ink-soft"
                 }`}
               />
             </button>
@@ -274,7 +281,7 @@ export function TutorialModal() {
             <button
               type="button"
               onClick={cerrar}
-              className="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink-soft transition-colors hover:text-ink-display hover:bg-surface-container focus-visible:outline-none"
+              className="-ml-2 inline-flex min-h-[44px] items-center rounded px-3 text-sm font-bold text-ink-soft transition-colors hover:text-ink-display hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             >
               Saltar guía
             </button>
@@ -282,7 +289,7 @@ export function TutorialModal() {
             <button
               type="button"
               onClick={() => irA(slide - 1)}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink-soft transition-colors hover:text-ink-display hover:bg-surface-container focus-visible:outline-none"
+              className="-ml-2 inline-flex min-h-[44px] items-center gap-1.5 rounded px-3 text-sm font-bold text-ink-soft transition-colors hover:text-ink-display hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden />
               <span>Anterior</span>

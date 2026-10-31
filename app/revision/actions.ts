@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSesionRevisor } from "@/lib/revisor-auth";
 import { slugify } from "@/lib/slug";
 import { UNIDADES_VENTA, type UnidadVenta } from "@/lib/unidades";
+import { reemplazarCategoriasExtra } from "@/lib/categorias-extra";
 
 // ---------------------------------------------------------------------------
 // Sesión
@@ -167,6 +168,38 @@ export async function actualizarCategoriaProducto(formData: FormData): Promise<E
   const supabase = createAdminClient();
   const { error } = await supabase.from("tela").update({ categoria_id: categoriaId }).eq("id", telaId);
   if (error) return { ok: false, error: `No se pudo guardar la categoría: ${error.message}.` };
+
+  refrescarRevision(telaId);
+  return { ok: true };
+}
+
+/**
+ * "También aparece en": las categorías EXTRA del producto (tabla
+ * `tela_categoria`, sección 16 del SQL). Reemplaza el conjunto completo —lo
+ * marcado es la verdad— y solo toca esa tabla, nunca `tela` ni `variante`.
+ * Si la migración no ha corrido, lo dice en vez de tumbar la pantalla.
+ */
+export async function actualizarCategoriasExtra(formData: FormData): Promise<EstadoGuardado> {
+  await requireRevisor();
+  const telaId = requireUuid(formData.get("tela_id"), "tela");
+
+  let ids: string[];
+  try {
+    ids = formData.getAll("categorias_extra").map((v) => requireUuid(v, "categoría"));
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Categoría inválida." };
+  }
+
+  const supabase = createAdminClient();
+  // La principal decide qué extras valen (mismo catálogo, sin repetirla).
+  const { data: tela, error: errorTela } = await supabase
+    .from("tela")
+    .select("categoria_id")
+    .eq("id", telaId)
+    .single();
+  if (errorTela || !tela) return { ok: false, error: "Ese producto ya no existe. Recarga la página." };
+  const { error } = await reemplazarCategoriasExtra(supabase, telaId, ids, tela.categoria_id);
+  if (error) return { ok: false, error };
 
   refrescarRevision(telaId);
   return { ok: true };

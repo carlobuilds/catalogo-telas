@@ -12,6 +12,9 @@ import { OrdenColores } from "@/components/admin/OrdenColores";
 import { GaleriaFotos } from "@/components/admin/GaleriaFotos";
 import { CuradorFotos } from "@/components/admin/CuradorFotos";
 import { UNIDADES_VENTA, unidadDe } from "@/lib/unidades";
+import { CAMPOS_PRESENTES, CASILLAS_VARIANTE } from "@/lib/admin/campos";
+import { categoriasExtraPosibles } from "@/lib/catalogos";
+import { leerCategoriasExtra } from "@/lib/categorias-extra";
 import {
   actualizarTela,
   actualizarVarianteDetalle,
@@ -33,7 +36,8 @@ type Variante = {
   sku: string | null;
   color_id: string | null;
   acabado_id: string | null;
-  precio_metro: number | null;
+  /** La TABLA trae `precio`; `precio_metro` es solo un alias de la vista. */
+  precio: number | null;
   unidad_venta: string | null;
   piezas_por_unidad: number | null;
   gramaje: number | null;
@@ -106,9 +110,10 @@ export default async function EditarTelaPage({
     { variantes, faltaMigracionOrden },
     { data: casosActuales },
     { data: oportunidadesActuales },
+    extrasActuales,
   ] = await Promise.all([
     supabase.from("tela").select("*").eq("id", id).single(),
-    supabase.from("categoria").select("id, nombre").order("nombre"),
+    supabase.from("categoria").select("id, nombre, slug").order("nombre"),
     supabase.from("color").select("id, nombre, hex").order("nombre"),
     supabase.from("acabado").select("id, nombre").order("nombre"),
     supabase.from("caso_uso").select("id, nombre").order("nombre"),
@@ -116,11 +121,16 @@ export default async function EditarTelaPage({
     getVariantes(supabase, id),
     supabase.from("tela_caso_uso").select("caso_uso_id").eq("tela_id", id),
     supabase.from("tela_oportunidad").select("oportunidad_id").eq("tela_id", id),
+    leerCategoriasExtra(supabase, id),
   ]);
 
   if (!tela) notFound();
 
   const casosMarcados = new Set((casosActuales ?? []).map((c) => c.caso_uso_id));
+  const extrasMarcadas = new Set(extrasActuales.ids);
+  const listaCategorias = (categorias ?? []) as (Lookup & { slug: string })[];
+  const principal = listaCategorias.find((c) => c.id === tela.categoria_id)?.slug ?? null;
+  const extrasPosibles = categoriasExtraPosibles(listaCategorias, principal);
   const oportunidadesMarcadas = new Set(
     (oportunidadesActuales ?? []).map((o) => o.oportunidad_id)
   );
@@ -191,11 +201,47 @@ export default async function EditarTelaPage({
             <span className="mb-1 block text-sm font-medium text-ink">Categoría</span>
             <select name="categoria_id" defaultValue={tela.categoria_id ?? ""} className={inputClase}>
               <option value="">— Sin categoría —</option>
-              {(categorias ?? []).map((c: Lookup) => (
+              {listaCategorias.map((c) => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
             </select>
           </label>
+
+          {/* "También aparece en": el producto sale además en estas secciones
+              del catálogo público. Solo se ofrecen categorías del MISMO
+              catálogo que la principal (lib/catalogos.ts): el catálogo lo
+              decide la principal y una extra del otro no tendría efecto. */}
+          <fieldset>
+            <legend className="mb-1 text-sm font-medium text-ink">También aparece en</legend>
+            <p className="mb-2 text-sm text-ink-soft">
+              Además de su categoría principal, en qué otras categorías sale este producto en el catálogo.
+              Si cambias la principal, guarda primero para ver sus opciones.
+            </p>
+            {/* Si no se pudieron leer, NO se pintan las casillas: vacías,
+                guardar borraría las que sí existen (lib/categorias-extra.ts). */}
+            {extrasActuales.aviso ? (
+              <p className="rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-ink">
+                {extrasActuales.aviso}
+              </p>
+            ) : (
+              <>
+                {/* Sin esta marca la acción no toca las extras: un formulario
+                    que no pinta las casillas no debe borrarlas (parche parcial). */}
+                <input type="hidden" name="categorias_extra_presentes" value="1" />
+                <div className="flex flex-wrap gap-2">
+                  {extrasPosibles.map((c) => (
+                    <CheckboxChip
+                      key={c.id}
+                      name="categorias_extra"
+                      value={c.id}
+                      etiqueta={c.nombre}
+                      marcado={extrasMarcadas.has(c.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </fieldset>
 
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Descripción</span>
@@ -443,8 +489,8 @@ function CamposVariante({
           </span>
           <input
             type="number"
-            name="precio_metro"
-            defaultValue={valores?.precio_metro ?? ""}
+            name="precio"
+            defaultValue={valores?.precio ?? ""}
             min="0"
             step="0.01"
             inputMode="decimal"
@@ -482,6 +528,10 @@ function CamposVariante({
         </label>
       </div>
 
+      {/* Una casilla desmarcada no viaja en el FormData: esta lista le dice a
+          la acción cuáles pintó el formulario, para guardar `false` en esas y
+          no tocar ninguna otra (parche parcial, lib/admin/campos.ts). */}
+      <input type="hidden" name={CAMPOS_PRESENTES} value={CASILLAS_VARIANTE.join(",")} />
       <fieldset>
         <legend className="mb-2 text-xs font-medium text-ink/60">Propiedades ópticas</legend>
         <div className="flex flex-wrap gap-2">

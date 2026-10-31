@@ -12,7 +12,17 @@ import { parsearEncuadres, type Encuadre } from "@/lib/images/encuadre";
 import { aplicarEncuadre } from "@/lib/images/aplicar-encuadre";
 import { slugify } from "@/lib/slug";
 import { aplicarMovimiento, esTipoMovimiento } from "@/lib/inventario";
-import { UNIDADES_VENTA, type UnidadVenta } from "@/lib/unidades";
+import {
+  UUID_RE,
+  leerCamposVariante,
+  parseCampoNumerico,
+  parseEntero,
+  parseUnidadVenta,
+  requireUuid,
+  textoOpcional,
+  uuidOpcional,
+} from "@/lib/admin/campos";
+import { reemplazarCategoriasExtra } from "@/lib/categorias-extra";
 
 // ---------------------------------------------------------------------------
 // Sesión
@@ -51,52 +61,6 @@ async function requireAdmin(): Promise<string> {
   const { user, autorizado } = await getSesionAdmin();
   if (!autorizado) redirect("/admin/login");
   return user?.email ?? "";
-}
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function requireUuid(valor: FormDataEntryValue | null, campo: string): string {
-  const id = String(valor ?? "");
-  if (!UUID_RE.test(id)) throw new Error(`Identificador inválido para ${campo}.`);
-  return id;
-}
-
-/** UUID opcional: "" (opción "— sin —" de un <select>) ⇒ null. */
-function uuidOpcional(valor: FormDataEntryValue | null, campo: string): string | null {
-  const id = String(valor ?? "").trim();
-  if (id === "") return null;
-  if (!UUID_RE.test(id)) throw new Error(`Identificador inválido para ${campo}.`);
-  return id;
-}
-
-/**
- * Campo numérico del formulario → valor para la BD.
- * - Vacío ⇒ null ("precio a consultar" / stock desconocido). NO es cero:
- *   cero significa "gratis" o "sin existencia" y se captura explícito.
- * - Acepta coma o punto decimal ("59,50" y "59.50").
- * - Negativos o no numéricos ⇒ error (la BD también los rechazaría por CHECK).
- */
-function parseCampoNumerico(valor: FormDataEntryValue | null, campo: string): number | null {
-  const texto = String(valor ?? "").trim();
-  if (texto === "") return null;
-
-  const n = Number(texto.replace(",", "."));
-  if (!Number.isFinite(n) || n < 0) {
-    throw new Error(`Valor inválido para ${campo}: "${texto}". Usa un número mayor o igual a 0, o déjalo vacío.`);
-  }
-  return Math.round(n * 100) / 100; // 2 decimales, como numeric(10,2)
-}
-
-/** Entero ≥ 0 o null (gramaje). */
-function parseEntero(valor: FormDataEntryValue | null, campo: string): number | null {
-  const n = parseCampoNumerico(valor, campo);
-  return n == null ? null : Math.round(n);
-}
-
-/** Texto opcional: recortado; vacío ⇒ null (ej. sku, descripción, alt). */
-function textoOpcional(valor: FormDataEntryValue | null): string | null {
-  const texto = String(valor ?? "").trim();
-  return texto === "" ? null : texto;
 }
 
 /** El sitio público refleja el cambio al instante (sin esperar el caché de 60s). */
@@ -291,6 +255,8 @@ export async function actualizarTela(formData: FormData) {
   const slug = slugify(String(formData.get("slug") ?? "")) || slugify(nombre);
   if (!slug) throw new Error("La URL (slug) no puede quedar vacía.");
 
+  const categoriaId = uuidOpcional(formData.get("categoria_id"), "categoría");
+
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("tela")
@@ -298,7 +264,7 @@ export async function actualizarTela(formData: FormData) {
       nombre,
       slug,
       descripcion: textoOpcional(formData.get("descripcion")),
-      categoria_id: uuidOpcional(formData.get("categoria_id"), "categoría"),
+      categoria_id: categoriaId,
     })
     .eq("id", telaId);
 
@@ -327,47 +293,20 @@ export async function actualizarTela(formData: FormData) {
     if (e) throw new Error(`No se pudieron guardar las oportunidades: ${e.message}`);
   }
 
+  // "También aparece en" (sección 16 del SQL): solo si el formulario pintó
+  // las casillas. Sin la tabla, el editor no las pinta y esto no corre.
+  if (formData.has("categorias_extra_presentes")) {
+    const extras = formData.getAll("categorias_extra").map((v) => requireUuid(v, "categoría extra"));
+    const { error: e } = await reemplazarCategoriasExtra(supabase, telaId, extras, categoriaId);
+    if (e) throw new Error(e);
+  }
+
   refrescarCatalogo(telaId);
 }
 
 // ---------------------------------------------------------------------------
 // Variantes (SKU/color): alta, edición completa y baja
 // ---------------------------------------------------------------------------
-
-/**
- * Unidad de venta validada contra el check de la sección 13 del SQL. Se valida
- * aquí y no solo en el `<select>` porque un POST puede traer cualquier cosa;
- * un valor fuera de la lista lo rechazaría Postgres con un error críptico.
- */
-function parseUnidadVenta(valor: FormDataEntryValue | null): UnidadVenta {
-  const texto = String(valor ?? "").trim().toLowerCase();
-  if (texto === "") return "metro"; // default de la columna
-  if (!(UNIDADES_VENTA as readonly string[]).includes(texto)) {
-    throw new Error(
-      `Unidad de venta inválida: "${texto}". Usa una de: ${UNIDADES_VENTA.join(", ")}.`
-    );
-  }
-  return texto as UnidadVenta;
-}
-
-/** Campos de variante compartidos entre alta y edición. */
-function leerCamposVariante(formData: FormData) {
-  return {
-    // NUNCA inventar SKU: solo se guarda lo que la tienda capture.
-    sku: textoOpcional(formData.get("sku")),
-    color_id: uuidOpcional(formData.get("color_id"), "color"),
-    acabado_id: uuidOpcional(formData.get("acabado_id"), "acabado"),
-    precio: parseCampoNumerico(formData.get("precio_metro"), "precio"),
-    unidad_venta: parseUnidadVenta(formData.get("unidad_venta")),
-    piezas_por_unidad: parseEntero(formData.get("piezas_por_unidad"), "piezas por unidad"),
-    gramaje: parseEntero(formData.get("gramaje"), "gramaje"),
-    stock: parseCampoNumerico(formData.get("stock"), "stock"),
-    es_bordado: formData.get("es_bordado") === "on",
-    es_brillante: formData.get("es_brillante") === "on",
-    es_traslucida: formData.get("es_traslucida") === "on",
-    es_tornasol: formData.get("es_tornasol") === "on",
-  };
-}
 
 export async function crearVariante(formData: FormData) {
   await requireAdmin();
@@ -391,11 +330,13 @@ export async function actualizarVarianteDetalle(formData: FormData) {
   const varianteId = requireUuid(formData.get("variante_id"), "variante");
   const telaId = requireUuid(formData.get("tela_id"), "tela");
 
+  // Parche parcial: solo las columnas que trae el formulario (ver
+  // lib/admin/campos.ts). Sin campos no hay nada que escribir.
+  const campos = leerCamposVariante(formData);
+  if (Object.keys(campos).length === 0) return;
+
   const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("variante")
-    .update(leerCamposVariante(formData))
-    .eq("id", varianteId);
+  const { error } = await supabase.from("variante").update(campos).eq("id", varianteId);
 
   if (error) {
     const detalle = error.code === "23505" ? "ese SKU ya existe en otra variante" : error.message;
