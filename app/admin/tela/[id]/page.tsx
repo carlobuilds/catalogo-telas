@@ -12,6 +12,7 @@ import { OrdenColores } from "@/components/admin/OrdenColores";
 import { GaleriaFotos } from "@/components/admin/GaleriaFotos";
 import { CuradorFotos } from "@/components/admin/CuradorFotos";
 import { UNIDADES_VENTA, unidadDe } from "@/lib/unidades";
+import { CAMPOS_PRESENTES, CASILLAS_VARIANTE } from "@/lib/admin/campos";
 import {
   actualizarTela,
   actualizarVarianteDetalle,
@@ -33,7 +34,8 @@ type Variante = {
   sku: string | null;
   color_id: string | null;
   acabado_id: string | null;
-  precio_metro: number | null;
+  /** La TABLA trae `precio`; `precio_metro` es solo un alias de la vista. */
+  precio: number | null;
   unidad_venta: string | null;
   piezas_por_unidad: number | null;
   gramaje: number | null;
@@ -443,8 +445,8 @@ function CamposVariante({
           </span>
           <input
             type="number"
-            name="precio_metro"
-            defaultValue={valores?.precio_metro ?? ""}
+            name="precio"
+            defaultValue={valores?.precio ?? ""}
             min="0"
             step="0.01"
             inputMode="decimal"
@@ -482,6 +484,10 @@ function CamposVariante({
         </label>
       </div>
 
+      {/* Una casilla desmarcada no viaja en el FormData: esta lista le dice a
+          la acción cuáles pintó el formulario, para guardar `false` en esas y
+          no tocar ninguna otra (parche parcial, lib/admin/campos.ts). */}
+      <input type="hidden" name={CAMPOS_PRESENTES} value={CASILLAS_VARIANTE.join(",")} />
       <fieldset>
         <legend className="mb-2 text-xs font-medium text-ink/60">Propiedades ópticas</legend>
         <div className="flex flex-wrap gap-2">

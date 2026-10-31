@@ -57,6 +57,10 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   en `catalogo.csv` y copia de todo el bucket `telas`, con verificación al final. Correrlo
   antes de cualquier `--aplicar` y guardarlo FUERA del worktree (`…/Respaldos/<fecha>-<motivo>`).
   `pnpm respaldo` (6 tablas a un JSON) sigue existiendo para los scripts de curaduría.
+- `pnpm diagnostico:precios [--respaldo=<carpeta>]` — SOLO LECTURA: compara `variante` contra
+  el `datos/variante.json` de un respaldo y lista precios/SKU que pasaron de tener valor a
+  vacío, más las variantes revisadas sin precio. Nació del bug del editor de /admin que
+  escribía `precio: null` al guardar (ver "Parche parcial" en Convenciones).
 - `pnpm separar:tiras-tul` — pasa las "Tira de tul bordado…" de la categoría de tela
   `tul-bordado` a `tira-de-tul-bordado` (mercería). Simulacro por defecto; `--aplicar` exige
   `--respaldo=<carpeta>` y deja ahí `deshacer-tiras-tul.json`. Solo toca `tela.categoria_id`.
@@ -157,6 +161,12 @@ entrar a una sección: `catalogos.test.ts` lo exige para las de la ingesta.
 - Accesibilidad AA: contraste, focus visible, navegable por teclado, `alt` en imágenes.
 - Estado de filtros/búsqueda en la **URL (querystring)** para que sea compartible.
 - No traer todo el catálogo al cliente: paginación/scroll infinito; cachear lecturas en Server Components.
+
+- **Parche parcial en los guardados de /admin**: una acción escribe SOLO las columnas que
+  trae el formulario (`lib/admin/campos.ts`, con pruebas). Un campo ausente es "no lo toqué",
+  nunca `null`. Las casillas viajan con `<input type="hidden" name="campos_presentes">`
+  porque una casilla desmarcada no llega en el FormData. El input del precio se llama
+  `precio` (la columna); `precio_metro` es solo el alias de la VISTA.
 
 ## Seguridad
 - RLS activo: lectura pública (anon SELECT), escritura solo `service_role`.
