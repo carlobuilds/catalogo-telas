@@ -2,18 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal, useFormStatus } from "react-dom";
-import {
-  Check,
-  Crop,
-  Grid3x3,
-  ImagePlus,
-  RotateCw,
-  Trash2,
-  TriangleAlert,
-  X,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { Check, Crop, GridNine, CameraPlus, ArrowClockwise, Trash, Warning, X, MagnifyingGlassPlus, MagnifyingGlassMinus } from "@/components/ui/iconos";
 import {
   dimensionesMostradas,
   encuadreDeVista,
@@ -237,7 +226,7 @@ export function CuradorFotos({
           onClick={() => entrada.current?.click()}
           className={claseBotonSuave}
         >
-          <ImagePlus className="h-4 w-4" aria-hidden />
+          <CameraPlus className="h-4 w-4" aria-hidden />
           {fotos.length ? "Elegir otras fotos" : "Elegir fotos"}
         </button>
         <span id={idAyuda} className="mt-1 block text-xs text-ink/50">
@@ -248,7 +237,7 @@ export function CuradorFotos({
 
       {excedePeso && (
         <p className="flex items-start gap-2 rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-xs text-ink">
-          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
+          <Warning className="mt-0.5 h-4 w-4 shrink-0 text-amber" aria-hidden />
           <span>
             Las {fotos.length} fotos suman {(pesoTotal / MB).toFixed(1)} MB y el máximo por
             envío es {limiteMb} MB. Súbelas en dos tandas o la subida va a fallar.
@@ -285,7 +274,7 @@ export function CuradorFotos({
                   aria-label={`Quitar ${foto.archivo.name}`}
                   title="Quitar de esta subida"
                 >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  <Trash className="h-3.5 w-3.5" aria-hidden />
                 </button>
               </div>
             </li>
@@ -664,7 +653,7 @@ function Editor({
               className="rounded-xl p-2 text-white/80 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Alejar"
             >
-              <ZoomOut className="h-5 w-5" aria-hidden />
+              <MagnifyingGlassMinus className="h-5 w-5" aria-hidden />
             </button>
             <input
               type="range"
@@ -687,18 +676,18 @@ function Editor({
               className="rounded-xl p-2 text-white/80 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Acercar"
             >
-              <ZoomIn className="h-5 w-5" aria-hidden />
+              <MagnifyingGlassPlus className="h-5 w-5" aria-hidden />
             </button>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <BotonVisor onClick={girar} icono={<RotateCw className="h-4 w-4" aria-hidden />}>
+              <BotonVisor onClick={girar} icono={<ArrowClockwise className="h-4 w-4" aria-hidden />}>
                 Girar 90°
               </BotonVisor>
               <BotonVisor
                 onClick={() => setGrilla((g) => !g)}
-                icono={<Grid3x3 className="h-4 w-4" aria-hidden />}
+                icono={<GridNine className="h-4 w-4" aria-hidden />}
                 activo={grilla}
               >
                 Guías

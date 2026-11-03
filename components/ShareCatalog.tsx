@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Share2 } from "lucide-react";
+import { ShareNetwork } from "@/components/ui/iconos";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -63,7 +63,7 @@ export function ShareCatalog({
     // quien usa control por voz dice lo que ve). La parte oculta solo aclara
     // QUÉ se comparte ahora que también existe "Compartir esta selección".
     <Button variant={variant} size={size} onClick={compartir} className={className}>
-      <Share2 className="h-5 w-5" aria-hidden />
+      <ShareNetwork className="h-5 w-5" />
       {label}
       {!/cat[aá]logo/i.test(label) && <span className="sr-only"> el catálogo</span>}
     </Button>

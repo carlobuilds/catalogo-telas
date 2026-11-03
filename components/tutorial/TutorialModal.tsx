@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X, ChevronLeft, ArrowRight, Sparkles } from "lucide-react";
+import { X, CaretLeft, ArrowRight, Sparkle } from "@/components/ui/iconos";
 import { useGuideStore } from "@/lib/guide-store";
 import { Button } from "@/components/ui/Button";
 import {
@@ -18,7 +18,6 @@ import {
 
 type Slide = {
   maqueta: () => React.ReactElement;
-  etiqueta: string;
   titulo: string;
   texto: string;
 };
@@ -26,28 +25,24 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     maqueta: MaquetaBuscar,
-    etiqueta: "Paso 1 · Exploración",
     titulo: "Busca o explora a tu ritmo",
     texto:
       "Escribe el nombre, color o uso de tela que buscas. O desliza hacia abajo para recorrer todo nuestro catálogo selecto.",
   },
   {
     maqueta: MaquetaColor,
-    etiqueta: "Paso 2 · Selección de Tono",
     titulo: "Elige el color ideal",
     texto:
       "Toca cualquier tela para verla a detalle. Cambia de tono con un solo toque y consulta las existencias en tiempo real.",
   },
   {
     maqueta: MaquetaMetros,
-    etiqueta: "Paso 3 · Cantidad y Cesta",
     titulo: "Define cuántos metros requieres",
     texto:
       "Ajusta los metros que necesitas y agrégalos a tu cotización. Puedes combinar distintas telas sin compromiso.",
   },
   {
     maqueta: MaquetaWhatsapp,
-    etiqueta: "Paso 4 · Cotización Directa",
     titulo: "Envíalo por WhatsApp",
     texto:
       "Al terminar, toca “Enviar por WhatsApp”: se abrirá el chat con tu pedido redactado para confirmarte precio exacto y disponibilidad inmediata.",
@@ -211,12 +206,12 @@ export function TutorialModal() {
           <div className="flex min-w-0 items-center gap-2">
             <span
               aria-hidden
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-bold text-white"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber text-sm font-bold text-white"
             >
               {slide + 1}
             </span>
-            <span className="text-label-caps text-xs text-amber">
-              {actual.etiqueta}
+            <span className="text-sm font-semibold text-amber">
+              Paso {slide + 1} de {SLIDES.length}
             </span>
           </div>
           <button
@@ -291,7 +286,7 @@ export function TutorialModal() {
               onClick={() => irA(slide - 1)}
               className="-ml-2 inline-flex min-h-[44px] items-center gap-1.5 rounded px-3 text-sm font-bold text-ink-soft transition-colors hover:text-ink-display hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             >
-              <ChevronLeft className="h-4 w-4" aria-hidden />
+              <CaretLeft className="size-5" />
               <span>Anterior</span>
             </button>
           )}
@@ -304,7 +299,7 @@ export function TutorialModal() {
           >
             <span>{esUltimo ? "¡Explorar telas!" : "Siguiente"}</span>
             {esUltimo ? (
-              <Sparkles className="h-4 w-4" aria-hidden />
+              <Sparkle className="h-4 w-4" aria-hidden />
             ) : (
               <ArrowRight className="h-4 w-4" aria-hidden />
             )}

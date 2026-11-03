@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, useTransition } from "react";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/iconos";
 import { crearCategoria } from "@/app/revision/actions";
 
 export type CategoriaNueva = { id: string; nombre: string; slug: string };

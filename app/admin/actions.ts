@@ -23,6 +23,7 @@ import {
   uuidOpcional,
 } from "@/lib/admin/campos";
 import { reemplazarCategoriasExtra } from "@/lib/categorias-extra";
+import { mensajeDeError, type EstadoGuardado } from "@/lib/estado-guardado";
 
 // ---------------------------------------------------------------------------
 // Sesión
@@ -245,44 +246,53 @@ export async function crearMerceria(formData: FormData) {
   redirect(`/admin/tela/${telaId}?nuevo=1`);
 }
 
-export async function actualizarTela(formData: FormData) {
+export async function actualizarTela(formData: FormData): Promise<EstadoGuardado> {
   await requireAdmin();
-  const telaId = requireUuid(formData.get("tela_id"), "tela");
 
-  const nombre = String(formData.get("nombre") ?? "").trim();
-  if (!nombre) throw new Error("El nombre de la tela es obligatorio.");
+  let telaId: string;
+  let valores: { nombre: string; slug: string; descripcion: string | null; categoria_id: string | null };
+  let casos: string[];
+  let oportunidades: string[];
+  let extras: string[] | null;
+  try {
+    telaId = requireUuid(formData.get("tela_id"), "tela");
+    const nombre = String(formData.get("nombre") ?? "").trim();
+    if (!nombre) return { ok: false, error: "El nombre es obligatorio." };
 
-  const slug = slugify(String(formData.get("slug") ?? "")) || slugify(nombre);
-  if (!slug) throw new Error("La URL (slug) no puede quedar vacía.");
+    const slug = slugify(String(formData.get("slug") ?? "")) || slugify(nombre);
+    if (!slug) return { ok: false, error: "La URL (slug) no puede quedar vacía." };
 
-  const categoriaId = uuidOpcional(formData.get("categoria_id"), "categoría");
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("tela")
-    .update({
+    valores = {
       nombre,
       slug,
       descripcion: textoOpcional(formData.get("descripcion")),
-      categoria_id: categoriaId,
-    })
-    .eq("id", telaId);
+      categoria_id: uuidOpcional(formData.get("categoria_id"), "categoría"),
+    };
+    casos = formData.getAll("casos_uso").map((v) => requireUuid(v, "caso de uso"));
+    oportunidades = formData.getAll("oportunidades").map((v) => requireUuid(v, "oportunidad"));
+    extras = formData.has("categorias_extra_presentes")
+      ? formData.getAll("categorias_extra").map((v) => requireUuid(v, "categoría extra"))
+      : null;
+  } catch (e) {
+    return { ok: false, error: mensajeDeError(e) };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("tela").update(valores).eq("id", telaId);
 
   if (error) {
-    const detalle = error.code === "23505" ? `ya existe una tela con la URL "${slug}"` : error.message;
-    throw new Error(`No se pudo guardar la tela: ${detalle}.`);
+    const detalle =
+      error.code === "23505" ? `ya existe un producto con la URL "${valores.slug}"` : error.message;
+    return { ok: false, error: `No se pudo guardar: ${detalle}.` };
   }
 
   // N:N — reemplazo completo: lo marcado en el formulario es la verdad.
-  const casos = formData.getAll("casos_uso").map((v) => requireUuid(v, "caso de uso"));
-  const oportunidades = formData.getAll("oportunidades").map((v) => requireUuid(v, "oportunidad"));
-
   await supabase.from("tela_caso_uso").delete().eq("tela_id", telaId);
   if (casos.length) {
     const { error: e } = await supabase
       .from("tela_caso_uso")
       .insert(casos.map((caso_uso_id) => ({ tela_id: telaId, caso_uso_id })));
-    if (e) throw new Error(`No se pudieron guardar los casos de uso: ${e.message}`);
+    if (e) return { ok: false, error: `No se pudieron guardar los casos de uso: ${e.message}` };
   }
 
   await supabase.from("tela_oportunidad").delete().eq("tela_id", telaId);
@@ -290,60 +300,82 @@ export async function actualizarTela(formData: FormData) {
     const { error: e } = await supabase
       .from("tela_oportunidad")
       .insert(oportunidades.map((oportunidad_id) => ({ tela_id: telaId, oportunidad_id })));
-    if (e) throw new Error(`No se pudieron guardar las oportunidades: ${e.message}`);
+    if (e) return { ok: false, error: `No se pudieron guardar las oportunidades: ${e.message}` };
   }
 
   // "También aparece en" (sección 16 del SQL): solo si el formulario pintó
   // las casillas. Sin la tabla, el editor no las pinta y esto no corre.
-  if (formData.has("categorias_extra_presentes")) {
-    const extras = formData.getAll("categorias_extra").map((v) => requireUuid(v, "categoría extra"));
-    const { error: e } = await reemplazarCategoriasExtra(supabase, telaId, extras, categoriaId);
-    if (e) throw new Error(e);
+  if (extras) {
+    const { error: e } = await reemplazarCategoriasExtra(supabase, telaId, extras, valores.categoria_id);
+    if (e) return { ok: false, error: e };
   }
 
   refrescarCatalogo(telaId);
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
-// Variantes (SKU/color): alta, edición completa y baja
+// Variantes (SKU/color): alta, edición y baja
 // ---------------------------------------------------------------------------
 
-export async function crearVariante(formData: FormData) {
-  await requireAdmin();
-  const telaId = requireUuid(formData.get("tela_id"), "tela");
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("variante")
-    .insert({ tela_id: telaId, ...leerCamposVariante(formData) });
-
-  if (error) {
-    const detalle = error.code === "23505" ? "ese SKU ya existe en otra variante" : error.message;
-    throw new Error(`No se pudo crear la variante: ${detalle}.`);
-  }
-
-  refrescarCatalogo(telaId);
+/** El único error de BD que la tienda puede provocar capturando: SKU repetido. */
+function detalleErrorVariante(error: { code?: string; message: string }): string {
+  return error.code === "23505" ? "ese código (SKU) ya lo tiene otro artículo" : error.message;
 }
 
-export async function actualizarVarianteDetalle(formData: FormData) {
+export async function crearVariante(formData: FormData): Promise<EstadoGuardado> {
   await requireAdmin();
-  const varianteId = requireUuid(formData.get("variante_id"), "variante");
-  const telaId = requireUuid(formData.get("tela_id"), "tela");
 
-  // Parche parcial: solo las columnas que trae el formulario (ver
-  // lib/admin/campos.ts). Sin campos no hay nada que escribir.
-  const campos = leerCamposVariante(formData);
-  if (Object.keys(campos).length === 0) return;
+  let telaId: string;
+  let campos: ReturnType<typeof leerCamposVariante>;
+  try {
+    telaId = requireUuid(formData.get("tela_id"), "tela");
+    campos = leerCamposVariante(formData);
+  } catch (e) {
+    return { ok: false, error: mensajeDeError(e) };
+  }
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("variante").update(campos).eq("id", varianteId);
+  const { error } = await supabase.from("variante").insert({ tela_id: telaId, ...campos });
 
   if (error) {
-    const detalle = error.code === "23505" ? "ese SKU ya existe en otra variante" : error.message;
-    throw new Error(`No se pudo guardar la variante: ${detalle}.`);
+    return { ok: false, error: `No se pudo agregar el color: ${detalleErrorVariante(error)}.` };
   }
 
   refrescarCatalogo(telaId);
+  return { ok: true };
+}
+
+/**
+ * Guarda la ficha de una variante con un PARCHE PARCIAL (`leerCamposVariante`):
+ * solo las columnas que el formulario trae. Lo que no está en pantalla —o lo
+ * que se capturó en /revision y este form no muestra— no se toca.
+ */
+export async function actualizarVarianteDetalle(formData: FormData): Promise<EstadoGuardado> {
+  await requireAdmin();
+
+  let varianteId: string;
+  let telaId: string;
+  let parche: ReturnType<typeof leerCamposVariante>;
+  try {
+    varianteId = requireUuid(formData.get("variante_id"), "variante");
+    telaId = requireUuid(formData.get("tela_id"), "tela");
+    parche = leerCamposVariante(formData);
+  } catch (e) {
+    return { ok: false, error: mensajeDeError(e) };
+  }
+
+  if (Object.keys(parche).length === 0) return { ok: true };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("variante").update(parche).eq("id", varianteId);
+
+  if (error) {
+    return { ok: false, error: `No se pudo guardar: ${detalleErrorVariante(error)}.` };
+  }
+
+  refrescarCatalogo(telaId);
+  return { ok: true };
 }
 
 export async function eliminarVariante(formData: FormData) {

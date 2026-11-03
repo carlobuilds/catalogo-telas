@@ -229,15 +229,20 @@ export function categoriaDeCodigo(codigo: string | null | undefined): Categoria 
  * verdad tiene sentido coser con hilo y aguja.
  */
 export type SugerenciaMerceria = {
-  icono: string;
+  /**
+   * Qué es, no qué dibujo: la UI lo traduce a un icono de
+   * `components/ui/iconos.tsx`. Aquí no se importa React para que las
+   * reglas sigan corriendo en las pruebas y en los scripts de ingesta.
+   */
+  icono: "hilo" | "aguja";
   titulo: string;
   detalle: string;
   q: string;
 };
 
 const SUGERENCIA_HILO_AGUJA: SugerenciaMerceria[] = [
-  { icono: "palette", titulo: "Hilo a tono", detalle: "Gütermann / Poliéster", q: "hilo" },
-  { icono: "hardware", titulo: "Agujas de costura", detalle: "Punta fina / Microtex", q: "aguja" },
+  { icono: "hilo", titulo: "Hilo a tono", detalle: "Gütermann / Poliéster", q: "hilo" },
+  { icono: "aguja", titulo: "Agujas de costura", detalle: "Punta fina / Microtex", q: "aguja" },
 ];
 
 /**

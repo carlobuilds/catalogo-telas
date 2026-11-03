@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { Warning, ArrowCounterClockwise } from "@/components/ui/iconos";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -23,7 +23,7 @@ export default function Error({
   return (
     <main className="mx-auto flex max-w-7xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
       <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber/10 text-amber">
-        <AlertTriangle className="h-7 w-7" aria-hidden />
+        <Warning className="h-7 w-7" aria-hidden />
       </span>
       <h1 className="font-display text-3xl text-ink">Algo salió mal</h1>
       <p className="mt-2 max-w-md text-sm text-ink-soft">
@@ -31,7 +31,7 @@ export default function Error({
         reintentando; si sigue fallando, vuelve a intentarlo en un momento.
       </p>
       <Button variant="primary" size="md" className="mt-6" onClick={reset}>
-        <RotateCcw className="h-4 w-4" aria-hidden />
+        <ArrowCounterClockwise className="h-4 w-4" aria-hidden />
         Reintentar
       </Button>
     </main>

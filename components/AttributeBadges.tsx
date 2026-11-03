@@ -1,4 +1,4 @@
-import { Sparkles, Scissors, Sun, Eye } from "lucide-react";
+import { Sparkle, Needle, Rainbow, Eye } from "@/components/ui/iconos";
 
 export type Atributos = {
   es_bordado?: boolean;
@@ -8,10 +8,10 @@ export type Atributos = {
 };
 
 const BADGES = [
-  { key: "es_bordado", label: "Bordado", Icon: Scissors },
-  { key: "es_brillante", label: "Brillante", Icon: Sparkles },
+  { key: "es_bordado", label: "Bordado", Icon: Needle },
+  { key: "es_brillante", label: "Brillante", Icon: Sparkle },
   { key: "es_traslucida", label: "Translúcida", Icon: Eye },
-  { key: "es_tornasol", label: "Tornasol", Icon: Sun },
+  { key: "es_tornasol", label: "Tornasol", Icon: Rainbow },
 ] as const;
 
 export function AttributeBadges({ atributos }: { atributos: Atributos }) {
@@ -23,9 +23,9 @@ export function AttributeBadges({ atributos }: { atributos: Atributos }) {
       {activos.map(({ key, label, Icon }) => (
         <span
           key={key}
-          className="inline-flex items-center gap-1.5 rounded border border-outline-variant/30 bg-surface-container-low px-3 py-1 text-xs font-bold text-ink-display shadow-2xs"
+          className="inline-flex items-center gap-1.5 rounded border border-outline-variant/30 bg-surface-container-low px-2.5 py-1 text-sm font-semibold text-ink-display shadow-2xs"
         >
-          <Icon className="h-3.5 w-3.5 text-amber" aria-hidden />
+          <Icon className="size-4 text-amber" />
           {label}
         </span>
       ))}

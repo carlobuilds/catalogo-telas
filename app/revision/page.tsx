@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { CheckCircle2, LogOut, Search, ShieldAlert } from "lucide-react";
+import { CheckCircle, SignOut, MagnifyingGlass, ShieldWarning } from "@/components/ui/iconos";
 import { getSesionRevisor } from "@/lib/revisor-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
@@ -105,7 +105,7 @@ export default async function RevisionPage({
       <form method="get" className="mb-3 flex gap-2" role="search">
         {soloPendientes && <input type="hidden" name="pendientes" value="1" />}
         <div className="relative flex-1">
-          <Search
+          <MagnifyingGlass
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
             aria-hidden
           />
@@ -251,7 +251,7 @@ function TarjetaRevision({ tela }: { tela: TelaAgrupada }) {
               <span key={v.variante_id} className="relative inline-flex">
                 <ColorSwatch hex={v.color_hex} nombre={v.color_nombre} size="sm" />
                 {v.revisado_en != null && (
-                  <CheckCircle2
+                  <CheckCircle
                     className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-surface text-success"
                     aria-hidden
                   />
@@ -280,7 +280,7 @@ function NoAutorizado({ email }: { email: string }) {
   return (
     <main className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
       <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber/10 text-amber">
-        <ShieldAlert className="h-7 w-7" aria-hidden />
+        <ShieldWarning className="h-7 w-7" aria-hidden />
       </span>
       <h1 className="font-display text-2xl text-ink-display">Cuenta sin permisos</h1>
       <p className="mt-2 text-sm text-ink/60">
@@ -292,7 +292,7 @@ function NoAutorizado({ email }: { email: string }) {
           type="submit"
           className="inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink-display shadow-sm transition-colors hover:bg-line/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
         >
-          <LogOut className="h-4 w-4" aria-hidden />
+          <SignOut className="h-4 w-4" aria-hidden />
           Cerrar sesión
         </button>
       </form>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Trash2, MessageCircle, ArrowLeft } from "lucide-react";
+import { X, Trash, WhatsappLogo, ArrowLeft, Basket, ShoppingBag } from "@/components/ui/iconos";
 import { useCartStore } from "@/lib/store";
 import { publicImageUrl } from "@/lib/supabase/storage";
 import { buildQuoteMessage, pesos } from "@/lib/whatsapp-message";
@@ -124,8 +124,8 @@ export function CartDrawer() {
         <div className="flex items-start justify-between gap-3 border-b border-line/60 p-4 sm:p-6 bg-surface-container-low/50">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span aria-hidden className="material-symbols-outlined text-[20px] text-amber">shopping_bag</span>
-              <span className="text-label-caps text-xs text-amber">
+              <ShoppingBag className="size-5 text-amber" />
+              <span className="text-sm font-semibold text-amber">
                 Cotización de Telas
               </span>
             </div>
@@ -152,11 +152,11 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center py-12">
               <div aria-hidden className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container text-amber">
-                <span className="material-symbols-outlined text-[32px]">shopping_basket</span>
+                <Basket className="size-8" />
               </div>
               <p className="font-display text-xl font-bold text-ink-display">Tu cesta está vacía</p>
-              <p className="mt-2 max-w-xs text-sm text-ink-soft">
-                Explora el catálogo, elige tus metros favoritos y agrégalos aquí.
+              <p className="mt-2 max-w-xs text-base text-ink-soft">
+                Explora el catálogo, elige lo que te guste y agrégalo aquí.
               </p>
               <Button
                 variant="primary"
@@ -240,9 +240,12 @@ export function CartDrawer() {
                           className="flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
                           aria-label={`Eliminar ${nombre}`}
                         >
-                          <Trash2 className="h-5 w-5" aria-hidden />
+                          <Trash className="h-5 w-5" />
                         </button>
                       </div>
+                      <span className="text-base font-bold tabular-nums text-amber">
+                        {item.precio != null ? pesos.format(item.precio * item.cantidad) : "Por consultar"}
+                      </span>
                     </div>
                   </div>
                 </li>
@@ -255,7 +258,7 @@ export function CartDrawer() {
         {items.length > 0 && (
           <div className="border-t border-line/60 bg-surface-container-lowest p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-lg sm:p-6 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-bold uppercase tracking-wider text-ink-soft">
+              <span className="text-base font-semibold text-ink-soft">
                 {haySinPrecio ? "Total parcial" : "Total estimado"}
               </span>
               <span className="font-display text-2xl sm:text-3xl font-bold text-amber">
@@ -279,7 +282,7 @@ export function CartDrawer() {
               onClick={() => setIsOpen(false)}
               className="h-14"
             >
-              <MessageCircle className="h-5 w-5" aria-hidden />
+              <WhatsappLogo className="size-6" weight="fill" />
               Enviar pedido por WhatsApp
             </Button>
             <Button
@@ -289,7 +292,7 @@ export function CartDrawer() {
               className="mt-2.5"
               onClick={() => setIsOpen(false)}
             >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
+              <ArrowLeft className="size-5" />
               Seguir explorando
             </Button>
           </div>

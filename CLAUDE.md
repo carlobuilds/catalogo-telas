@@ -13,11 +13,32 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   (pesos 400/600/700), como manda el design system de Stitch "Artisanal Modernity"
   (`design-system/stitch/`). Los tokens `--font-display`/`--font-body`/`--font-serif`
   se conservan por historia y todos apuntan a ella — no reintroducir Bodoni/Inter.
-- **lucide-react** para iconos. Sin librerías de UI pesadas: componentes propios.
+- **Phosphor** para iconos, importados SOLO desde `@/components/ui/iconos` (ESLint
+  bloquea cualquier otro import). Esa carpeta la GENERA `pnpm iconos`
+  (`scripts/generar-iconos.ts`): un módulo por icono con solo los trazos de los pesos
+  que se usan —bold en todos, fill solo en los de `CON_FILL`, duotone solo en los de
+  `CON_DUOTONO`— y un `index.ts` que únicamente re-exporta. `@phosphor-icons/react` es devDependency: el
+  sitio no lo carga, solo el generador y la prueba que compara contra él. Las dos
+  piezas pesan: Phosphor trae SEIS pesos por icono, y un barrel que envuelve iconos es
+  un solo módulo que webpack no parte entre páginas (la portada cargaba los 40 iconos
+  del sitio; +26 kB de JS). Por eso `next.config.ts` marca la carpeta `sideEffects:
+  false`. La política vive en `components/ui/IconoBase.tsx`: sin hooks (sirve en
+  Server y Client Components), peso `bold` por defecto —el `regular` es más fino que
+  el lucide anterior y se pierde para usuarios de 40+—, `fill` para estados activos,
+  `duotone` solo en estados vacíos, y `aria-hidden` salvo que lleve `aria-label`.
+  Pedirle a un icono un peso que no trae es error de TypeScript, no un icono en
+  blanco: se agrega a `CON_FILL`/`CON_DUOTONO` y se corre `pnpm iconos`. Donde el peso
+  se decide en ejecución (`activa ? "fill" : "bold"`) la prop se tipa
+  `Icon<"bold" | "fill">`; `Icon` a secas es cualquier icono. Tamaño con clases (`size-5`). Un icono
+  nuevo se agrega a la lista del generador, nunca a mano en la carpeta. Ya no hay
+  fuente Material Symbols ni lucide-react.
+  Sin librerías de UI pesadas: componentes propios.
 
 ## Comandos (gestor: **pnpm**)
 - `pnpm dev` — servidor de desarrollo
 - `pnpm build` / `pnpm start` — producción
+- `pnpm iconos` — regenera `components/ui/iconos/` desde Phosphor (tras agregar un
+  icono a `scripts/generar-iconos.ts` o subir de versión el paquete)
 - `pnpm preparar --in=<carpeta>` — RAW de cámara (.ARW…) → JPEG recortado al producto
   (`sips` + `lib/images/recorte.ts`; macOS-only, el original no se toca). Correr ANTES de
   la ingesta cuando las fotos vengan en RAW o sin encuadrar.
@@ -208,11 +229,24 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
   el significado vive en `globals.css`, no en el nombre. No hay ningún azul en
 - **Border-radius del design.md de Stitch "Artisanal Modernity"** (tokens en `globals.css`; es la escala default de Tailwind, Stitch no la personalizó). Base de **4px** (`rounded`) en cards de producto, imágenes, inputs, chips y botones; **8px** (`rounded-lg`) en paneles e imágenes enmarcadas; **12px** (`rounded-xl` y `rounded-2xl`, mismo valor: Stitch no define 2xl) en contenedores destacados y modales; **24px** (`rounded-3xl`) en bottom-sheets; **9999px** (`rounded-full`) exclusivamente en swatches de color circulares y puntos de estado.
 - Accesibilidad AA: contraste, focus visible, navegable por teclado, `alt` en imágenes.
-- **Móvil para clientela de 40+** (plan UX, Fase 3): nada con significado de menos de 14px
-  (`text-sm`; `text-xs` solo para conteos y etiquetas cortas); inputs en `text-base` (16px, o
-  iOS hace zoom al enfocarlos); botones y links de al menos 44px (`min-h-[44px]`); nunca
-  `text-ink-soft/70` ni `/50` en texto; un botón que en móvil solo muestra icono lleva
-  `aria-label`, y el nombre accesible de uno con texto EMPIEZA por ese texto.
+- **Legibilidad para 40+** (la mayoría de quien usa el catálogo y el admin). Reglas, no
+  sugerencias — se midieron en el navegador al aplicarlas:
+  - Nada con significado por debajo de **14px** (`text-sm`); cuerpo ≥ 16px. Las únicas
+    excepciones son las miniaturas de la guía (`data-maqueta` en `Maquetas.tsx`).
+  - **Inputs siempre `text-base`**: con menos de 16px, Safari de iPhone hace zoom a la
+    página al tocar el campo.
+  - Etiquetas en minúsculas normales, no MAYÚSCULAS con `tracking-wider`.
+  - Objetivos táctiles ≥ **44px** (`min-h-11`), acciones principales 48–56px. `Button`
+    ya no tiene tamaño menor a 44px.
+  - Contraste: prohibido `text-ink/40`, `text-ink/50` y `text-ink-soft/70` en texto
+    (2.6–3.5:1, fallan AA). `text-ink-soft` da 5.5:1 sobre arena.
+  - Rojo de error/borrar = token `peligro` (`peligro-suave` de fondo), no `red-*` de Tailwind.
+  - Nada de recortar con `truncate` un texto que explica algo (botones de ayuda, avisos).
+  - Un botón que en móvil solo muestra icono lleva `aria-label`, y el nombre accesible de
+    uno con texto EMPIEZA por ese texto (WCAG 2.5.3: quien navega por voz dice lo que ve).
+- **Vitrina vs. herramientas internas**: cabecera, barra inferior, cesta y guía viven en
+  `components/ChromeTienda.tsx` y NO se montan en `/admin` ni `/revision`
+  (`lib/rutas.ts`). Antes la guía se abría sola encima del formulario de captura.
 - Estado de filtros/búsqueda en la **URL (querystring)** para que sea compartible.
   **Compartir la selección** (`lib/compartir.ts`, `components/CompartirVista.tsx`): el link es
   la ruta del catálogo con sus filtros y sin `ver`; quien lo abre ve pastillas con lo activo
@@ -289,4 +323,31 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
    manda: su prefijo propone categoría y unidad con `categoriaDeCodigo` —las
    mismas reglas de `pnpm clasificar`— y deja de opinar en cuanto la tienda
    elige categoría a mano.
+   **Estilo SICAR** (la dueña viene de SICAR; flujo y vocabulario de SICAR, look
+   de la marca). Glosario: Artículo = `variante`, Código = `sku`, Departamento =
+   `categoria`, Existencia = `stock`, Descripción = `tela.nombre` (+ color).
+   - **Marco**: todo lo del panel vive en `app/admin/(panel)/` (route group, las
+     URLs no cambian) con `layout.tsx` → `ShellAdmin`: barra lateral ≥1024px,
+     fila de botones arriba en tablet vertical/celular, "Saltar al contenido".
+     Los módulos del menú están en `components/admin/modulos.ts` (los lee
+     también el teclado). El login queda FUERA del grupo.
+   - **Autorización**: `exigirAdmin()` (`lib/admin-auth.ts`) se llama en el layout
+     Y en cada página —el layout no re-corre en navegaciones parciales y una
+     página se puede pedir sola—; `getSesionAdmin` va en `cache()` para que sea
+     un solo viaje a Auth por request. Sin permiso manda al LOGIN, que muestra
+     `NoAutorizado`; el login solo redirige al panel a quien sí puede entrar.
+     Así no hay bucle.
+   - **Atajos** (`lib/atajos.ts`, ÚNICA fuente; F1/F5/F11/F12 prohibidas): F2
+     nuevo, F3 buscar, F4 entradas y salidas, F9 guardar y otro color, F10 o
+     Ctrl/⌘+S guardar, Esc cancelar, `?` ayuda. Un solo listener
+     (`AtajosAdmin`, montado por el shell). Las páginas NO se registran: marcan
+     el botón con `data-atajo="guardar" | "guardar-otro" | "cancelar"` y el
+     buscador con `data-atajo="buscar"` (`SubmitButton` acepta `atajo`). Con
+     varios formularios en pantalla gana el del campo con el cursor. Todo atajo
+     tiene botón visible; la tecla se pinta solo con `pointer-fine`.
+   - **Enter avanza** (`lib/enter-avanza.ts` + `useEnterAvanza`): Enter pasa al
+     siguiente campo y en el último enfoca el botón de guardar, NUNCA envía
+     (un lector de código de barras manda "código + Enter"). No aplica en
+     textarea, botones, archivos ni en `[data-enter-propio]`. Ya lo usan
+     `FormGuardable` y `FormNuevaMerceria`.
 7. ⏳ Pulido visual, rendimiento, tests (README listo)

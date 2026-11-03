@@ -81,4 +81,23 @@ describe("agruparPorModelo", () => {
     expect(grupos[0].precio_desde).toBe(50);
     expect(grupos[0].precio_desde_es_referencia).toBe(false);
   });
+
+  it("un precio real gana aunque uno de referencia sea más bajo", () => {
+    const grupos = agruparPorModelo([
+      variante({ variante_id: "v1", precio_metro: 45, precio_es_referencia: true }),
+      variante({ variante_id: "v2", precio_metro: 120 }),
+      variante({ variante_id: "v3", precio_metro: 30, precio_es_referencia: true }),
+    ]);
+    expect(grupos[0].precio_desde).toBe(120);
+    expect(grupos[0].precio_desde_es_referencia).toBe(false);
+  });
+
+  it("sin precio real, el desde es el menor de referencia", () => {
+    const grupos = agruparPorModelo([
+      variante({ variante_id: "v1", precio_metro: 45, precio_es_referencia: true }),
+      variante({ variante_id: "v2", precio_metro: 30, precio_es_referencia: true }),
+    ]);
+    expect(grupos[0].precio_desde).toBe(30);
+    expect(grupos[0].precio_desde_es_referencia).toBe(true);
+  });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, useTransition } from "react";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/iconos";
 import { crearColor } from "@/app/revision/actions";
 
 export type ColorNuevo = { id: string; nombre: string; slug: string; hex: string };

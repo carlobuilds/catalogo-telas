@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/ui/iconos";
 import { getSesionRevisor } from "@/lib/revisor-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { placeholderMedidaDeCategoria } from "@/lib/ingesta/categorias";

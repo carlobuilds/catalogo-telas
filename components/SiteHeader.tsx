@@ -9,6 +9,7 @@ import { useGuideStore } from "@/lib/guide-store";
 import { useScrollCompacto } from "@/lib/useScrollCompacto";
 import { ShareCatalog } from "@/components/ShareCatalog";
 import { CATALOGOS, ORDEN_CATALOGOS, esRutaDeCatalogo, rutaDeCatalogo } from "@/lib/catalogos";
+import { Question, ShoppingBag } from "@/components/ui/iconos";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -30,10 +31,6 @@ export function SiteHeader() {
     mounted && itemCount > 0
       ? `Ver mi cotización, ${itemCount} ${itemCount === 1 ? "artículo" : "artículos"}`
       : "Ver mi cotización";
-
-  // /admin y /revision son herramientas internas con su propia nav (AdminNav,
-  // RevisionNav) — el header de vitrina (logo, cesta) no aplica ahí.
-  if (pathname.startsWith("/admin") || pathname.startsWith("/revision")) return null;
 
   return (
     /* Mismo blanco que las tarjetas (`--color-surface-container-lowest`, #fff),
@@ -73,7 +70,7 @@ export function SiteHeader() {
                 sacrifica al hacer scroll: no aporta orientación una vez que
                 ya se sabe en qué sitio se está, y es puro alto reclamado. */}
             <span
-              className={`text-label-caps truncate text-xs text-amber sm:block ${
+              className={`truncate text-sm font-semibold text-amber sm:block ${
                 compacto ? "hidden" : "block"
               }`}
             >
@@ -131,13 +128,11 @@ export function SiteHeader() {
             onClick={openTutorial}
             className="hidden min-h-[44px] items-center gap-1.5 rounded border border-amber/40 bg-surface-container-lowest/80 px-3.5 text-sm font-bold text-ink-display shadow-xs transition-all hover:bg-surface-container hover:border-amber active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy sm:flex"
           >
-            <span aria-hidden className="material-symbols-outlined text-[18px] text-amber">
-              help_outline
-            </span>
+            <Question className="size-4.5 text-amber" />
             <span>¿Cómo pedir?</span>
             {/* El distintivo sale hasta `xl`: entre 640 y 1279px su ancho era
                 justo lo que le faltaba al nombre de la tienda para no cortarse. */}
-            <span className="hidden rounded bg-amber/15 px-1.5 py-0.5 text-xs font-bold text-amber xl:inline-flex">
+            <span className="hidden rounded bg-amber/15 px-1.5 py-0.5 text-sm font-bold text-amber xl:inline-flex">
               4 pasos
             </span>
           </button>
@@ -157,11 +152,11 @@ export function SiteHeader() {
             className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-container text-ink-display border border-outline-variant/30 shadow-xs transition-all hover:bg-surface-container-high hover:shadow active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
             aria-label={nombreCesta}
           >
-            <span aria-hidden className="material-symbols-outlined text-[20px]">shopping_bag</span>
+            <ShoppingBag className="size-5" />
             {mounted && itemCount > 0 && (
               <span
                 aria-hidden
-                className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-white shadow-xs ring-2 ring-sand-bg"
+                className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-amber px-1.5 text-sm font-bold text-white shadow-xs ring-2 ring-sand-bg"
               >
                 {itemCount}
               </span>

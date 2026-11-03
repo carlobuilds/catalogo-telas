@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { ArrowRight, MagnifyingGlass, X } from "@/components/ui/iconos";
 import { type Filtros, FILTROS_VACIOS, aQuerystring } from "@/lib/filtros";
 import { type Catalogo, CATALOGOS, rutaDeCatalogo } from "@/lib/catalogos";
 import { resaltar } from "@/lib/busqueda/resaltar";
@@ -254,12 +254,7 @@ export function SearchBar({
         }}
         className="group relative"
       >
-        <span
-          className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-ink-soft transition-colors group-focus-within:text-ink-display"
-          aria-hidden
-        >
-          search
-        </span>
+        <MagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 size-5 text-ink-soft transition-colors group-focus-within:text-ink-display" />
         <input
           ref={input}
           type="search"
@@ -322,9 +317,7 @@ export function SearchBar({
           <>
             {!sinNada && (
               <div {...opcion(`${idBase}-buscar`)}>
-                <span className="material-symbols-outlined text-[20px] text-ink-soft" aria-hidden>
-                  search
-                </span>
+                <MagnifyingGlass className="size-5 text-ink-soft" />
                 <span className="min-w-0 flex-1">
                   Buscar “<strong className="font-bold text-ink-display">{consulta}</strong>”
                   {vigentes.aproximado && <span className="text-ink-soft"> · parecidos</span>}
@@ -417,9 +410,7 @@ export function SearchBar({
             )}
             {opciones.some((o) => o.grupo === "otro") && (
               <div {...opcion(`${idBase}-otro`)}>
-                <span className="material-symbols-outlined text-[20px] text-ink-soft" aria-hidden>
-                  arrow_forward
-                </span>
+                <ArrowRight className="size-5 text-ink-soft" />
                 <span className="min-w-0 flex-1">
                   Buscar en {CATALOGOS[vigentes.enOtroCatalogo.catalogo].nombre} ({vigentes.enOtroCatalogo.total})
                 </span>

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { ImageOff } from "lucide-react";
+import { ImageBroken } from "@/components/ui/iconos";
 import type { DerivadosFoto } from "@/lib/types";
 import { srcsetDerivados, urlDerivado } from "@/lib/supabase/storage";
 
@@ -84,7 +84,7 @@ export function TelaImage({
   if (!src) {
     return (
       <div className={`flex ${proporcion} w-full items-center justify-center rounded-t bg-line/50 text-ink-soft`}>
-        <ImageOff className="h-8 w-8" aria-hidden />
+        <ImageBroken className="h-8 w-8" aria-hidden />
       </div>
     );
   }

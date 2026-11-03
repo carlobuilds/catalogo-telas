@@ -5,6 +5,7 @@ import { useCartStore } from "@/lib/store";
 import type { CatalogoTela } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { unidadDe } from "@/lib/unidades";
+import { Check, Minus, Plus, Prohibit, ShoppingBag } from "@/components/ui/iconos";
 
 export function AddToCart({ variante }: { variante: CatalogoTela }) {
   const unidad = unidadDe(variante.unidad_venta);
@@ -57,14 +58,14 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-surface-container-lowest text-lg font-bold text-ink-display shadow-xs transition-all hover:bg-surface-container-high active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={etiquetaMenos}
             >
-              <span aria-hidden className="material-symbols-outlined text-[20px]">remove</span>
+              <Minus className="size-5" />
             </button>
             <div
               aria-live="polite"
               className="flex min-w-0 flex-1 flex-col items-center justify-center"
             >
               <span className="text-base font-bold leading-none text-ink-display">{cantidad}</span>
-              <span className="text-label-caps mt-0.5 text-xs text-amber">
+              <span className="mt-0.5 text-sm font-semibold text-amber">
                 {nombreUnidad}
               </span>
             </div>
@@ -75,7 +76,7 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-surface-container-lowest text-lg font-bold text-ink-display shadow-xs transition-all hover:bg-surface-container-high active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={etiquetaMas}
             >
-              <span aria-hidden className="material-symbols-outlined text-[20px]">add</span>
+              <Plus className="size-5" />
             </button>
           </div>
 
@@ -88,9 +89,13 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
             disabled={agotado}
             className="sm:flex-1 h-14"
           >
-            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
-              {agregadoAnim ? "check" : "shopping_bag"}
-            </span>
+            {agotado ? (
+              <Prohibit className="size-5" />
+            ) : agregadoAnim ? (
+              <Check className="size-5" />
+            ) : (
+              <ShoppingBag className="size-5" />
+            )}
             {agotado ? "Sin existencia" : agregadoAnim ? "¡Agregado a la Cesta!" : "Añadir a la Cesta"}
           </Button>
         </div>
@@ -115,7 +120,7 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex h-11 w-11 items-center justify-center rounded bg-surface-container-lowest text-ink-display active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:opacity-40"
               aria-label={etiquetaMenos}
             >
-              <span aria-hidden className="material-symbols-outlined text-[20px]">remove</span>
+              <Minus className="size-5" />
             </button>
             {/* Número + unidad: antes solo iba el número y "2" no decía si
                 eran metros, piezas o bolsas. */}
@@ -124,7 +129,7 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex min-w-[3.75rem] flex-col items-center justify-center px-1 text-center"
             >
               <span className="text-base font-bold leading-none text-ink-display">{cantidad}</span>
-              <span className="text-label-caps mt-0.5 text-xs text-amber">
+              <span className="mt-0.5 text-sm font-semibold text-amber">
                 {nombreUnidad}
               </span>
             </span>
@@ -135,7 +140,7 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
               className="flex h-11 w-11 items-center justify-center rounded bg-surface-container-lowest text-ink-display active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:opacity-40"
               aria-label={etiquetaMas}
             >
-              <span aria-hidden className="material-symbols-outlined text-[20px]">add</span>
+              <Plus className="size-5" />
             </button>
           </div>
 
@@ -145,9 +150,13 @@ export function AddToCart({ variante }: { variante: CatalogoTela }) {
             disabled={agotado}
             className="flex h-14 min-w-0 flex-1 items-center justify-center gap-1.5 rounded bg-heritage-navy px-3 text-center text-sm font-bold leading-tight text-white shadow-md transition-transform hover:bg-deep-slate active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2 disabled:opacity-50"
           >
-            <span aria-hidden className="material-symbols-outlined shrink-0 text-[20px]">
-              {agotado ? "block" : agregadoAnim ? "check" : "shopping_bag"}
-            </span>
+            {agotado ? (
+              <Prohibit className="size-5 shrink-0" />
+            ) : agregadoAnim ? (
+              <Check className="size-5 shrink-0" />
+            ) : (
+              <ShoppingBag className="size-5 shrink-0" />
+            )}
             <span>
               {agotado ? "Sin existencia" : agregadoAnim ? "¡Agregado!" : "Añadir a la Cesta"}
             </span>

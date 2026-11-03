@@ -22,10 +22,16 @@ const variants: Record<Variant, string> = {
     "text-ink-soft hover:bg-surface-container hover:text-ink-display focus-visible:ring-heritage-navy",
 };
 
+/**
+ * Ni el más chico baja de 44px de alto (el mínimo táctil de Apple/WCAG 2.5.5)
+ * ni de 14px de texto: el catálogo lo usan sobre todo personas de 40+, en el
+ * celular y con la tienda abierta. El texto va en tamaño de lectura, no en
+ * mayúsculas espaciadas: se lee más rápido y no "grita".
+ */
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-4 text-xs",
-  md: "h-12 px-6 text-sm",
-  lg: "h-14 px-8 text-base",
+  sm: "min-h-11 px-4 text-sm",
+  md: "min-h-12 px-6 text-base",
+  lg: "min-h-14 px-8 text-lg",
 };
 
 type CommonProps = {
