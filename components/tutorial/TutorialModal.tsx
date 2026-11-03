@@ -31,9 +31,9 @@ const SLIDES: Slide[] = [
   },
   {
     maqueta: MaquetaColor,
-    titulo: "Elige tu color",
+    titulo: "Velo de cerca y elige tu color",
     texto:
-      "Toca un producto para abrirlo. Si hay varios colores, elige el tuyo en “Tonos disponibles”.",
+      "Toca un producto para abrirlo. Usa “Acercar para ver mejor” para ver el detalle y, si aparece, “Ver en fondo blanco”. Si hay varios colores, elige el tuyo en “Tonos disponibles”.",
   },
   {
     maqueta: MaquetaCantidad,

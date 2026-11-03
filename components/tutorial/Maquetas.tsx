@@ -4,6 +4,7 @@ import { ColorSwatch } from "@/components/ColorSwatch";
 import { TelaImage } from "@/components/TelaImage";
 import {
   MagnifyingGlass,
+  MagnifyingGlassPlus,
   Minus,
   Plus,
   ShoppingBag,
@@ -221,12 +222,21 @@ export function MaquetaBuscar() {
   );
 }
 
+/** Los botones que la ficha pone bajo la foto (`ControlesFoto`), en chiquito. */
+const BOTON_FICHA =
+  "flex items-center justify-center gap-1 rounded border border-outline-variant bg-surface-container-lowest px-1 py-1 text-center text-[9px] font-semibold leading-tight text-ink-display";
+
 export function MaquetaColor() {
   return (
     <Marco>
       <div className="flex items-center gap-3">
-        <div className="w-[42%] shrink-0">
+        <div className="flex w-[42%] shrink-0 flex-col gap-1.5">
           <Foto ruta={MARIPOSA.foto} />
+          <span className={BOTON_FICHA}>
+            <MagnifyingGlassPlus className="h-3 w-3 shrink-0" />
+            Acercar para ver mejor
+          </span>
+          <span className={BOTON_FICHA}>Ver en fondo blanco</span>
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
