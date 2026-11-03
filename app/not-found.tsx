@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/ui/iconos";
 
 /**
  * 404 con la marca: cubre tanto rutas inexistentes como telas que ya no

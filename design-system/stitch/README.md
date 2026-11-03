@@ -42,8 +42,9 @@ También siguen vigentes (y de aquí salieron): **espaciado** (base 8px, gutter
 
 Las pantallas de Stitch usan **Material Symbols Outlined** (opsz 24, wght 400, FILL 0):
 `arrow_forward`, `auto_awesome`, `grid_view`, `person`, `search`, `shopping_bag`, `tune`.
-El repo usa **lucide-react**; equivalencias aproximadas: `ArrowRight`, `Sparkles`,
-`LayoutGrid`, `User`, `Search`, `ShoppingBag`, `SlidersHorizontal`.
+El repo usa **Phosphor** (`components/ui/iconos.tsx`, peso `bold`); equivalencias:
+`ArrowRight`, `Sparkle`, `SquaresFour`, `User`, `MagnifyingGlass`, `ShoppingBag`,
+`SlidersHorizontal`.
 
 Otros design systems del mismo proyecto (no exportados): Modern Heritage ×2,
 Artisanal Heritage, Midnight Heritage.

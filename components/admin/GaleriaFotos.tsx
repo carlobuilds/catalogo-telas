@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, FolderInput, ImageOff, Plus, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowsLeftRight, ImageBroken, Plus, Star } from "@/components/ui/iconos";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import {
@@ -139,7 +139,7 @@ export function GaleriaFotos({
 
             {v.fotos.length === 0 ? (
               <p className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-4 text-xs text-ink/50">
-                <ImageOff className="h-4 w-4 shrink-0" aria-hidden />
+                <ImageBroken className="h-4 w-4 shrink-0" aria-hidden />
                 Sin fotos: este color sale con un marcador gris en el catálogo.
                 Arrástrale una.
               </p>
@@ -218,7 +218,7 @@ export function GaleriaFotos({
                       onClick={() => setModal({ fotoId: f.id, origenId: v.id })}
                       className="mt-1 inline-flex h-7 w-full items-center justify-center gap-1 rounded-lg border border-line bg-surface text-[11px] font-medium text-ink/70 transition-colors hover:border-amber hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
                     >
-                      <FolderInput className="h-3 w-3" aria-hidden />
+                      <ArrowsLeftRight className="h-3 w-3" aria-hidden />
                       Mover…
                     </button>
                   </li>
@@ -249,7 +249,7 @@ export function GaleriaFotos({
             "otro"
           )}`}
         >
-          <FolderInput className="h-4 w-4 shrink-0" aria-hidden />
+          <ArrowsLeftRight className="h-4 w-4 shrink-0" aria-hidden />
           Suelta aquí para mandarla a otro producto
         </div>
       </div>

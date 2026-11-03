@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Expand, Plus, X } from "lucide-react";
+import { ArrowsOut, Plus, X } from "@/components/ui/iconos";
 import { TelaImage } from "@/components/TelaImage";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { SubmitButton } from "@/components/admin/SubmitButton";
@@ -137,7 +137,7 @@ export function VarianteRevisionCard({
               aspecto="cuadrado"
             />
             <span className="absolute inset-0 flex items-center justify-center bg-ink-deep/0 transition-colors group-hover:bg-ink-deep/30 group-active:bg-ink-deep/30">
-              <Expand
+              <ArrowsOut
                 className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100"
                 aria-hidden
               />

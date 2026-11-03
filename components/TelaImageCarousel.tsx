@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Hand } from "lucide-react";
+import { CaretLeft, CaretRight, HandSwipeRight } from "@/components/ui/iconos";
 import { TelaImage } from "@/components/TelaImage";
 import { useGuideStore } from "@/lib/guide-store";
 import { publicImageUrl, urlDerivado } from "@/lib/supabase/storage";
@@ -229,7 +229,7 @@ export function TelaImageCarousel({
         </div>
 
         {/* Contador: dice que hay más fotos aunque no se toque nada. */}
-        <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-ink-deep/70 px-2.5 py-1 text-xs font-medium tabular-nums text-white backdrop-blur-sm">
+        <div className="pointer-events-none absolute right-3 top-3 rounded bg-ink-deep/75 px-2.5 py-1 text-sm font-semibold tabular-nums text-white backdrop-blur-sm">
           {index + 1} / {slides.length}
         </div>
 
@@ -254,14 +254,11 @@ export function TelaImageCarousel({
             pointer-events-none para no robarle el gesto al carrusel. */}
         {showHint && (
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center sm:hidden">
-            <div className="flex items-center gap-2 rounded-full bg-ink-deep/75 px-4 py-2 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
-              <ChevronLeft className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              <Hand
-                className="h-4 w-4 animate-swipe-nudge motion-reduce:animate-none"
-                aria-hidden
-              />
+            <div className="flex items-center gap-2 rounded bg-ink-deep/80 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm">
+              <CaretLeft className="size-4 opacity-80" />
+              <HandSwipeRight className="size-5 animate-swipe-nudge motion-reduce:animate-none" />
               <span>{textoHint}</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              <CaretRight className="size-4 opacity-80" />
             </div>
           </div>
         )}
@@ -314,17 +311,17 @@ function FlechaCarrusel({
   onClick: () => void;
   etiqueta: string;
 }) {
-  const Icono = lado === "izquierda" ? ChevronLeft : ChevronRight;
+  const Icono = lado === "izquierda" ? CaretLeft : CaretRight;
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={etiqueta}
-      className={`absolute top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-ink-display shadow-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy sm:flex ${
+      className={`absolute top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded bg-surface/90 text-ink-display shadow-md transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy sm:flex ${
         lado === "izquierda" ? "left-3" : "right-3"
       }`}
     >
-      <Icono className="h-5 w-5" aria-hidden />
+      <Icono className="size-6" />
     </button>
   );
 }

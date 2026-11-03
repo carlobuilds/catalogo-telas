@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/iconos";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { GuardadoFeedback } from "@/components/revision/GuardadoFeedback";
 import { actualizarCategoriaProducto, type EstadoGuardado } from "@/app/revision/actions";

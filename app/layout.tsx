@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk } from "next/font/google";
-import { SiteHeader } from "@/components/SiteHeader";
-import { CartDrawer } from "@/components/CartDrawer";
-import { TutorialModal } from "@/components/tutorial/TutorialModal";
-import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { ChromeTienda } from "@/components/ChromeTienda";
 import "./globals.css";
 
 // Tipografía del design system de Stitch "Artisanal Modernity": Hanken Grotesk
@@ -67,33 +64,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={hankenGrotesk.variable}>
-      {/* pb: la MobileBottomNav mide 4rem MÁS su safe-area (`pb-safe`), así
-          que el último renglón de cualquier página quedaba debajo de ella en
-          un iPhone con indicador de inicio. Los laterales cubren las orejas
-          del notch en horizontal, que `viewportFit: "cover"` ahora expone. */}
-      <body className="flex min-h-screen flex-col bg-sand-bg text-ink-text font-sans antialiased selection:bg-amber/20 selection:text-ink-display pb-[calc(4rem+env(safe-area-inset-bottom,0px))] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] sm:pb-0">
-        {/* Primer elemento enfocable de la página: con teclado o lector de
-            pantalla se salta el header sin recorrerlo. Vive fuera de pantalla
-            y baja al recibir foco; no usa `sr-only`/`not-sr-only` porque el
-            `padding: 0` de este último pelea con el del propio link. */}
-        <a
-          href="#contenido"
-          className="fixed left-3 top-0 z-[70] inline-flex min-h-[44px] -translate-y-full items-center rounded bg-heritage-navy px-4 text-base font-bold text-white transition-transform focus:translate-y-[calc(0.75rem+env(safe-area-inset-top,0px))] focus:shadow-lg"
-        >
-          Saltar al contenido
-        </a>
-        <SiteHeader />
-        {/* Destino del salto. `tabIndex={-1}` para que reciba el foco sin
-            entrar al orden de tabulación; se le quita el contorno en línea
-            porque la regla global de `:focus-visible` (fuera de capa) le gana
-            a cualquier utilidad, y un recuadro alrededor de la página entera
-            no orienta a nadie: el foco sigue con el siguiente Tab. */}
-        <div id="contenido" tabIndex={-1} className="flex-1" style={{ outline: "none" }}>
-          {children}
-        </div>
-        <MobileBottomNav />
-        <CartDrawer />
-        <TutorialModal />
+      {/* Los laterales cubren las orejas del notch en horizontal, que
+          `viewportFit: "cover"` ahora expone. */}
+      <body className="flex min-h-screen flex-col bg-sand-bg text-ink-text font-sans antialiased selection:bg-amber/20 selection:text-ink-display pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
+        <ChromeTienda>{children}</ChromeTienda>
       </body>
     </html>
   );

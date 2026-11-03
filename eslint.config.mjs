@@ -14,6 +14,28 @@ const eslintConfig = [
   {
     ignores: [".next/**", "node_modules/**", "Fotos_Telas/**", "next-env.d.ts"],
   },
+  {
+    // Los iconos salen SOLO de @/components/ui/iconos (generado por
+    // `pnpm iconos`): un Phosphor importado directo trae sus seis pesos al
+    // bundle y se salta la política de components/ui/IconoBase.tsx.
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "lucide-react", message: "Usa @/components/ui/iconos (Phosphor)." },
+            { name: "@phosphor-icons/react", message: "Usa @/components/ui/iconos." },
+          ],
+          patterns: [{ group: ["@phosphor-icons/react/*"], message: "Usa @/components/ui/iconos." }],
+        },
+      ],
+    },
+  },
+  {
+    // Los únicos que leen Phosphor: el generador y la prueba que lo compara.
+    files: ["scripts/generar-iconos.ts", "components/ui/iconos.test.ts"],
+    rules: { "no-restricted-imports": "off" },
+  },
 ];
 
 export default eslintConfig;

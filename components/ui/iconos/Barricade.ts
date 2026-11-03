@@ -1,0 +1,7 @@
+// Generado por `pnpm iconos` (scripts/generar-iconos.ts) desde
+// @phosphor-icons/react 2.1.10. No editar a mano.
+import { crearIcono } from "../IconoBase";
+
+export const Barricade = /* @__PURE__ */ crearIcono("Barricade", {
+  bold: ["M224,60H32A20,20,0,0,0,12,80v72a20,20,0,0,0,20,20H52v28a12,12,0,0,0,24,0V172H180v28a12,12,0,0,0,24,0V172h20a20,20,0,0,0,20-20V80A20,20,0,0,0,224,60Zm-4,59L185,84h35Zm-43,29L113,84H151l64,64Zm-72,0L41,84H79l64,64ZM36,113l35,35H36Z"],
+});

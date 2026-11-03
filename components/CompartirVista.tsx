@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Link2, Share2 } from "lucide-react";
+import { Check, LinkSimple, ShareNetwork } from "@/components/ui/iconos";
 import { Button } from "@/components/ui/Button";
 import { mensajeCompartir } from "@/lib/compartir";
 
@@ -70,11 +70,11 @@ export function CompartirVista({ ruta, descripcion }: { ruta: string; descripcio
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="whatsapp" size="md" onClick={compartir} className="min-h-[44px] px-4">
-        <Share2 className="h-5 w-5" aria-hidden />
+        <ShareNetwork className="h-5 w-5" aria-hidden />
         Compartir esta selección
       </Button>
       <Button variant="secondary" size="md" onClick={copiar} className="min-h-[44px] px-4">
-        {copiado ? <Check className="h-5 w-5 text-success" aria-hidden /> : <Link2 className="h-5 w-5" aria-hidden />}
+        {copiado ? <Check className="h-5 w-5 text-success" aria-hidden /> : <LinkSimple className="h-5 w-5" aria-hidden />}
         {copiado ? "¡Copiado!" : "Copiar enlace"}
       </Button>
       <span className="sr-only" aria-live="polite">

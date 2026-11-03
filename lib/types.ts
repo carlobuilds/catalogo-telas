@@ -151,12 +151,19 @@ export function agruparPorModelo(filas: CatalogoTela[]): TelaAgrupada[] {
     }
     grupo.variantes.push(fila);
 
-    // precio "desde" = el menor precio entre las variantes con precio;
-    // arrastra si ese precio es real o de referencia (demo)
+    // precio "desde" = el menor precio REAL entre las variantes; uno de
+    // referencia (demo) solo se usa si el modelo no tiene ningún precio real.
+    // Si no, un relleno de $45 taparía el $120 que la tienda sí capturó y la
+    // card prometería un precio que nadie decidió.
     if (fila.precio_metro != null) {
-      if (grupo.precio_desde == null || fila.precio_metro < grupo.precio_desde) {
+      const esReferencia = fila.precio_es_referencia ?? false;
+      const mejora =
+        grupo.precio_desde == null ||
+        (grupo.precio_desde_es_referencia && !esReferencia) ||
+        (grupo.precio_desde_es_referencia === esReferencia && fila.precio_metro < grupo.precio_desde);
+      if (mejora) {
         grupo.precio_desde = fila.precio_metro;
-        grupo.precio_desde_es_referencia = fila.precio_es_referencia ?? false;
+        grupo.precio_desde_es_referencia = esReferencia;
         grupo.precio_desde_unidad = fila.unidad_venta ?? null;
       }
     }
