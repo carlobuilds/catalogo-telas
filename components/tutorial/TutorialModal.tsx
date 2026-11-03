@@ -6,8 +6,8 @@ import { useGuideStore } from "@/lib/guide-store";
 import { Button } from "@/components/ui/Button";
 import {
   MaquetaBuscar,
+  MaquetaCantidad,
   MaquetaColor,
-  MaquetaMetros,
   MaquetaWhatsapp,
 } from "@/components/tutorial/Maquetas";
 
@@ -25,27 +25,27 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     maqueta: MaquetaBuscar,
-    titulo: "Busca o explora a tu ritmo",
+    titulo: "Busca lo que necesitas",
     texto:
-      "Escribe el nombre, color o uso de tela que buscas. O desliza hacia abajo para recorrer todo nuestro catálogo selecto.",
+      "Elige Mercería o Telas y toca una sección, como Pedrería o Flores. También puedes escribir en el buscador el nombre, el color o el código.",
   },
   {
     maqueta: MaquetaColor,
-    titulo: "Elige el color ideal",
+    titulo: "Velo de cerca y elige tu color",
     texto:
-      "Toca cualquier tela para verla a detalle. Cambia de tono con un solo toque y consulta las existencias en tiempo real.",
+      "Toca un producto para abrirlo. Usa “Acercar para ver mejor” para ver el detalle y, si aparece, “Ver en fondo blanco”. Si hay varios colores, elige el tuyo en “Tonos disponibles”.",
   },
   {
-    maqueta: MaquetaMetros,
-    titulo: "Define cuántos metros requieres",
+    maqueta: MaquetaCantidad,
+    titulo: "Indica cuánto quieres",
     texto:
-      "Ajusta los metros que necesitas y agrégalos a tu cotización. Puedes combinar distintas telas sin compromiso.",
+      "Usa los botones de más y menos. Algunos productos se venden por pieza, otros por par, por bolsa o por metro. Luego toca “Añadir a la Cesta”; puedes seguir viendo y agregar más.",
   },
   {
     maqueta: MaquetaWhatsapp,
-    titulo: "Envíalo por WhatsApp",
+    titulo: "Manda tu pedido por WhatsApp",
     texto:
-      "Al terminar, toca “Enviar por WhatsApp”: se abrirá el chat con tu pedido redactado para confirmarte precio exacto y disponibilidad inmediata.",
+      "Abre “Tu Cesta” y revisa lo que elegiste. Toca “Enviar pedido por WhatsApp”: se abre un mensaje ya escrito con tu lista, solo envíalo. Mandarlo no te compromete a comprar.",
   },
 ];
 
@@ -297,7 +297,7 @@ export function TutorialModal() {
             onClick={esUltimo ? cerrar : () => irA(slide + 1)}
             className="shadow-sm"
           >
-            <span>{esUltimo ? "¡Explorar telas!" : "Siguiente"}</span>
+            <span>{esUltimo ? "Explorar catálogo" : "Siguiente"}</span>
             {esUltimo ? (
               <Sparkle className="h-4 w-4" aria-hidden />
             ) : (
