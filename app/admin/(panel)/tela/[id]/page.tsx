@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowSquareOut } from "@/components/ui/iconos";
-import { getSesionAdmin } from "@/lib/admin-auth";
+import { exigirAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { EncabezadoPagina } from "@/components/admin/EncabezadoPagina";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { FormGuardable } from "@/components/admin/FormGuardable";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
@@ -93,9 +93,7 @@ export default async function EditarTelaPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { user, autorizado } = await getSesionAdmin();
-  if (!user) redirect("/admin/login");
-  if (!autorizado) redirect("/admin");
+  await exigirAdmin();
 
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -162,7 +160,7 @@ export default async function EditarTelaPage({
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <AdminNav titulo={`Editar: ${tela.nombre}`} email={user.email ?? ""} />
+      <EncabezadoPagina titulo={tela.nombre} descripcion="Datos del producto, sus colores y sus fotos." />
 
       <Link
         href={`/tela/${tela.slug}`}

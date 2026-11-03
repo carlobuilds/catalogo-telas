@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Sparkle } from "@/components/ui/iconos";
 import { crearMerceria } from "@/app/admin/actions";
 import { categoriaDeCodigo, unidadDeCategoria } from "@/lib/ingesta/categorias";
 import { UNIDADES_VENTA, unidadDe } from "@/lib/unidades";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { CuradorFotos } from "@/components/admin/CuradorFotos";
+import { useEnterAvanza } from "@/components/admin/useEnterAvanza";
 
 type Opcion = { id: string; nombre: string };
 type OpcionCategoria = Opcion & { slug: string };
@@ -42,6 +43,10 @@ export function FormNuevaMerceria({
   // se vende por pieza y la tela ya tiene su propia alta.
   const [unidad, setUnidad] = useState("pieza");
   const [manual, setManual] = useState({ categoria: false, unidad: false });
+  // Enter avanza de campo en campo: el lector de código de barras manda
+  // "código + Enter" y la captura sigue en Nombre sin enviar nada.
+  const formRef = useRef<HTMLFormElement>(null);
+  useEnterAvanza(formRef);
 
   const detectada = categoriaDeCodigo(codigo);
   const unidadActual = unidadDe(unidad);
@@ -75,6 +80,7 @@ export function FormNuevaMerceria({
 
   return (
     <form
+      ref={formRef}
       action={crearMerceria}
       className="space-y-5 rounded-2xl border border-line bg-surface p-6 shadow-sm"
     >
@@ -244,7 +250,7 @@ export function FormNuevaMerceria({
         ayuda="JPG, PNG o WebP. Al elegirlas se abre el encuadre; la primera es la portada y las versiones optimizadas se generan solas."
       />
 
-      <SubmitButton label="Crear producto" pendingLabel="Creando…" />
+      <SubmitButton label="Crear producto" pendingLabel="Creando…" atajo="guardar" />
     </form>
   );
 }

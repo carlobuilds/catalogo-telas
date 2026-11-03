@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getSesionAdmin } from "@/lib/admin-auth";
+import { exigirAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { EncabezadoPagina } from "@/components/admin/EncabezadoPagina";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { crearTela } from "@/app/admin/actions";
 
@@ -17,9 +16,7 @@ export const metadata: Metadata = {
  * La URL (slug) se genera del nombre en el servidor: menos campos, menos errores.
  */
 export default async function NuevaTelaPage() {
-  const { user, autorizado } = await getSesionAdmin();
-  if (!user) redirect("/admin/login");
-  if (!autorizado) redirect("/admin");
+  await exigirAdmin();
 
   const supabase = createAdminClient();
   const { data: categorias } = await supabase
@@ -29,7 +26,7 @@ export default async function NuevaTelaPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <AdminNav titulo="Nueva tela" email={user.email ?? ""} />
+      <EncabezadoPagina titulo="Nueva tela" descripcion="Crea el modelo; los colores se agregan en la siguiente pantalla." />
 
       <form
         action={crearTela}
@@ -75,7 +72,7 @@ export default async function NuevaTelaPage() {
           />
         </label>
 
-        <SubmitButton label="Crear tela y agregar variantes" pendingLabel="Creando…" />
+        <SubmitButton label="Crear tela y agregar variantes" pendingLabel="Creando…" atajo="guardar" />
       </form>
     </main>
   );

@@ -298,4 +298,31 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
    manda: su prefijo propone categoría y unidad con `categoriaDeCodigo` —las
    mismas reglas de `pnpm clasificar`— y deja de opinar en cuanto la tienda
    elige categoría a mano.
+   **Estilo SICAR** (la dueña viene de SICAR; flujo y vocabulario de SICAR, look
+   de la marca). Glosario: Artículo = `variante`, Código = `sku`, Departamento =
+   `categoria`, Existencia = `stock`, Descripción = `tela.nombre` (+ color).
+   - **Marco**: todo lo del panel vive en `app/admin/(panel)/` (route group, las
+     URLs no cambian) con `layout.tsx` → `ShellAdmin`: barra lateral ≥1024px,
+     fila de botones arriba en tablet vertical/celular, "Saltar al contenido".
+     Los módulos del menú están en `components/admin/modulos.ts` (los lee
+     también el teclado). El login queda FUERA del grupo.
+   - **Autorización**: `exigirAdmin()` (`lib/admin-auth.ts`) se llama en el layout
+     Y en cada página —el layout no re-corre en navegaciones parciales y una
+     página se puede pedir sola—; `getSesionAdmin` va en `cache()` para que sea
+     un solo viaje a Auth por request. Sin permiso manda al LOGIN, que muestra
+     `NoAutorizado`; el login solo redirige al panel a quien sí puede entrar.
+     Así no hay bucle.
+   - **Atajos** (`lib/atajos.ts`, ÚNICA fuente; F1/F5/F11/F12 prohibidas): F2
+     nuevo, F3 buscar, F4 entradas y salidas, F9 guardar y otro color, F10 o
+     Ctrl/⌘+S guardar, Esc cancelar, `?` ayuda. Un solo listener
+     (`AtajosAdmin`, montado por el shell). Las páginas NO se registran: marcan
+     el botón con `data-atajo="guardar" | "guardar-otro" | "cancelar"` y el
+     buscador con `data-atajo="buscar"` (`SubmitButton` acepta `atajo`). Con
+     varios formularios en pantalla gana el del campo con el cursor. Todo atajo
+     tiene botón visible; la tecla se pinta solo con `pointer-fine`.
+   - **Enter avanza** (`lib/enter-avanza.ts` + `useEnterAvanza`): Enter pasa al
+     siguiente campo y en el último enfoca el botón de guardar, NUNCA envía
+     (un lector de código de barras manda "código + Enter"). No aplica en
+     textarea, botones, archivos ni en `[data-enter-propio]`. Ya lo usan
+     `FormGuardable` y `FormNuevaMerceria`.
 7. ⏳ Pulido visual, rendimiento, tests (README listo)

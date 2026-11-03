@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { Image as ImageIcon, ImageBroken, SignOut, PencilSimple, MagnifyingGlass, ShieldWarning } from "@/components/ui/iconos";
-import { getSesionAdmin } from "@/lib/admin-auth";
+import { Image as ImageIcon, ImageBroken, PencilSimple, MagnifyingGlass } from "@/components/ui/iconos";
+import { exigirAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
 import { TelaImage } from "@/components/TelaImage";
 import { ColorSwatch } from "@/components/ColorSwatch";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { EncabezadoPagina } from "@/components/admin/EncabezadoPagina";
 import { contarFotosPorVariante } from "@/lib/fotos";
-import { logout } from "./actions";
 import { agruparPorModelo, type CatalogoTela, type TelaAgrupada } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -45,13 +43,12 @@ const MAX_PRODUCTOS_BUSQUEDA = 48;
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; buscar?: string }>;
 }) {
-  const { user, autorizado } = await getSesionAdmin();
-  if (!user) redirect("/admin/login");
-  if (!autorizado) return <NoAutorizado email={user.email ?? ""} />;
+  await exigirAdmin();
 
-  const { q } = await searchParams;
+  // `?buscar=1` lo pone F3 desde otra pantalla: llega con el cursor en el buscador.
+  const { q, buscar } = await searchParams;
   const termino = q?.trim() ?? "";
 
   const supabase = createAdminClient();
@@ -103,40 +100,40 @@ export default async function AdminPage({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <AdminNav titulo="Administración" email={user.email ?? ""} />
+      <EncabezadoPagina titulo="Artículos" descripcion="Todo lo que se vende en la tienda: telas y mercería." />
 
       {/* Búsqueda (GET → estado compartible en la URL, igual que el sitio público) */}
-      <form method="get" className="mb-3 flex max-w-md gap-2" role="search">
+      <form method="get" className="mb-3 flex max-w-xl gap-2" role="search">
         <div className="relative flex-1">
-          <MagnifyingGlass
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
-            aria-hidden
-          />
+          <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 z-10 size-5 -translate-y-1/2 text-ink-soft" />
           <input
             type="search"
             name="q"
             defaultValue={termino}
-            placeholder="Buscar por tela, color o SKU…"
-            aria-label="Buscar productos"
-            className="h-11 w-full rounded-xl border border-line bg-surface pl-9 pr-3 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+            autoFocus={buscar === "1"}
+            data-atajo="buscar"
+            placeholder="Nombre, color o código"
+            aria-label="Buscar artículos por nombre, color o código"
+            className="h-12 w-full rounded border border-line bg-surface-container-lowest pl-10 pr-3 text-base text-ink-text placeholder:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
           />
         </div>
         <button
           type="submit"
-          className="h-11 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-line/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+          className="inline-flex min-h-12 items-center gap-2 rounded border border-line bg-surface-container-lowest px-4 text-base font-semibold text-ink-display shadow-sm transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
         >
           Buscar
+          <kbd className="hidden rounded border border-line px-1.5 font-sans text-sm text-ink-soft pointer-fine:inline">F3</kbd>
         </button>
       </form>
 
-      <p className="mb-6 text-xs text-ink/50">
+      <p className="mb-6 text-base text-ink-soft">
         <strong>Toca la tarjeta</strong> para abrir el editor completo (precio,
         stock, fotos, colores, categoría), o toca un <strong>color</strong> para
         ir directo a ese color dentro del editor.
         {productos.length > 0 && (
           <>
             {" "}
-            <span className="text-ink/40">
+            <span className="font-semibold text-ink-display">
               {productos.length}{" "}
               {productos.length === 1 ? "producto" : "productos"} ·{" "}
               {variantes.length} {variantes.length === 1 ? "color" : "colores"}
@@ -317,30 +314,5 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
         )}
       </div>
     </li>
-  );
-}
-
-/** Sesión válida pero correo fuera de ADMIN_EMAILS. */
-function NoAutorizado({ email }: { email: string }) {
-  return (
-    <main className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
-      <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber/10 text-amber">
-        <ShieldWarning className="h-7 w-7" aria-hidden />
-      </span>
-      <h1 className="font-display text-2xl text-ink">Cuenta sin permisos</h1>
-      <p className="mt-2 text-sm text-ink/60">
-        La cuenta <strong>{email}</strong> no está en la lista de
-        administradores (<code className="rounded bg-line/60 px-1">ADMIN_EMAILS</code>).
-      </p>
-      <form action={logout} className="mt-6">
-        <button
-          type="submit"
-          className="inline-flex h-11 items-center gap-2 rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-line/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
-        >
-          <SignOut className="h-4 w-4" aria-hidden />
-          Cerrar sesión
-        </button>
-      </form>
-    </main>
   );
 }

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Warning } from "@/components/ui/iconos";
-import { getSesionAdmin } from "@/lib/admin-auth";
+import { exigirAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { EncabezadoPagina } from "@/components/admin/EncabezadoPagina";
 import { FormNuevaMerceria } from "@/components/admin/FormNuevaMerceria";
 
 export const metadata: Metadata = {
@@ -29,9 +28,7 @@ export default async function NuevaMerceriaPage({
 }: {
   searchParams: Promise<{ error?: string; existe?: string }>;
 }) {
-  const { user, autorizado } = await getSesionAdmin();
-  if (!user) redirect("/admin/login");
-  if (!autorizado) redirect("/admin");
+  await exigirAdmin();
 
   const { error, existe } = await searchParams;
 
@@ -43,7 +40,7 @@ export default async function NuevaMerceriaPage({
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <AdminNav titulo="Nueva mercería" email={user.email ?? ""} />
+      <EncabezadoPagina titulo="Nueva mercería" descripcion="Captura un avío completo: código, precio, existencia y fotos." />
 
       {error && (
         <div

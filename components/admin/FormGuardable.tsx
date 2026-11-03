@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { AvisoGuardado } from "@/components/admin/AvisoGuardado";
+import { useEnterAvanza } from "@/components/admin/useEnterAvanza";
 import type { EstadoGuardado } from "@/lib/estado-guardado";
 
 /**
@@ -17,6 +18,8 @@ import type { EstadoGuardado } from "@/lib/estado-guardado";
  * Borrar con cuidado: un input marcado con `data-confirmar-vaciado="el precio"`
  * que TENÍA valor y se dejó vacío pide confirmación antes de guardar. Vaciar un
  * precio o un código es casi siempre un dedo que se resbaló, no una decisión.
+ *
+ * Enter pasa al siguiente campo y F10 / Ctrl+S guardan (ver `lib/atajos.ts`).
  */
 export function FormGuardable({
   accion,
@@ -38,6 +41,8 @@ export function FormGuardable({
 }) {
   const [estado, setEstado] = useState<EstadoGuardado | null>(null);
   const [pendiente, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+  useEnterAvanza(formRef);
 
   function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,10 +75,16 @@ export function FormGuardable({
   }
 
   return (
-    <form onSubmit={enviar} className={className}>
+    <form ref={formRef} onSubmit={enviar} className={className}>
       {children}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <SubmitButton label={etiqueta} pendingLabel={etiquetaPendiente} size={size} pending={pendiente} />
+        <SubmitButton
+          label={etiqueta}
+          pendingLabel={etiquetaPendiente}
+          size={size}
+          pending={pendiente}
+          atajo="guardar"
+        />
         <AvisoGuardado estado={estado} />
       </div>
     </form>
