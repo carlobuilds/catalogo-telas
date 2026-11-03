@@ -5,7 +5,7 @@ import { X, Trash, WhatsappLogo, ArrowLeft, Basket, ShoppingBag } from "@/compon
 import { useCartStore } from "@/lib/store";
 import { publicImageUrl } from "@/lib/supabase/storage";
 import { buildQuoteMessage, pesos } from "@/lib/whatsapp-message";
-import { unidadDe, cantidadCorta } from "@/lib/unidades";
+import { unidadDe } from "@/lib/unidades";
 import { TelaImage } from "./TelaImage";
 import { Button } from "@/components/ui/Button";
 import { ShareCatalog } from "@/components/ShareCatalog";
@@ -199,7 +199,7 @@ export function CartDrawer() {
                         {item.color_nombre} {item.sku && `· Código: ${item.sku}`}
                       </p>
                     </div>
-                    {/* `flex-wrap`: a 375px el stepper (146px o más) + importe +
+                    {/* `flex-wrap`: a 375px el stepper (154px o más) + importe +
                         basura no caben junto a la foto; el importe y la basura
                         bajan a su propio renglón en vez de salirse de la tarjeta. */}
                     <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
@@ -217,12 +217,18 @@ export function CartDrawer() {
                         >
                           <span aria-hidden>−</span>
                         </button>
-                        <span
+                        {/* El mismo patrón de la ficha (`AddToCart`): el número grande y
+                            la unidad completa abajo. "2 pz" en 14px se perdía entre los
+                            botones. Dos renglones caben en los 44px de alto del stepper. */}
+                        <div
                           aria-live="polite"
-                          className="min-w-[3rem] px-1 text-center text-sm font-bold text-ink-display"
+                          className="flex min-w-[3.5rem] flex-col items-center justify-center px-1 text-center"
                         >
-                          {cantidadCorta(item.cantidad, item.unidad_venta)}
-                        </span>
+                          <span className="text-lg font-bold leading-none text-ink-display">{item.cantidad}</span>
+                          <span className="mt-0.5 text-sm font-semibold leading-tight text-amber">
+                            {item.cantidad === 1 ? unidad.singular : unidad.plural}
+                          </span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.id, item.cantidad + unidad.paso)}

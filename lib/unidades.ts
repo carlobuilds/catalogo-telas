@@ -99,7 +99,7 @@ export function ajustaCantidad(cantidad: number, unidad: Unidad): number {
   return Math.max(unidad.minimo, pasos * unidad.paso);
 }
 
-/** Compacto, para el carrito: "3 m", "2 pz", "1 bolsa". */
+/** Compacto, para la maqueta del tutorial: "3 m", "2 pz", "1 bolsa". */
 export function cantidadCorta(cantidad: number, clave: string | null | undefined): string {
   const u = unidadDe(clave);
   // "3 m" sin espacio se leía como "3m" en el diseño original de la tela;

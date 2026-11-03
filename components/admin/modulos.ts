@@ -4,8 +4,6 @@ import {
   Plus,
   Warehouse,
   ListChecks,
-  Image,
-  Question,
   type Icon,
 } from "@/components/ui/iconos";
 import type { AccionAtajo } from "@/lib/atajos";
@@ -19,6 +17,10 @@ import type { AccionAtajo } from "@/lib/atajos";
  * Las dos altas siguen separadas hasta que exista "Nuevo artículo" (una sola
  * pantalla para tela y mercería); mientras, F2 abre la de mercería porque es
  * la que captura un artículo completo de una sentada.
+ *
+ * `/admin/fondos` y `/admin/guias` no están en el menú a propósito: la tienda
+ * todavía no debe verlos ni leer sobre ellos en las guías impresas. Las rutas
+ * siguen funcionando detrás de `exigirAdmin()`; se entra escribiendo la URL.
  */
 export interface ModuloAdmin {
   href: string;
@@ -39,14 +41,7 @@ export const MODULOS_ADMIN: readonly ModuloAdmin[] = [
   { href: "/admin/merceria/nueva", etiqueta: "Nueva mercería", Icono: Diamond, atajo: "nuevo" },
   { href: "/admin/tela/nueva", etiqueta: "Nueva tela", Icono: Plus },
   { href: "/admin/inventario", etiqueta: "Entradas y salidas", Icono: Warehouse, atajo: "entradas" },
-  { href: "/admin/fondos", etiqueta: "Fondos de foto", Icono: Image },
   { href: "/revision", etiqueta: "Revisión", Icono: ListChecks },
-  {
-    href: "/admin/guias",
-    etiqueta: "Guías de uso",
-    Icono: Question,
-    activoEn: (p) => p.startsWith("/admin/guias"),
-  },
 ];
 
 export function moduloDeAtajo(accion: AccionAtajo): ModuloAdmin | undefined {

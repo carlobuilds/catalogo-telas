@@ -66,7 +66,7 @@ export async function PaginaCatalogo({
     <main className="min-h-screen bg-sand-bg text-ink-text">
       {/* 1. Hero Editorial / Bienvenida con Showcase e Identidad */}
       {!tieneFiltrosOBusqueda && (
-        <HeroSection catalogo={catalogo} totalModelos={totalModelos} />
+        <HeroSection catalogo={catalogo} />
       )}
 
       {/* 2. Barra de Búsqueda, Catálogo, Secciones y Filtros Sticky.

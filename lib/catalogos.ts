@@ -106,7 +106,9 @@ export const SECCIONES_MERCERIA: readonly Seccion[] = [
     nombre: "Encajes y tiras",
     categorias: ["tira-de-tul-bordado", "guipiur", "tira-termoadherible", "cinta"],
   },
-  { slug: "flores", nombre: "Flores", categorias: ["flores", "mariposa-de-tela"] },
+  // "Aplicación bordada" la creó la tienda desde /revision (no sale de la
+  // ingesta): flores y encaje bordados, y sin sección solo se veía en "Todo".
+  { slug: "flores", nombre: "Flores", categorias: ["flores", "mariposa-de-tela", "aplicacion-bordada"] },
   {
     slug: "costura",
     nombre: "Costura",

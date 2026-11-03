@@ -5,7 +5,7 @@ export const guiaPanel: Guia = {
   titulo: "Guía del panel de la tienda",
   paraQuien: "Para Cynthia y quien administre el catálogo",
   resumen:
-    "Dar de alta productos, cambiar precios y fotos, llevar las existencias y decidir los fondos blancos.",
+    "Dar de alta productos, cambiar precios y fotos, y llevar las existencias.",
   direccion: "catalogo-telas.vercel.app/admin",
   bloques: [
     {
@@ -25,9 +25,7 @@ export const guiaPanel: Guia = {
         "[[Nueva mercería]]: alta completa de un avío, de una sentada.",
         "[[Nueva tela]]: crea la tela; sus colores se agregan después.",
         "[[Entradas y salidas]]: lo que llega y lo que sale.",
-        "[[Fondos de foto]]: decide qué fotos salen con fondo blanco.",
         "[[Revisión]]: la pantalla de corrección rápida desde el celular.",
-        "[[Guías de uso]]: estas guías, listas para imprimir.",
         "[[Ver catálogo]]: abre la tienda como la ve una clienta.",
       ],
       capturas: [
@@ -105,28 +103,6 @@ export const guiaPanel: Guia = {
         {
           archivo: "admin-inventario.webp",
           alt: "Pantalla Entradas y salidas con el resumen y el formulario de movimiento",
-        },
-      ],
-    },
-    {
-      titulo: "Fondos blancos",
-      intro:
-        "El fondo blanco se ve en la cuadrícula del catálogo. Al abrir un producto, la foto sale original y la clienta puede elegir verla en blanco. Tu foto no cambia: encima se le pone una capa que se puede quitar.",
-      pasos: [
-        "Toca [[Fondos de foto]]. Cada tarjeta muestra la foto original y cómo queda con fondo blanco. Las más dudosas salen primero.",
-        "Si una foto no te convence, toca [[Apagar en esta foto]]. Ese producto se sigue viendo con su foto original.",
-        "Cuando estés conforme, toca [[Prender fondo blanco]] y confirma. Lo ven todas las clientas al momento.",
-        "Para volver atrás, toca [[Apagar fondo blanco]]. No se pierde nada.",
-      ],
-      notas: [
-        "Las fotos nuevas llegan apagadas. Búscalas en [[Nuevas sin revisar]] y toca [[Prender en esta foto]].",
-        "Las fotos con fondo claro y los productos muy oscuros no llevan fondo blanco.",
-        "La pedrería plateada se ve más oscura sobre blanco, y en el tul y las bolsitas queda oscuro lo que se ve a través.",
-      ],
-      capturas: [
-        {
-          archivo: "admin-fondos.webp",
-          alt: "Pantalla Fondos de foto con el interruptor general y tarjetas de antes y después",
         },
       ],
     },

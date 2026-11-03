@@ -59,6 +59,12 @@ describe("secciones de Mercería", () => {
     expect(seccionDeCategoria("aplicacion-de-pedreria")?.slug).toBe("pedreria");
   });
 
+  it("la aplicación bordada (creada desde /revision) vive en Flores", () => {
+    // Sin sección solo salía en "Todo": ~10 modelos que nadie encontraba
+    // recorriendo Mercería por secciones.
+    expect(seccionDeCategoria("aplicacion-bordada")?.slug).toBe("flores");
+  });
+
   it("resuelve slugs y tolera los que no existen", () => {
     expect(seccionPorSlug("flores")?.nombre).toBe("Flores");
     expect(seccionPorSlug("no-existe")).toBeNull();

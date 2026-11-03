@@ -10,6 +10,32 @@ function textoDe(g: (typeof GUIAS)[number]): string {
   return g.bloques.flatMap((b) => [b.titulo, b.intro ?? "", ...(b.pasos ?? []), ...(b.notas ?? [])]).join("\n");
 }
 
+/** Todo lo que sale en papel: `textoDe` no lee el resumen ni las capturas. */
+function todoLoImpresoDe(g: (typeof GUIAS)[number]): string {
+  const capturas = g.bloques.flatMap((b) => b.capturas ?? []);
+  return [
+    g.titulo,
+    g.paraQuien,
+    g.resumen,
+    g.direccion ?? "",
+    textoDe(g),
+    ...capturas.flatMap((c) => [c.archivo, c.alt, c.pie ?? ""]),
+  ].join("\n");
+}
+
+/** La tienda todavía no debe ver estos módulos: ni botón ni instrucciones. */
+const OCULTOS = [
+  "Fondos de foto",
+  "Guías de uso",
+  "Nuevas sin revisar",
+  "Prender fondo blanco",
+  "Prender en esta foto",
+  "Apagar fondo blanco",
+  "Apagar en esta foto",
+  "/admin/fondos",
+  "/admin/guias",
+];
+
 function archivosDe(dir: string): string[] {
   return readdirSync(dir).flatMap((nombre) => {
     const ruta = join(dir, nombre);
@@ -44,6 +70,20 @@ describe("guías de uso", () => {
   it("la guía del panel nombra todos los módulos del menú", () => {
     const panel = textoDe(guiaPorSlug("panel")!);
     for (const m of MODULOS_ADMIN) expect(panel).toContain(`[[${m.etiqueta}]]`);
+  });
+
+  it("ninguna guía nombra los módulos que la tienda aún no debe ver", () => {
+    const encontrados = GUIAS.flatMap((g) => {
+      const impreso = todoLoImpresoDe(g);
+      return OCULTOS.filter((o) => impreso.includes(o)).map((o) => `${g.slug}: ${o}`);
+    });
+    expect(encontrados).toEqual([]);
+  });
+
+  it("Fondos y Guías no están en el menú del panel", () => {
+    const destinos = MODULOS_ADMIN.map((m) => m.href);
+    expect(destinos).not.toContain("/admin/fondos");
+    expect(destinos).not.toContain("/admin/guias");
   });
 
   it("toda captura citada existe y tiene texto alternativo", () => {

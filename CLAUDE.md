@@ -213,8 +213,9 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
   siempre enseña la original. Carrito, /admin, /revision, buscador, vista previa del link y WhatsApp no
   llevan velo. Por eso el apagado no necesita lógica aparte: con el interruptor apagado
   `getFondoBlanco()` no entrega máscaras, y sin máscara `TelaImage` pinta la foto tal cual.
-  **Dónde se decide:** `/admin/fondos` (interruptor general y una por una, con las más dudosas
-  primero). Las ya subidas entran encendidas con `--activar-hasta`; las nuevas se generan apagadas en
+  **Dónde se decide:** `/admin/fondos`, que NO está en el menú: se entra por URL (ver "Guías de uso
+  imprimibles"). Tiene el interruptor general y una por una, con las más dudosas
+  primero. Las ya subidas entran encendidas con `--activar-hasta`; las nuevas se generan apagadas en
   `after()`, después de sus derivados. Detalles que no son negociables en `TelaImage`: el velo se
   desborda un píxel (`-inset-px`, o asoma una línea negra en la orilla) y el contenedor no redondea con
   velo (plus-lighter deja un arco gris en la esquina; redondea el marco de afuera).
@@ -222,7 +223,10 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
 - **Guías de uso imprimibles** (`/admin/guias`, `lib/guias/`, `components/admin/guias/`): panel, revisión,
   clientas y fotos, en carta y legibles en blanco y negro. Son DATOS: `[[Etiqueta]]` sale en negritas y
   `guias.test.ts` exige que exista en el código de las pantallas, así que cambiar un botón sin actualizar
-  la guía rompe las pruebas. Si cambia una pantalla, también hay que rehacer su captura en `public/guias/`.
+  la guía rompe las pruebas. `/admin/fondos` y `/admin/guias` están fuera del menú (`components/admin/modulos.ts`)
+  y se entra por URL, porque la tienda todavía no debe verlos: las guías no deben nombrarlos, y una prueba lo
+  exige también en el resumen y en el `alt` y `pie` de las capturas. Al imprimir, hay que desmarcar
+  "Encabezados y pies de página": si no, el navegador escribe la URL en el margen. Si cambia una pantalla, también hay que rehacer su captura en `public/guias/`.
 
 ## Convenciones
 - **La descripción no se muestra en el catálogo público**, por decisión de la tienda: ni en
