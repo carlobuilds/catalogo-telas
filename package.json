@@ -37,6 +37,8 @@
     "separar:tiras-tul": "tsx scripts/separar-tiras-tul.ts",
     "hoja": "tsx scripts/hoja-revision.ts",
     "backfill:derivados": "tsx scripts/backfill-derivados.ts",
+    "medir:mascaras": "tsx scripts/medir-mascaras.ts",
+    "backfill:mascaras": "tsx scripts/backfill-mascaras.ts",
     "resubir": "tsx scripts/resubir-fotos.ts",
     "og": "tsx scripts/generar-og.ts",
     "admin:crear": "tsx scripts/crear-admin.ts",

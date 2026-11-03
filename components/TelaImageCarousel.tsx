@@ -4,9 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { CaretLeft, CaretRight, HandSwipeRight } from "@/components/ui/iconos";
 import { TelaImage } from "@/components/TelaImage";
+import { ControlesFoto } from "@/components/ficha/ControlesFoto";
+import { VisorZoom } from "@/components/ficha/VisorZoom";
 import { useGuideStore } from "@/lib/guide-store";
 import { publicImageUrl, urlDerivado } from "@/lib/supabase/storage";
-import type { SlideFoto } from "@/lib/fotos";
+import { dimensionesDeZoom, type SlideFoto } from "@/lib/fotos";
 
 const HINT_ID = "detalle-swipe";
 /** La invitación se oculta sola tras unos segundos para no tapar la tela. */
@@ -33,6 +35,10 @@ const SNAP_ASENTADO_MS = 150;
  * El efecto no rebota tras un swipe porque solo reposiciona cuando la foto en
  * pantalla NO pertenece ya al color seleccionado: al volver la URL del propio
  * swipe, la condición es falsa y se queda donde está.
+ *
+ * "Ver en fondo blanco" sobrevive al cambio de color porque cambiar `?color=` no
+ * remonta el componente, y arranca apagado cada vez que se abre la ficha. Solo se
+ * pide la máscara de la foto actual y sus vecinas: hay modelos con 34 fotos.
  */
 export function TelaImageCarousel({
   slides,
@@ -79,6 +85,8 @@ export function TelaImageCarousel({
   // precalientan los vecinos, para que al soltar el swipe la foto ya esté
   // cargada en vez de mostrar el skeleton.
   const [warm, setWarm] = useState(false);
+  const [fondoBlanco, setFondoBlanco] = useState(false);
+  const [viendoDeCerca, setViendoDeCerca] = useState(false);
   // ¿El scroll que se está asentando lo provocó un dedo, o lo movimos nosotros?
   // Solo el del dedo descarta la invitación: abrir un link compartido con
   // `?color=` hace scroll programático al montar, y sin esta distinción le
@@ -190,6 +198,11 @@ export function TelaImageCarousel({
     return `${base} — foto ${i + 1} de ${slides.length}`;
   }
 
+  const actual = slides[index];
+  const dimensiones = dimensionesDeZoom(actual?.derivados);
+  const srcBase = urlDerivado(actual?.derivados, "md");
+  const srcDetalle = urlDerivado(actual?.derivados, "lg");
+
   return (
     <div className="flex flex-col gap-3">
       <div
@@ -209,14 +222,18 @@ export function TelaImageCarousel({
           {slides.map((s, i) => (
             <div
               key={s.id}
-              className="w-full shrink-0 snap-center"
+              className={`w-full shrink-0 snap-center ${dimensiones ? "cursor-zoom-in" : ""}`}
               role="group"
               aria-roledescription="diapositiva"
               aria-label={`${i + 1} de ${slides.length}`}
+              // Un swipe en pantalla táctil no dispara `click`, así que tocar para
+              // acercar no le estorba al carrusel. Con teclado está el botón de abajo.
+              onClick={dimensiones ? () => setViendoDeCerca(true) : undefined}
             >
               <TelaImage
                 src={publicImageUrl(s.ruta)}
                 derivados={s.derivados}
+                mascara={fondoBlanco && Math.abs(i - index) <= 1 ? s.mascara : null}
                 sizes="(max-width: 1023px) 100vw, 50vw"
                 alt={altDe(s, i)}
                 aspecto="cuadrado"
@@ -264,6 +281,15 @@ export function TelaImageCarousel({
         )}
       </div>
 
+      <div className="px-2">
+        <ControlesFoto
+          onAcercar={dimensiones ? () => setViendoDeCerca(true) : undefined}
+          conMascara={Boolean(actual?.mascara)}
+          fondoBlanco={fondoBlanco}
+          onCambiarFondo={() => setFondoBlanco((v) => !v)}
+        />
+      </div>
+
       {/* Miniaturas: con 18 fotos unos puntitos no dicen nada, y en un producto
           que ES su apariencia la miniatura enseña el tono real. Hace de
           indicador y de navegación a la vez. */}
@@ -297,6 +323,18 @@ export function TelaImageCarousel({
           </button>
         ))}
       </div>
+
+      {viendoDeCerca && actual && dimensiones && srcBase && srcDetalle && (
+        <VisorZoom
+          key={actual.id}
+          srcBase={srcBase}
+          srcDetalle={srcDetalle}
+          alt={altDe(actual, index)}
+          ancho={dimensiones.ancho}
+          alto={dimensiones.alto}
+          onCerrar={() => setViendoDeCerca(false)}
+        />
+      )}
     </div>
   );
 }

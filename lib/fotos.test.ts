@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { construirSlides, contarFotosPorVariante, type FotoVariante } from "./fotos";
+import { construirSlides, contarFotosPorVariante, dimensionesDeZoom, type FotoVariante } from "./fotos";
+import { claveFoto } from "./fondo-blanco";
 import type { CatalogoTela } from "./types";
 
 function variante(overrides: Partial<CatalogoTela> = {}): CatalogoTela {
@@ -171,5 +172,46 @@ describe("construirSlides", () => {
     });
     expect(slide.alt).toBe("Gema cristal");
     expect(slide.derivados).toEqual(derivados);
+  });
+});
+
+describe("mascara de cada slide", () => {
+  const mascara = { ruta: "mascaras/sm/f1.webp", generado_en: "2026-11-03T00:00:00.000Z" };
+
+  it("cada foto recibe SU máscara, y las demás ninguna", () => {
+    const v = variante({ variante_id: "v1" });
+    const slides = construirSlides({
+      variantes: [v],
+      fotos: [foto({ id: "f1", variante_id: "v1", ruta: "x/a.jpg" }), foto({ id: "f2", variante_id: "v1", ruta: "x/b.jpg", orden: 1 })],
+      seleccionada: v,
+      mascaras: { [claveFoto("v1", "x/a.jpg")]: mascara },
+    });
+    expect(slides.map((s) => s.mascara)).toEqual([mascara, null]);
+  });
+
+  it("sin máscaras, ningún slide lleva velo", () => {
+    const v = variante({ variante_id: "v1" });
+    const slides = construirSlides({
+      variantes: [v],
+      fotos: [foto({ id: "f1", variante_id: "v1", ruta: "x/a.jpg" })],
+      seleccionada: v,
+    });
+    expect(slides[0].mascara).toBeNull();
+  });
+});
+
+describe("dimensionesDeZoom", () => {
+  it("usa el derivado más grande", () => {
+    const d = { sm: { ruta: "a", ancho: 800, alto: 800 }, lg: { ruta: "b", ancho: 2400, alto: 2400 } };
+    expect(dimensionesDeZoom(d)).toEqual({ ancho: 2400, alto: 2400 });
+  });
+
+  it("una foto chica no se acerca: no hay más detalle que mostrar", () => {
+    expect(dimensionesDeZoom({ sm: { ruta: "a", ancho: 500, alto: 500 } })).toBeNull();
+  });
+
+  it("sin derivados no se acerca", () => {
+    expect(dimensionesDeZoom(null)).toBeNull();
+    expect(dimensionesDeZoom({})).toBeNull();
   });
 });

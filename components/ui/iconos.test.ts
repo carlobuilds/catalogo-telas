@@ -15,8 +15,8 @@ async function phosphor(nombre: string): Promise<unknown> {
 }
 
 describe("iconos generados vs Phosphor", () => {
-  it("exporta los 59 iconos del sitio", () => {
-    expect(nombres).toHaveLength(59);
+  it("exporta los 60 iconos del sitio", () => {
+    expect(nombres).toHaveLength(60);
   });
 
   // Si se actualiza @phosphor-icons/react y cambia algún trazo, esto falla:

@@ -2,9 +2,12 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   publicImageUrl,
   rutaDerivado,
+  rutaMascara,
   rutasDerivados,
+  rutasMascara,
   srcsetDerivados,
   urlDerivado,
+  urlMascara,
 } from "./supabase/storage";
 import type { DerivadosFoto } from "./types";
 
@@ -82,6 +85,33 @@ describe("publicImageUrl", () => {
   it("construye la URL pública del bucket a partir de la ruta relativa", () => {
     expect(publicImageUrl("chifon/azul-1.jpg")).toBe(
       `${BASE}/storage/v1/object/public/telas/chifon/azul-1.jpg`
+    );
+  });
+});
+
+describe("máscaras de fondo blanco", () => {
+  const ID = "3f2a1c9e-0000-4000-8000-000000000001";
+
+  it("viven bajo su propio prefijo y por id de foto", () => {
+    expect(rutaMascara(ID, "sm")).toBe(`mascaras/sm/${ID}.webp`);
+    expect(rutasMascara(ID)).toEqual([`mascaras/sm/${ID}.webp`, `mascaras/md/${ID}.webp`]);
+  });
+
+  it("nunca caen dentro del prefijo de los derivados", () => {
+    for (const ruta of rutasMascara(ID)) expect(ruta.startsWith("derivados/")).toBe(false);
+  });
+
+  it("la URL lleva el sello de cuándo se generó", () => {
+    const generado = "2026-11-03T00:00:00.000Z";
+    expect(urlMascara(`mascaras/sm/${ID}.webp`, generado)).toBe(
+      `${BASE}/storage/v1/object/public/telas/mascaras/sm/${ID}.webp?v=${Date.parse(generado)}`
+    );
+  });
+
+  it("sin ruta no hay URL, y sin fecha no hay sello", () => {
+    expect(urlMascara(null, "2026-11-03T00:00:00.000Z")).toBeNull();
+    expect(urlMascara(`mascaras/sm/${ID}.webp`, null)).toBe(
+      `${BASE}/storage/v1/object/public/telas/mascaras/sm/${ID}.webp`
     );
   });
 });
