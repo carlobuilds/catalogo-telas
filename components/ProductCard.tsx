@@ -53,6 +53,7 @@ export function ProductCard({
           <TelaImage
             src={foto}
             derivados={principal?.foto_principal_derivados}
+            mascara={principal?.foto_principal_mascara}
             alt={principal?.color_nombre ? `${tela.tela_nombre} ${principal.color_nombre}` : tela.tela_nombre}
             priority={priority}
             aspecto="cuadrado"

@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   activaSegunFecha,
   claveFoto,
+  conMascaras,
   esContenedor,
+  estadoDeMascara,
   indiceDeMascaras,
   interruptorEncendido,
   mascaraDe,
@@ -119,5 +121,48 @@ describe("mascaraDe", () => {
 
   it("sin ruta no hay máscara", () => {
     expect(mascaraDe(indice, "v1", null)).toBeNull();
+  });
+});
+
+describe("conMascaras", () => {
+  const mascara = { ruta: "mascaras/sm/a.webp", generado_en: "2026-11-03T00:00:00.000Z" };
+  const fila = { variante_id: "v1", foto_principal: "x/a.jpg", nombre: "Flor" };
+
+  it("sin máscaras devuelve las mismas filas, como si esto no existiera", () => {
+    const filas = [fila];
+    expect(conMascaras(filas, {})).toBe(filas);
+  });
+
+  it("agrega la máscara de la foto principal y conserva lo demás", () => {
+    const [r] = conMascaras([fila], { [claveFoto("v1", "x/a.jpg")]: mascara });
+    expect(r).toEqual({ ...fila, foto_principal_mascara: mascara });
+  });
+
+  it("una fila sin máscara o sin foto queda en null", () => {
+    const indice = { [claveFoto("v9", "x/a.jpg")]: mascara };
+    const [a, b] = conMascaras([fila, { ...fila, foto_principal: null }], indice);
+    expect(a.foto_principal_mascara).toBeNull();
+    expect(b.foto_principal_mascara).toBeNull();
+  });
+});
+
+describe("estadoDeMascara", () => {
+  const G = "2026-10-30T12:00:00.000Z";
+  const base = { activa: false, revisada_en: null, fuente_generado_en: G };
+
+  it("una foto nueva está sin revisar", () => {
+    expect(estadoDeMascara(base, G)).toBe("sin-revisar");
+  });
+
+  it("apagada después de revisarla está excluida", () => {
+    expect(estadoDeMascara({ ...base, revisada_en: G }, G)).toBe("excluida");
+  });
+
+  it("encendida está activa", () => {
+    expect(estadoDeMascara({ ...base, activa: true }, G)).toBe("activa");
+  });
+
+  it("si la foto se reprocesó está vencida, sin importar cómo estaba", () => {
+    expect(estadoDeMascara({ ...base, activa: true }, "2026-11-01T00:00:00.000Z")).toBe("vencida");
   });
 });

@@ -240,3 +240,24 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/*
+ * Velo de fondo blanco. La foto queda intacta debajo: el velo se SUMA con
+ * plus-lighter, y como sobre negro cada píxel ya vale `alfa · color`, el resultado
+ * es el mismo que un recorte con transparencia. Sin soporte de mask no se pinta,
+ * porque sería un cuadro blanco; sin plus-lighter cae a mezcla normal, que solo
+ * deja el borde un poco más oscuro. El gradiente transparente cubre el caso de que
+ * falte la variable: sin él, el velo también taparía el producto.
+ */
+.mascara-fondo {
+  display: none;
+}
+@supports ((mask-image: url("")) or (-webkit-mask-image: url(""))) {
+  .mascara-fondo {
+    display: block;
+    background: white;
+    mix-blend-mode: plus-lighter;
+    -webkit-mask: var(--mascara, linear-gradient(#0000, #0000)) center / cover no-repeat;
+    mask: var(--mascara, linear-gradient(#0000, #0000)) center / cover no-repeat;
+  }
+}

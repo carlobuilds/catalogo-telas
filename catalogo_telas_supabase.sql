@@ -927,7 +927,9 @@ create table if not exists foto_mascara (
   -- reprocesa deja de coincidir y se muestra la original: una máscara vieja
   -- sobre un encuadre nuevo taparía el producto.
   fuente_generado_en text not null,
-  generado_en        timestamptz not null default now()
+  generado_en        timestamptz not null default now(),
+  -- Cuándo la tienda la prendió o apagó a mano. Apagada y sin esto = foto nueva.
+  revisada_en        timestamptz
 );
 
 -- Sin fila = apagado. Por eso esta migración no inserta nada: el interruptor

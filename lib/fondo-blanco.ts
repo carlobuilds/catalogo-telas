@@ -17,6 +17,7 @@ export type FilaMascara = {
   pct_transicion: number;
   fuente_generado_en: string;
   generado_en: string;
+  revisada_en: string | null;
 };
 
 /**
@@ -111,4 +112,32 @@ export function mascaraDe(
   ruta: string | null | undefined
 ): MascaraFoto | null {
   return ruta ? (mascaras[claveFoto(varianteId, ruta)] ?? null) : null;
+}
+
+/** Agrega a cada fila la máscara de su foto principal. Sin máscaras, las filas no cambian. */
+export function conMascaras<T extends { variante_id: string; foto_principal: string | null }>(
+  filas: T[],
+  mascaras: Record<string, MascaraFoto>
+): (T & { foto_principal_mascara?: MascaraFoto | null })[] {
+  if (Object.keys(mascaras).length === 0) return filas;
+  return filas.map((fila) => ({
+    ...fila,
+    foto_principal_mascara: mascaraDe(mascaras, fila.variante_id, fila.foto_principal),
+  }));
+}
+
+export type EstadoMascara = "activa" | "sin-revisar" | "excluida" | "vencida";
+
+/**
+ * En qué estado está una máscara para la pantalla de revisión. Apagada sin haberla
+ * revisado es una foto nueva; apagada después de revisarla es una decisión de la
+ * tienda. La vencida va primero porque no importa cómo estaba: ya no se pinta.
+ */
+export function estadoDeMascara(
+  fila: { activa: boolean; revisada_en: string | null; fuente_generado_en: string },
+  generadoEnFoto: string | null | undefined
+): EstadoMascara {
+  if (!mascaraVigente(fila.fuente_generado_en, generadoEnFoto)) return "vencida";
+  if (fila.activa) return "activa";
+  return fila.revisada_en ? "excluida" : "sin-revisar";
 }
