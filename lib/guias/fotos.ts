@@ -48,14 +48,7 @@ export const guiaFotos: Guia = {
         "Toca [[Subir fotos]].",
         "La primera foto de cada color es la portada: pon primero la que mejor muestre el producto.",
       ],
-    },
-    {
-      titulo: "Después de subirla",
-      pasos: [
-        "La foto se publica con su fondo original.",
-        "Si quieres que salga con fondo blanco, entra a [[Fondos de foto]], busca en [[Nuevas sin revisar]] y toca [[Prender en esta foto]].",
-      ],
-      notas: ["Si después vuelves a preparar esa foto, revísala de nuevo en la misma pantalla."],
+      notas: ["La foto se publica con su fondo original."],
     },
   ],
 };
