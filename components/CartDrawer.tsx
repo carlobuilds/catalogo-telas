@@ -126,19 +126,21 @@ export function CartDrawer() {
             <div className="flex items-center gap-2">
               <ShoppingBag className="size-5 text-amber" />
               <span className="text-sm font-semibold text-amber">
-                Cotización de Telas
+                Pedido por WhatsApp
               </span>
             </div>
             <h2 id="cesta-titulo" className="font-display text-2xl font-bold text-ink-display mt-1">Tu Cesta</h2>
-            <p className="mt-0.5 text-sm text-ink-soft">
-              Revisa tus metros seleccionados y envíalos por WhatsApp sin compromiso.
-            </p>
+            {items.length > 0 && (
+              <p className="mt-0.5 text-sm text-ink-soft">
+                Revisa lo que elegiste antes de enviarlo. Mandarlo no te compromete a comprar.
+              </p>
+            )}
           </div>
           <button
             type="button"
             onClick={() => setIsOpen(false)}
             className="-mr-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-container hover:text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
-            aria-label="Cerrar cotización"
+            aria-label="Cerrar cesta"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -197,9 +199,9 @@ export function CartDrawer() {
                         {item.color_nombre} {item.sku && `· Código: ${item.sku}`}
                       </p>
                     </div>
-                    {/* `flex-wrap`: a 375px el stepper (138px) + precio + basura
-                        no caben junto a la foto; el precio y la basura bajan a
-                        su propio renglón en vez de salirse de la tarjeta. */}
+                    {/* `flex-wrap`: a 375px el stepper (146px o más) + importe +
+                        basura no caben junto a la foto; el importe y la basura
+                        bajan a su propio renglón en vez de salirse de la tarjeta. */}
                     <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
                       <div className="flex items-center rounded border border-outline-variant/30 bg-surface-container p-1">
                         <button
@@ -231,8 +233,8 @@ export function CartDrawer() {
                         </button>
                       </div>
                       <div className="ml-auto flex items-center gap-1">
-                        <span className="text-sm font-bold text-amber">
-                          {item.precio != null ? pesos.format(item.precio * item.cantidad) : "Consultar"}
+                        <span className="text-base font-bold tabular-nums text-amber">
+                          {item.precio != null ? pesos.format(item.precio * item.cantidad) : "Precio a consultar"}
                         </span>
                         <button
                           type="button"
@@ -243,9 +245,6 @@ export function CartDrawer() {
                           <Trash className="h-5 w-5" />
                         </button>
                       </div>
-                      <span className="text-base font-bold tabular-nums text-amber">
-                        {item.precio != null ? pesos.format(item.precio * item.cantidad) : "Por consultar"}
-                      </span>
                     </div>
                   </div>
                 </li>
