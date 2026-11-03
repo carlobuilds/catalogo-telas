@@ -189,7 +189,9 @@ async function main() {
   const tablas: Record<string, Record<string, unknown>[]> = {};
   for (const [tabla, orden] of Object.entries(TABLAS)) {
     if (TABLAS_OPCIONALES.has(tabla)) {
-      const { error } = await sb.from(tabla).select("*", { head: true, count: "exact" });
+      // GET y no HEAD: una respuesta HEAD no trae cuerpo, así que el error llega sin
+      // código y la tabla faltante no se reconocía.
+      const { error } = await sb.from(tabla).select("*").limit(1);
       if (error?.code === "PGRST205" || error?.code === "42P01") {
         console.log(`   ${tabla.padEnd(22)} (no existe aún: se omite)`);
         continue;

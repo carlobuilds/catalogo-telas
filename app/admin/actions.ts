@@ -598,10 +598,9 @@ async function generarMascarasApagadas(
 ) {
   if (listas.length === 0) return;
   try {
-    const { error } = await supabase
-      .from("foto_mascara")
-      .select("foto_id", { head: true })
-      .limit(1);
+    // GET y no HEAD: una respuesta HEAD no trae cuerpo, el error llegaría sin código
+    // y, sin migración, subiría máscaras que nadie puede registrar.
+    const { error } = await supabase.from("foto_mascara").select("foto_id").limit(1);
     if (esTablaFaltante(error?.code)) return;
 
     const { data: tela } = await supabase
