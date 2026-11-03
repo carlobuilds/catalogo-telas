@@ -206,7 +206,23 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
   El blur que decide corre la frontera hacia afuera y deja un contorno negro a 1:1: `afinarBorde` lo
   recorta creciendo desde el fondo, sin tocar las facetas oscuras rodeadas de piedra.
   `fuente_generado_en` debe igualar `foto.derivados.generado_en`; si no, la máscara está vencida y se
-  muestra la original. **Todavía no se pinta en el catálogo**: falta conectarlo tras publicar SICAR.
+  muestra la original.
+  **Dónde se ve:** SOLO en la cuadrícula del catálogo (`getCatalogo` agrega `foto_principal_mascara` y
+  `TelaImage` pinta el velo si recibe `mascara`). La ficha abre SIEMPRE con la foto original y ofrece
+  "Ver en fondo blanco", estado local que arranca apagado (`components/ficha/`). El zoom (`VisorZoom`)
+  siempre enseña la original. Carrito, /admin, /revision, buscador, vista previa del link y WhatsApp no
+  llevan velo. Por eso el apagado no necesita lógica aparte: con el interruptor apagado
+  `getFondoBlanco()` no entrega máscaras, y sin máscara `TelaImage` pinta la foto tal cual.
+  **Dónde se decide:** `/admin/fondos` (interruptor general y una por una, con las más dudosas
+  primero). Las ya subidas entran encendidas con `--activar-hasta`; las nuevas se generan apagadas en
+  `after()`, después de sus derivados. Detalles que no son negociables en `TelaImage`: el velo se
+  desborda un píxel (`-inset-px`, o asoma una línea negra en la orilla) y el contenedor no redondea con
+  velo (plus-lighter deja un arco gris en la esquina; redondea el marco de afuera).
+
+- **Guías de uso imprimibles** (`/admin/guias`, `lib/guias/`, `components/admin/guias/`): panel, revisión,
+  clientas y fotos, en carta y legibles en blanco y negro. Son DATOS: `[[Etiqueta]]` sale en negritas y
+  `guias.test.ts` exige que exista en el código de las pantallas, así que cambiar un botón sin actualizar
+  la guía rompe las pruebas. Si cambia una pantalla, también hay que rehacer su captura en `public/guias/`.
 
 ## Convenciones
 - **La descripción no se muestra en el catálogo público**, por decisión de la tienda: ni en

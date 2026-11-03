@@ -261,3 +261,16 @@ body {
     mask: var(--mascara, linear-gradient(#0000, #0000)) center / cover no-repeat;
   }
 }
+
+/* Guías de uso: carta, porque es el papel que hay en la tienda. */
+@media print {
+  @page {
+    size: letter;
+    margin: 16mm;
+  }
+  html,
+  body {
+    background: white !important;
+    padding: 0 !important;
+  }
+}

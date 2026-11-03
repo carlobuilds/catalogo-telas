@@ -13,6 +13,7 @@ import {
   type TipoMovimiento,
 } from "@/lib/inventario";
 import type { CatalogoTela } from "@/lib/types";
+import { cantidadLarga } from "@/lib/unidades";
 
 export const metadata: Metadata = {
   title: "Inventario — Admin",
@@ -128,10 +129,10 @@ export default async function InventarioPage({
         <ResumenTile
           titulo="Sin existencia"
           valor={sinExistencia.length}
-          detalle="variantes con 0 m"
+          detalle="variantes en cero"
         />
         <ResumenTile
-          titulo={`Stock bajo (≤ ${umbral} m)`}
+          titulo={`Stock bajo (${umbral} o menos)`}
           valor={stockBajo.length}
           detalle="conviene resurtir"
         />
@@ -173,7 +174,7 @@ export default async function InventarioPage({
               {variantes.map((v) => (
                 <option key={v.variante_id} value={v.variante_id}>
                   {etiquetaVariante(v)}
-                  {v.stock != null ? ` (${v.stock} m)` : " (sin conteo)"}
+                  {v.stock != null ? ` (${cantidadLarga(v.stock, v.unidad_venta)})` : " (sin conteo)"}
                 </option>
               ))}
             </select>
@@ -194,7 +195,7 @@ export default async function InventarioPage({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-ink">Cantidad (m) *</span>
+            <span className="mb-1 block text-sm font-medium text-ink">Cantidad *</span>
             <input
               type="number"
               name="cantidad"
@@ -202,7 +203,7 @@ export default async function InventarioPage({
               min="0"
               step="0.01"
               inputMode="decimal"
-              placeholder="Ej. 12.5"
+              placeholder="Ej. 12"
               className={inputClase}
             />
           </label>
@@ -212,7 +213,7 @@ export default async function InventarioPage({
             <input
               type="text"
               name="nota"
-              placeholder="Ej. pedido proveedor GDL, venta mostrador, rollo dañado…"
+              placeholder="Ej. pedido proveedor GDL, venta mostrador, pieza dañada…"
               className={inputClase}
             />
           </label>
@@ -232,7 +233,7 @@ export default async function InventarioPage({
         </h2>
         {sinExistencia.length + stockBajo.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-line bg-surface/60 p-6 text-sm text-ink/50">
-            Nada urgente: ninguna variante contada está en cero ni bajo el umbral de {umbral} m.
+            Nada urgente: ninguna variante contada está en cero ni bajo el umbral de {umbral}.
           </p>
         ) : (
           <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
@@ -249,7 +250,7 @@ export default async function InventarioPage({
                     v.stock === 0 ? "bg-red-50 text-red-700" : "bg-amber/10 text-amber"
                   }`}
                 >
-                  {v.stock} m
+                  {cantidadLarga(v.stock ?? 0, v.unidad_venta)}
                 </span>
               </li>
             ))}
@@ -297,9 +298,13 @@ export default async function InventarioPage({
                         {v ? etiquetaVariante(v) : "Variante eliminada"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 capitalize">{m.tipo}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right">{m.cantidad} m</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">{v ? cantidadLarga(m.cantidad, v.unidad_venta) : m.cantidad}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
-                        {m.stock_resultante != null ? `${m.stock_resultante} m` : "—"}
+                        {m.stock_resultante == null
+                          ? "—"
+                          : v
+                            ? cantidadLarga(m.stock_resultante, v.unidad_venta)
+                            : m.stock_resultante}
                       </td>
                       <td className="px-4 py-3 text-ink/60">
                         {[m.nota, m.usuario_email].filter(Boolean).join(" — ") || "—"}

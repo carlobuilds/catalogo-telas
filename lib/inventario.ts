@@ -13,14 +13,14 @@ export function esTipoMovimiento(valor: string): valor is TipoMovimiento {
 
 /** Etiquetas para la UI del admin. */
 export const ETIQUETA_MOVIMIENTO: Record<TipoMovimiento, string> = {
-  entrada: "Entrada (llegó tela)",
+  entrada: "Entrada (llegó mercancía)",
   salida: "Salida (venta/corte)",
   merma: "Merma (daño/pérdida)",
   ajuste: "Ajuste (conteo físico)",
 };
 
 /**
- * Metros bajo los cuales una variante se considera "stock bajo" en el
+ * Cantidad bajo la cual una variante se considera "stock bajo" en el
  * tablero de inventario. Ajustable por env sin tocar código.
  */
 export function umbralStockBajo(): number {

@@ -21,7 +21,7 @@ export function NavAdmin({ email }: { email: string }) {
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-surface lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-surface lg:flex print:hidden">
         <div className="border-b border-line px-5 py-5">
           <p className="text-sm font-semibold text-amber">Telas La Jalisciense</p>
           <p className="text-xl font-bold text-ink-display">Administración</p>
@@ -53,7 +53,7 @@ export function NavAdmin({ email }: { email: string }) {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur-md lg:hidden">
+      <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur-md lg:hidden print:hidden">
         <div className="flex items-center justify-between gap-3 px-4 pt-2">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-amber">Telas La Jalisciense</p>
