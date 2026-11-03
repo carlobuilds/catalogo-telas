@@ -29,9 +29,6 @@ export function MobileBottomNav() {
   }, []);
 
   const itemCount = items.length;
-  // Inactivo en `text-ink-soft` lleno (5.5:1 sobre el fondo): el `/70` que
-  // tenía antes daba 2.97:1, por debajo de AA para texto de 12px.
-  const inactivo = "text-ink-soft hover:text-ink-display";
   // Una sola pestaña para los dos catálogos: el selector Mercería | Telas de
   // la barra del catálogo hace la separación, y abajo no cabe otra pestaña.
   const isCatalogo =
