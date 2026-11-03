@@ -6,8 +6,10 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSesionAdmin } from "@/lib/admin-auth";
-import { STORAGE_BUCKET, rutasDerivados } from "@/lib/supabase/storage";
+import { STORAGE_BUCKET, rutasDerivados, rutasMascara } from "@/lib/supabase/storage";
 import { procesarFoto } from "@/lib/images/derivados";
+import { generarYGuardarMascara } from "@/lib/images/mascara";
+import { esContenedor } from "@/lib/fondo-blanco";
 import { parsearEncuadres, type Encuadre } from "@/lib/images/encuadre";
 import { aplicarEncuadre } from "@/lib/images/aplicar-encuadre";
 import { slugify } from "@/lib/slug";
@@ -22,8 +24,9 @@ import {
   textoOpcional,
   uuidOpcional,
 } from "@/lib/admin/campos";
-import { reemplazarCategoriasExtra } from "@/lib/categorias-extra";
+import { esTablaFaltante, reemplazarCategoriasExtra } from "@/lib/categorias-extra";
 import { mensajeDeError, type EstadoGuardado } from "@/lib/estado-guardado";
+import type { DerivadosFoto } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Sesión
@@ -389,10 +392,14 @@ export async function eliminarVariante(formData: FormData) {
   // filas de `foto`, no los archivos de Storage).
   const { data: fotos } = await supabase
     .from("foto")
-    .select("ruta")
+    .select("id, ruta")
     .eq("variante_id", varianteId);
 
-  const rutas = (fotos ?? []).flatMap((f) => [f.ruta, ...rutasDerivados(f.ruta)]);
+  const rutas = (fotos ?? []).flatMap((f) => [
+    f.ruta,
+    ...rutasDerivados(f.ruta),
+    ...rutasMascara(f.id),
+  ]);
   if (rutas.length) {
     await supabase.storage.from(STORAGE_BUCKET).remove(rutas);
   }
@@ -563,15 +570,58 @@ function generarDerivadosEnSegundoPlano(
   telaId: string
 ) {
   after(async () => {
+    const listas: { fotoId: string; derivados: DerivadosFoto }[] = [];
     for (const pendiente of pendientes) {
       try {
-        await procesarFoto(supabase, pendiente);
+        const derivados = await procesarFoto(supabase, pendiente);
+        listas.push({ fotoId: pendiente.fotoId, derivados });
       } catch (e) {
         console.error(`[derivados] ${pendiente.ruta}:`, e);
       }
     }
     refrescarCatalogo(telaId);
+    // Después de refrescar y por separado: `after()` tiene tiempo limitado, y una
+    // máscara nunca debe costarle a una foto sus derivados.
+    await generarMascarasApagadas(supabase, listas, telaId);
   });
+}
+
+/**
+ * Las fotos nuevas nacen con su máscara lista pero APAGADA: no salen con fondo
+ * blanco hasta que la tienda las prenda en /admin/fondos. Sin migración no hace
+ * nada, y si falla la foto simplemente se queda sin máscara.
+ */
+async function generarMascarasApagadas(
+  supabase: ReturnType<typeof createAdminClient>,
+  listas: { fotoId: string; derivados: DerivadosFoto }[],
+  telaId: string
+) {
+  if (listas.length === 0) return;
+  try {
+    const { error } = await supabase
+      .from("foto_mascara")
+      .select("foto_id", { head: true })
+      .limit(1);
+    if (esTablaFaltante(error?.code)) return;
+
+    const { data: tela } = await supabase
+      .from("tela")
+      .select("categoria:categoria_id(slug)")
+      .eq("id", telaId)
+      .maybeSingle();
+    const categoria = tela?.categoria as unknown as { slug: string } | null;
+    const contenedor = esContenedor(categoria?.slug);
+
+    for (const { fotoId, derivados } of listas) {
+      try {
+        await generarYGuardarMascara(supabase, { fotoId, derivados, activa: false, contenedor });
+      } catch (e) {
+        console.error(`[mascara] ${fotoId}:`, e);
+      }
+    }
+  } catch (e) {
+    console.error("[mascara]", e);
+  }
 }
 
 export async function subirFotos(formData: FormData) {
@@ -627,7 +677,7 @@ export async function eliminarFoto(formData: FormData) {
   if (foto?.ruta) {
     await supabase.storage
       .from(STORAGE_BUCKET)
-      .remove([foto.ruta, ...rutasDerivados(foto.ruta)]);
+      .remove([foto.ruta, ...rutasDerivados(foto.ruta), ...rutasMascara(fotoId)]);
   }
 
   refrescarCatalogo(telaId);
@@ -958,4 +1008,48 @@ export async function registrarMovimiento(formData: FormData) {
 
   refrescarCatalogo();
   redirect("/admin/inventario?ok=1");
+}
+
+// ---------------------------------------------------------------------------
+// Fondo blanco: solo escribe en sus tablas, nunca en `foto`, `variante` ni `tela`
+// ---------------------------------------------------------------------------
+
+/** Prende o apaga el fondo blanco de una foto. */
+export async function cambiarMascaraFoto(
+  fotoId: string,
+  activa: boolean
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  if (!UUID_RE.test(fotoId)) return { error: "Foto no válida." };
+
+  const { error } = await createAdminClient()
+    .from("foto_mascara")
+    .update({ activa: activa === true, revisada_en: new Date().toISOString() })
+    .eq("foto_id", fotoId);
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+
+  refrescarCatalogo();
+  revalidatePath("/admin/fondos");
+  return {};
+}
+
+/** Interruptor general del fondo blanco en el catálogo. */
+export async function cambiarFondoBlanco(activo: boolean): Promise<{ error?: string }> {
+  await requireAdmin();
+
+  const { error } = await createAdminClient()
+    .from("ajuste_tienda")
+    .upsert(
+      {
+        clave: "fondo_blanco",
+        valor: { activo: activo === true },
+        actualizado_en: new Date().toISOString(),
+      },
+      { onConflict: "clave" }
+    );
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+
+  refrescarCatalogo();
+  revalidatePath("/admin/fondos");
+  return {};
 }
