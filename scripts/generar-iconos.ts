@@ -69,6 +69,7 @@ const ICONOS = [
   "Needle",
   "PencilRuler",
   "PencilSimple",
+  "Printer",
   "Plus",
   "Prohibit",
   "Question",

@@ -131,7 +131,7 @@ export function CartDrawer() {
             </div>
             <h2 id="cesta-titulo" className="font-display text-2xl font-bold text-ink-display mt-1">Tu Cesta</h2>
             <p className="mt-0.5 text-sm text-ink-soft">
-              Revisa tus metros seleccionados y envíalos por WhatsApp sin compromiso.
+              Revisa lo que elegiste y envíalo por WhatsApp sin compromiso.
             </p>
           </div>
           <button

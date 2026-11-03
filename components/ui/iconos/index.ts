@@ -43,6 +43,7 @@ export { Minus } from "./Minus";
 export { Needle } from "./Needle";
 export { PencilRuler } from "./PencilRuler";
 export { PencilSimple } from "./PencilSimple";
+export { Printer } from "./Printer";
 export { Plus } from "./Plus";
 export { Prohibit } from "./Prohibit";
 export { Question } from "./Question";

@@ -33,9 +33,29 @@ export function rutasDerivados(ruta: string): string[] {
   return TAMANOS_DERIVADOS.map((t) => rutaDerivado(ruta, t));
 }
 
+/** Tamaños de la máscara de fondo blanco (`lib/images/mascara.ts`). */
+export const TAMANOS_MASCARA = ["sm", "md"] as const;
+export type TamanoMascara = (typeof TAMANOS_MASCARA)[number];
+
 /**
- * Sello de versión del lote de derivados, para romper caché cuando se vuelven
- * a generar.
+ * Ruta dentro del bucket de la máscara de una foto. Va por id y no por la ruta
+ * de la foto, como los derivados, por dos razones: "a.jpg" y "a.png" colisionan
+ * en `rutaDerivado`, y `eliminarFoto` puede borrarla sin leer `foto_mascara`, que
+ * quizá ni exista todavía. El prefijo `mascaras/` se puede borrar completo sin
+ * tocar fotos ni derivados.
+ */
+export function rutaMascara(fotoId: string, tamano: TamanoMascara): string {
+  return `mascaras/${tamano}/${fotoId}.webp`;
+}
+
+/** Las rutas de máscara de una foto (para borrarlas junto con ella). */
+export function rutasMascara(fotoId: string): string[] {
+  return TAMANOS_MASCARA.map((t) => rutaMascara(fotoId, t));
+}
+
+/**
+ * Sello de versión de un lote de derivados o de una máscara, para romper caché
+ * cuando se vuelven a generar.
  *
  * Las rutas de los derivados son deterministas, así que al re-hornear una foto
  * la URL NO cambia — y Supabase los sirve con `cache-control: max-age=3600`.
@@ -47,9 +67,18 @@ export function rutasDerivados(ruta: string): string[] {
  * `generado_en` ya lo escribe `procesarFoto` en cada pasada, así que el sello
  * se mueve solo. Si falta, no se agrega nada (URL idéntica a la de antes).
  */
-function sello(derivados: DerivadosFoto): string {
-  const t = Date.parse(derivados.generado_en ?? "");
+function sello(generadoEn: string | null | undefined): string {
+  const t = Date.parse(generadoEn ?? "");
   return Number.isNaN(t) ? "" : `?v=${t}`;
+}
+
+/** URL pública de una máscara, con el sello de cuándo se generó. */
+export function urlMascara(
+  ruta: string | null | undefined,
+  generadoEn: string | null | undefined
+): string | null {
+  const url = publicImageUrl(ruta);
+  return url ? `${url}${sello(generadoEn)}` : null;
 }
 
 /**
@@ -61,7 +90,7 @@ export function srcsetDerivados(
   derivados: DerivadosFoto | null | undefined
 ): string | null {
   if (!derivados) return null;
-  const v = sello(derivados);
+  const v = sello(derivados.generado_en);
   const partes: string[] = [];
   for (const tamano of TAMANOS_DERIVADOS) {
     const d = derivados[tamano];
@@ -81,7 +110,7 @@ export function urlDerivado(
     preferido,
     ...TAMANOS_DERIVADOS.filter((t) => t !== preferido),
   ];
-  const v = sello(derivados);
+  const v = sello(derivados.generado_en);
   for (const tamano of orden) {
     const url = publicImageUrl(derivados[tamano]?.ruta);
     if (url) return `${url}${v}`;

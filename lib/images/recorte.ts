@@ -190,7 +190,7 @@ function gradiente(px: Buffer, ancho: number, alto: number): Float32Array {
   return g;
 }
 
-function percentil(valores: ArrayLike<number>, p: number): number {
+export function percentil(valores: ArrayLike<number>, p: number): number {
   const orden = Array.from(valores).sort((x, y) => x - y);
   return orden[Math.min(orden.length - 1, Math.floor(orden.length * p))] ?? 0;
 }
