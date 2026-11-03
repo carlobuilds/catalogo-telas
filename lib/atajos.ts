@@ -27,13 +27,16 @@ export interface Atajo {
   descripcion: string;
 }
 
+/**
+ * La ayuda solo lista lo que hoy funciona. F9 y Esc se reconocen (`accionDeTecla`)
+ * pero ninguna pantalla les ha marcado todavía un botón (`data-atajo`): anunciarlos
+ * era prometer teclas que no hacen nada, también en la guía impresa.
+ */
 export const ATAJOS: readonly Atajo[] = [
   { accion: "nuevo", teclas: ["F2"], descripcion: "Nuevo artículo" },
   { accion: "buscar", teclas: ["F3"], descripcion: "Buscar un artículo" },
   { accion: "entradas", teclas: ["F4"], descripcion: "Entradas y salidas de inventario" },
-  { accion: "guardar-otro", teclas: ["F9"], descripcion: "Guardar y agregar otro color" },
   { accion: "guardar", teclas: ["F10", "Ctrl + S"], descripcion: "Guardar" },
-  { accion: "cancelar", teclas: ["Esc"], descripcion: "Cancelar la captura" },
   { accion: "ayuda", teclas: ["?"], descripcion: "Ver esta lista de atajos" },
 ];
 

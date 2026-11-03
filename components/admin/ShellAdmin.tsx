@@ -9,7 +9,7 @@ import { AtajosAdmin } from "@/components/admin/AtajosAdmin";
  */
 export function ShellAdmin({ email, children }: { email: string; children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-sand-bg lg:flex">
+    <div className="min-h-dvh bg-sand-bg lg:flex print:block print:min-h-0 print:bg-white">
       <a
         href="#contenido"
         className="sr-only z-50 rounded bg-heritage-navy px-4 py-3 text-base font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"

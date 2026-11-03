@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { getTelaPorSlug, getFotosDeVariantes } from "@/lib/queries";
 import { publicImageUrl } from "@/lib/supabase/storage";
 import { construirSlides } from "@/lib/fotos";
-import { TelaImage } from "@/components/TelaImage";
+import { getFondoBlanco } from "@/lib/fondo-blanco-lectura";
+import { mascaraDe } from "@/lib/fondo-blanco";
+import { FotoUnicaFicha } from "@/components/ficha/FotoUnicaFicha";
 import { TelaImageCarousel } from "@/components/TelaImageCarousel";
 import { ColorSelector } from "@/components/ColorSelector";
 import { AttributeBadges } from "@/components/AttributeBadges";
@@ -116,8 +118,11 @@ export default async function TelaDetallePage({
     medida ? `Medida: ${medida}` : null,
   ].filter((c): c is string => c !== null);
 
-  const fotos = await getFotosDeVariantes(variantes.map((v) => v.variante_id));
-  const slides = construirSlides({ variantes, fotos, seleccionada });
+  const [fotos, { mascaras }] = await Promise.all([
+    getFotosDeVariantes(variantes.map((v) => v.variante_id)),
+    getFondoBlanco(),
+  ]);
+  const slides = construirSlides({ variantes, fotos, seleccionada, mascaras });
   const usarCarrusel = slides.length > 1;
 
   // pb extra en móvil: reserva espacio para la barra fija de AddToCart
@@ -140,24 +145,20 @@ export default async function TelaDetallePage({
               />
             </div>
           ) : (
-            <div className="overflow-hidden rounded border border-outline-variant/30 bg-surface-container-lowest p-2 shadow-sm">
-              <div className="relative aspect-square overflow-hidden rounded bg-surface-container-low">
-                <TelaImage
-                  src={slides[0] ? publicImageUrl(slides[0].ruta) : foto}
-                  derivados={
-                    slides[0]?.derivados ?? seleccionada.foto_principal_derivados
-                  }
-                  sizes="(max-width: 1023px) 100vw, 50vw"
-                  alt={
-                    seleccionada.color_nombre
-                      ? `${nombre} ${seleccionada.color_nombre}`
-                      : nombre
-                  }
-                  aspecto="cuadrado"
-                  priority
-                />
-              </div>
-            </div>
+            <FotoUnicaFicha
+              src={slides[0] ? publicImageUrl(slides[0].ruta) : foto}
+              derivados={slides[0]?.derivados ?? seleccionada.foto_principal_derivados}
+              mascara={
+                slides[0]
+                  ? slides[0].mascara
+                  : mascaraDe(mascaras, seleccionada.variante_id, seleccionada.foto_principal)
+              }
+              alt={
+                seleccionada.color_nombre
+                  ? `${nombre} ${seleccionada.color_nombre}`
+                  : nombre
+              }
+            />
           )}
 
           {/* En mobile, "Tonos disponibles" va justo bajo la foto */}

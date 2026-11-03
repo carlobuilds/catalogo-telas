@@ -2,6 +2,7 @@
  * Tipos del dominio. `CatalogoTela` refleja 1:1 la vista `catalogo_telas`
  * (una fila por variante/SKU).
  */
+import type { MascaraFoto } from "@/lib/fondo-blanco";
 
 /** Un tamaño derivado de una foto: ruta dentro del bucket + dimensiones reales. */
 export type DerivadoImagen = {
@@ -79,6 +80,12 @@ export type CatalogoTela = {
    * original vía next/image.
    */
   foto_principal_derivados?: DerivadosFoto | null;
+  /**
+   * NO viene de la vista: lo añade `getCatalogo` solo con el fondo blanco
+   * prendido y solo para las fotos con máscara encendida. Sin él, la foto
+   * original.
+   */
+  foto_principal_mascara?: MascaraFoto | null;
   /**
    * NO viene de la vista: lo añade `aplicarPreciosDemo` cuando rellena un
    * precio vacío con uno de referencia. Permite que la UI y el mensaje de

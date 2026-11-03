@@ -14,6 +14,8 @@ import { type Catalogo, CATALOGO_PORTADA } from "@/lib/catalogos";
 import { type FilaIndice, type ModeloIndice, construirIndice } from "@/lib/busqueda/indice";
 import { FACETAS_VACIAS, type Facetas, facetasDeIndice } from "@/lib/busqueda/facetas";
 import { type PrecioVisible, seleccionarModelos } from "@/lib/busqueda/seleccion";
+import { conMascaras } from "@/lib/fondo-blanco";
+import { getFondoBlanco } from "@/lib/fondo-blanco-lectura";
 
 // Los tipos de las facetas viven con el índice; se re-exportan aquí porque
 // los componentes ya los importaban de este módulo.
@@ -317,8 +319,9 @@ export async function getCatalogo(
           })
         )
       : [];
+    const { mascaras } = await getFondoBlanco();
     return {
-      data: filtrarPorPrecio(aplicarPreciosDemo(filas), filtros.precioMax),
+      data: conMascaras(filtrarPorPrecio(aplicarPreciosDemo(filas), filtros.precioMax), mascaras),
       error: null,
       configurado: true,
       totalModelos: ids.length,

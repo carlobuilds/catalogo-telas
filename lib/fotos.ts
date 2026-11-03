@@ -1,4 +1,6 @@
 import type { CatalogoTela, DerivadosFoto } from "@/lib/types";
+import { mascaraDe, type MascaraFoto } from "@/lib/fondo-blanco";
+import { zoomMaximo } from "@/lib/images/encuadre";
 
 /**
  * Una fila de la tabla `foto`. NO viene de la vista `catalogo_telas`: la vista
@@ -54,7 +56,22 @@ export type SlideFoto = {
    */
   colorSlug: string | null;
   colorNombre: string | null;
+  /** Solo con el fondo blanco prendido y la máscara de esta foto encendida. */
+  mascara: MascaraFoto | null;
 };
+
+/**
+ * Tamaño del derivado más grande de una foto, o null si no vale la pena acercar:
+ * una foto chica no tiene más detalle que mostrar, y una sin derivados todavía no
+ * tiene de dónde sacarlo.
+ */
+export function dimensionesDeZoom(
+  derivados: DerivadosFoto | null | undefined
+): { ancho: number; alto: number } | null {
+  const mayor = derivados?.lg ?? derivados?.md ?? derivados?.sm;
+  if (!mayor || zoomMaximo(mayor.ancho, mayor.alto) <= 1) return null;
+  return { ancho: mayor.ancho, alto: mayor.alto };
+}
 
 /**
  * Aplana las fotos de una tela en la lista de slides del carrusel.
@@ -79,10 +96,12 @@ export function construirSlides({
   variantes,
   fotos,
   seleccionada,
+  mascaras = {},
 }: {
   variantes: CatalogoTela[];
   fotos: FotoVariante[];
   seleccionada: CatalogoTela | undefined;
+  mascaras?: Record<string, MascaraFoto>;
 }): SlideFoto[] {
   const porVariante = new Map<string, FotoVariante[]>();
   for (const f of fotos) {
@@ -137,6 +156,7 @@ export function construirSlides({
       alt: f.alt,
       colorSlug: navegaPorColor ? v.color_slug : null,
       colorNombre: v.color_nombre,
+      mascara: mascaraDe(mascaras, f.variante_id, f.ruta),
     }))
   );
 }

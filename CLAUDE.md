@@ -63,6 +63,14 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
 - `pnpm ingest --upload` — tras aprobar el CSV: sube fotos al bucket y hace upsert idempotente
 - `pnpm backfill:derivados` — genera derivados WebP para fotos con `derivados IS NULL`
   (idempotente; acepta `--limit=N`)
+- `pnpm backfill:mascaras` — genera la máscara de fondo blanco de las fotos que no la tienen
+  (ver "Storage e imágenes"). **Simulacro por defecto**: dice cuántas aplican, cuáles no y
+  por qué, sin escribir. `--aplicar` exige `--activar-hasta=<fecha>`: lo subido hasta ahí entra
+  encendido y lo posterior apagado. Salta las que ya tienen fila, así que re-correrlo no pisa
+  lo que decidió la tienda. `--regenerar-vencidas` rehace las de fotos reprocesadas, conservando
+  si estaban encendidas. Acepta `--limit=N` y `--reporte=<archivo.json>`.
+- `pnpm medir:mascaras` — SOLO LECTURA: compara tamaños y codificaciones de la máscara por peso
+  y error. `--hoja=<lado>,<niveles>,<codificador> --salida=<carpeta>` deja un PNG para buscar halos.
 - `pnpm admin:crear --email=<correo>` — da de alta un administrador. Un admin son DOS
   cosas y hacen falta las dos: la cuenta de Supabase Auth (sesión) y el correo en
   `ADMIN_EMAILS` (autorización) — la sesión sola no basta porque Supabase permite
@@ -74,7 +82,8 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   teclea en tablet. `--listar` dice quién tiene cuenta y si está autorizado;
   `--reset --aplicar` repone la contraseña de una cuenta que ya existe.
 - `pnpm respaldo:completo --destino=<carpeta>` — respaldo de producción COMPLETO y solo
-  lectura: las 11 tablas en JSON (paginadas con `order`), cuentas de admin/revisor, la vista
+  lectura: todas las tablas en JSON (paginadas con `order`; las de migraciones que aún no se
+  corren se omiten y lo dice), cuentas de admin/revisor, la vista
   en `catalogo.csv` y copia de todo el bucket `telas`, con verificación al final. Correrlo
   antes de cualquier `--aplicar` y guardarlo FUERA del worktree (`…/Respaldos/<fecha>-<motivo>`).
   `pnpm respaldo` (6 tablas a un JSON) sigue existiendo para los scripts de curaduría.
@@ -182,6 +191,38 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
   La política de encuadre vive sola en `vistaLimitada()`: la ventana **nunca se sale de
   la foto**. `recorte.ts` sí deja desbordar y rellena con el fondo, porque ahí nadie está
   mirando; aquí hay alguien decidiendo y la previsualización promete "así se va a ver".
+- **Máscara de fondo blanco** (`lib/images/mascara.ts`, `lib/fondo-blanco.ts`, sección 17 del
+  SQL, `sql/2026-11-03-fondo-blanco.sql`). La foto NO se altera: la máscara es un velo blanco con
+  la silueta calada, guardado aparte en `mascaras/{sm,md}/{foto_id}.webp`, que se suma a la foto con
+  `mix-blend-mode: plus-lighter`. Vive en `foto_mascara`, no en `foto.derivados`, que `procesarFoto`
+  reemplaza completo; este módulo nunca escribe en `foto`. Interruptor general: fila `fondo_blanco` de
+  `ajuste_tienda`; sin fila = apagado. Las fotos nuevas nacen con `activa=false`.
+  Sin IA: sale del histograma de CADA foto (de la cima hasta el valle), porque el centro de la toma
+  brilla más que la orilla y un umbral fijo dejaba neblina. Excepciones, encontradas revisando a ojo
+  las 584 fotos de producción: fondo no negro (170, no aplica), producto oscuro y mate (16, no aplica:
+  sus sombras miden lo mismo que el fondo y sale deshecho) y contenedores (`esContenedor`: cuencos y
+  bolsitas, 60, conservan todo lo que queda dentro de su envolvente convexa porque el negro se ve a
+  través). Revisar a ojo con hojas de contacto: las cifras no delataron ninguna de estas fallas.
+  El blur que decide corre la frontera hacia afuera y deja un contorno negro a 1:1: `afinarBorde` lo
+  recorta creciendo desde el fondo, sin tocar las facetas oscuras rodeadas de piedra.
+  `fuente_generado_en` debe igualar `foto.derivados.generado_en`; si no, la máscara está vencida y se
+  muestra la original.
+  **Dónde se ve:** SOLO en la cuadrícula del catálogo (`getCatalogo` agrega `foto_principal_mascara` y
+  `TelaImage` pinta el velo si recibe `mascara`). La ficha abre SIEMPRE con la foto original y ofrece
+  "Ver en fondo blanco", estado local que arranca apagado (`components/ficha/`). El zoom (`VisorZoom`)
+  siempre enseña la original. Carrito, /admin, /revision, buscador, vista previa del link y WhatsApp no
+  llevan velo. Por eso el apagado no necesita lógica aparte: con el interruptor apagado
+  `getFondoBlanco()` no entrega máscaras, y sin máscara `TelaImage` pinta la foto tal cual.
+  **Dónde se decide:** `/admin/fondos` (interruptor general y una por una, con las más dudosas
+  primero). Las ya subidas entran encendidas con `--activar-hasta`; las nuevas se generan apagadas en
+  `after()`, después de sus derivados. Detalles que no son negociables en `TelaImage`: el velo se
+  desborda un píxel (`-inset-px`, o asoma una línea negra en la orilla) y el contenedor no redondea con
+  velo (plus-lighter deja un arco gris en la esquina; redondea el marco de afuera).
+
+- **Guías de uso imprimibles** (`/admin/guias`, `lib/guias/`, `components/admin/guias/`): panel, revisión,
+  clientas y fotos, en carta y legibles en blanco y negro. Son DATOS: `[[Etiqueta]]` sale en negritas y
+  `guias.test.ts` exige que exista en el código de las pantallas, así que cambiar un botón sin actualizar
+  la guía rompe las pruebas. Si cambia una pantalla, también hay que rehacer su captura en `public/guias/`.
 
 ## Convenciones
 - **La descripción no se muestra en el catálogo público**, por decisión de la tienda: ni en
