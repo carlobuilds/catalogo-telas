@@ -63,13 +63,16 @@ const TABLAS: Record<string, string[]> = {
   movimiento_inventario: ["id"],
   // Sección 16 del SQL: puede no existir todavía (ver TABLAS_OPCIONALES).
   tela_categoria: ["tela_id", "categoria_id"],
+  // Sección 17 del SQL: tampoco existen hasta correr su migración.
+  foto_mascara: ["foto_id"],
+  ajuste_tienda: ["clave"],
 };
 
 /**
  * Tablas de migraciones que Carlo corre a mano: si aún no existen, el
  * respaldo las omite y lo dice, en vez de reintentar seis veces y fallar.
  */
-const TABLAS_OPCIONALES = new Set(["tela_categoria"]);
+const TABLAS_OPCIONALES = new Set(["tela_categoria", "foto_mascara", "ajuste_tienda"]);
 
 const destinoArg = process.argv.find((a) => a.startsWith("--destino="))?.slice(10);
 if (!destinoArg) {
@@ -275,7 +278,8 @@ async function main() {
       "Restaurar: el esquema está en catalogo_telas_supabase.sql; cada datos/<tabla>.json",
       "se puede reinsertar con upsert por llave primaria (primero los catálogos — color,",
       "categoria, acabado, caso_uso, oportunidad —, luego tela, variante, foto, las tablas",
-      "puente (tela_caso_uso, tela_oportunidad, tela_categoria) y movimiento_inventario).",
+      "puente (tela_caso_uso, tela_oportunidad, tela_categoria), movimiento_inventario,",
+      "foto_mascara y ajuste_tienda).",
       "fotos/ se sube tal cual al bucket `telas`.",
     ].join("\n")
   );
