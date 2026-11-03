@@ -101,7 +101,7 @@ const CON_FILL = new Set([
   "CheckCircle", // filtro "solo disponibles" puesto (CatalogToolbar)
   "Question", // ┐
   "ShoppingBag", // │ pestaña activa de la barra inferior (MobileBottomNav)
-  "Sparkle", // │ — también en el hero
+  "Sparkle", // │
   "SquaresFour", // ┘
   "WhatsappLogo", // botones de WhatsApp (HeroSection, CartDrawer)
 ]);

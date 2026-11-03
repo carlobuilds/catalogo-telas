@@ -66,7 +66,7 @@ export function SiteHeader() {
             />
           </div>
           <div className="flex flex-col min-w-0">
-            {/* En móvil, la franja "Fresnillo · Atelier" es lo primero que se
+            {/* En móvil, la franja "Fresnillo · Telas y mercería" es lo primero que se
                 sacrifica al hacer scroll: no aporta orientación una vez que
                 ya se sabe en qué sitio se está, y es puro alto reclamado. */}
             <span
@@ -74,7 +74,7 @@ export function SiteHeader() {
                 compacto ? "hidden" : "block"
               }`}
             >
-              Fresnillo · Atelier
+              Fresnillo · Telas y mercería
             </span>
             <span className="font-display text-lg sm:text-2xl font-bold tracking-tight text-ink-display transition-colors group-hover:text-amber truncate">
               Telas La Jalisciense

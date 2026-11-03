@@ -3,11 +3,10 @@
 import Image from "next/image";
 import { TutorialTrigger } from "@/components/tutorial/TutorialTrigger";
 import type { Catalogo } from "@/lib/catalogos";
-import { ArrowDown, CaretDown, Diamond, Ruler, SealCheck, Sparkle, Swatches, WhatsappLogo } from "@/components/ui/iconos";
+import { ArrowDown, CaretDown, Diamond, Ruler, SealCheck, WhatsappLogo } from "@/components/ui/iconos";
 
 interface HeroSectionProps {
   catalogo: Catalogo;
-  totalModelos?: number;
 }
 
 /**
@@ -16,28 +15,23 @@ interface HeroSectionProps {
  */
 const TEXTO: Record<
   Catalogo,
-  { sello: string; titulo: string; parrafo: string; pildora: { Icono: typeof Ruler; texto: string }; insignia: string }
+  { titulo: string; parrafo: string; pildora: { Icono: typeof Ruler; texto: string } }
 > = {
   merceria: {
-    sello: "Fresnillo, Zac. · Mercería fina",
     titulo: "Cristalería, pedrería y mercería para tus creaciones.",
     parrafo:
       "Piedra suelta, aplicaciones, tiras y cintillos de pedrería, encajes, flores y todo lo de costura. Cotiza por pieza, par o bolsa y recibe atención directa por WhatsApp.",
     pildora: { Icono: Diamond, texto: "Por pieza, par o bolsa" },
-    // La foto del hero es de encajes (no hay otra): la insignia la describe a ella.
-    insignia: "Encajes & Pedrería Fina",
   },
   telas: {
-    sello: "Fresnillo, Zac. · Tienda Textil",
     titulo: "Telas finas para tus creaciones.",
     parrafo:
       "Tul, chifón y tul bordado para vestidos de fiesta, novia y XV años. Cotiza fácilmente tus metros y recibe atención directa por WhatsApp.",
     pildora: { Icono: Ruler, texto: "Corte a tu medida" },
-    insignia: "Encajes & Tul Bordado",
   },
 };
 
-export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
+export function HeroSection({ catalogo }: HeroSectionProps) {
   const texto = TEXTO[catalogo];
   const scrollToCatalog = () => {
     const catalogElement = document.getElementById("catalogo-seccion");
@@ -67,14 +61,6 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
 
           {/* Columna Izquierda: Información de Marca, Mensaje y Acciones */}
           <div className="flex flex-col lg:col-span-7">
-            {/* Eyebrow de atelier con sello de Fresnillo */}
-            <div className="mb-3.5 inline-flex items-center gap-2 self-start rounded-full border border-amber/30 bg-surface-container-lowest/80 px-3 py-1 shadow-xs backdrop-blur-xs">
-              <span aria-hidden className="flex h-2 w-2 shrink-0 rounded-full bg-amber animate-pulse" />
-              <span className="text-sm font-semibold text-amber">
-                {texto.sello}
-              </span>
-            </div>
-
             {/* Título Principal de Alto Impacto */}
             <h1 className="min-w-0 break-words font-display text-3xl font-bold tracking-tight text-ink-display sm:text-5xl lg:text-[3.25rem] sm:leading-[1.15]">
               {texto.titulo}
@@ -122,7 +108,8 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Columna Derecha: Vitrina Visual de Telas de Alta Gama */}
+          {/* Columna Derecha: Vitrina Visual de Telas de Alta Gama. La foto va sola,
+              sin velo ni textos encima: el color es el producto. */}
           <div className="relative lg:col-span-5">
             <div className="relative mx-auto aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] w-full max-w-lg overflow-hidden rounded-xl border border-line-strong/60 bg-surface-container-highest shadow-xl transition-transform duration-300 hover:scale-[1.01]">
               <Image
@@ -133,33 +120,6 @@ export function HeroSection({ catalogo, totalModelos }: HeroSectionProps) {
                 sizes="(min-width: 1024px) 40vw, (min-width: 640px) 70vw, 90vw"
                 className="object-cover"
               />
-
-              {/* Velo degradado sutil en bordes para realzar profundidad */}
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-deep/60 via-transparent to-black/10" />
-
-              {/* Insignia Flotante Superior: Colección Destacada */}
-              <div className="absolute left-3.5 top-3.5 sm:left-4 sm:top-4 flex items-center gap-1.5 rounded-full border border-white/20 bg-ink-deep/75 px-3 py-1 text-sm font-semibold text-white shadow-md backdrop-blur-md">
-                <Sparkle className="size-4 text-amber-300" />
-                <span>{texto.insignia}</span>
-              </div>
-
-              {/* Insignia Flotante Inferior: Disponibilidad / Muestrario */}
-              <div className="absolute bottom-3.5 left-3.5 right-3.5 sm:bottom-4 sm:left-4 sm:right-4 flex items-center justify-between rounded-lg border border-white/20 bg-ink-deep/80 p-3 text-white shadow-lg backdrop-blur-md">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber/20 text-amber-200">
-                    <Swatches className="size-4.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold leading-tight">Muestrario de Temporada</p>
-                    <p className="text-sm text-white/90">Fiesta, Novia, XV y Ceremonia</p>
-                  </div>
-                </div>
-                {totalModelos != null && totalModelos > 0 && (
-                  <span className="shrink-0 rounded bg-white/20 px-2 py-1 text-sm font-bold text-white tracking-wide">
-                    {totalModelos}+ modelos
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         </div>
