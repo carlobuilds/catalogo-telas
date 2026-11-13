@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowSquareOut } from "@/components/ui/iconos";
+import { ArrowSquareOut, Warning } from "@/components/ui/iconos";
 import { exigirAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
@@ -11,11 +11,15 @@ import { FormGuardable } from "@/components/admin/FormGuardable";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { OrdenColores } from "@/components/admin/OrdenColores";
 import { GaleriaFotos } from "@/components/admin/GaleriaFotos";
+import { MoverVarianteBoton } from "@/components/admin/MoverVarianteBoton";
 import { CuradorFotos } from "@/components/admin/CuradorFotos";
 import { UNIDADES_VENTA, unidadDe } from "@/lib/unidades";
 import { CAMPOS_PRESENTES, CASILLAS_VARIANTE } from "@/lib/admin/campos";
 import { categoriasExtraPosibles } from "@/lib/catalogos";
 import { leerCategoriasExtra } from "@/lib/categorias-extra";
+import { placeholderMedidaDeCategoria } from "@/lib/ingesta/categorias";
+import { etiquetaVariante } from "@/lib/admin/variantes";
+import { motivosPorVariante, politicaDeProducto, textoDeMotivo } from "@/lib/admin/sospechosos";
 import {
   actualizarTela,
   actualizarVarianteDetalle,
@@ -47,11 +51,19 @@ type Variante = {
   es_brillante: boolean;
   es_traslucida: boolean;
   es_tornasol: boolean;
+  /** Talla/medida libre (sección 14 del SQL). */
+  medida?: string | null;
+  /** Nota del revisor (sección 15 del SQL). */
+  nota?: string | null;
   foto: Foto[];
 };
 
+// `text-base`: con menos de 16px, Safari de iPhone hace zoom al tocar el campo.
 const inputClase =
-  "h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber";
+  "h-11 w-full rounded border border-line bg-bg px-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy";
+
+/** Etiqueta de campo: 14px y tinta suave con contraste AA (no `text-ink/60`). */
+const etiquetaClase = "mb-1 block text-sm font-medium text-ink-soft";
 
 /**
  * Variantes en el orden manual (`orden`, sección 11 del SQL). Si esa columna
@@ -136,20 +148,34 @@ export default async function EditarTelaPage({
   const nombreColor = new Map((colores ?? []).map((c) => [c.id, c.nombre]));
   const hexColor = new Map((colores ?? []).map((c) => [c.id, c.hex as string | null]));
 
+  // "Para corregir": lo mismo que marca la lista de /admin, pero por color y
+  // con el detalle (lib/admin/sospechosos.ts). Se calcula; no escribe nada.
+  const motivos = motivosPorVariante(
+    variantes.map((v) => ({ id: v.id, colorClave: v.color_id, fotos: v.foto.length, nota: v.nota })),
+    politicaDeProducto(principal)
+  );
+  const etiquetaDe = (v: Variante) =>
+    etiquetaVariante({
+      colorNombre: v.color_id ? nombreColor.get(v.color_id) : null,
+      sku: v.sku,
+      medida: v.medida,
+    });
+
   // Una sola pasada para los dos componentes que hablan de colores: el
   // ordenador (que solo quiere la portada) y la galería (que quiere todas las
   // fotos). `orden` decide cuál es la portada; `created_at` desempata para que
   // el resultado no dependa del orden en que respondió PostgREST.
   const fichas = variantes.map((v) => ({
     id: v.id,
-    nombre:
-      (v.color_id ? nombreColor.get(v.color_id) : null) ??
-      (v.sku ? `SKU ${v.sku}` : "Sin color"),
+    nombre: etiquetaDe(v),
     hex: v.color_id ? (hexColor.get(v.color_id) ?? null) : null,
+    colorId: v.color_id,
+    avisos: (motivos.get(v.id) ?? []).map(textoDeMotivo),
     fotos: [...v.foto]
       .sort((a, b) => a.orden - b.orden || a.created_at.localeCompare(b.created_at))
       .map((f) => ({ id: f.id, url: publicImageUrl(f.ruta), alt: f.alt })),
   }));
+  const fichasParaCorregir = fichas.filter((f) => f.avisos.length > 0);
 
   const coloresOrdenables = fichas.map(({ id, nombre, hex, fotos }) => ({
     id,
@@ -191,7 +217,7 @@ export default async function EditarTelaPage({
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-ink">URL (slug)</span>
               <input type="text" name="slug" defaultValue={tela.slug} className={inputClase} />
-              <span className="mt-1 block text-xs text-ink/50">
+              <span className="mt-1 block text-sm text-ink-soft">
                 Cambiarla rompe enlaces ya compartidos por WhatsApp.
               </span>
             </label>
@@ -293,7 +319,7 @@ export default async function EditarTelaPage({
         </h2>
 
         {faltaMigracionOrden && variantes.length > 1 && (
-          <p className="mb-6 rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-ink/80">
+          <p className="mb-6 rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-base text-ink">
             Para poder ordenar los colores arrastrándolos, corre la sección 11 de{" "}
             <code className="rounded bg-line/60 px-1">catalogo_telas_supabase.sql</code> en
             Supabase Studio.
@@ -307,7 +333,56 @@ export default async function EditarTelaPage({
         {/* Las fotos de TODOS los colores juntas: las zonas donde se sueltan
             son los otros colores, así que tienen que verse a la vez. Subir
             fotos sigue siendo por color, en la ficha de cada uno. */}
-        <GaleriaFotos telaId={tela.id} telaNombre={tela.nombre} variantes={fichas} />
+        {fichasParaCorregir.length > 0 && (
+          <section
+            aria-labelledby="para-corregir"
+            className="mb-6 rounded-2xl border border-amber/40 bg-amber/10 p-4 sm:p-5"
+          >
+            <h3 id="para-corregir" className="mb-1 flex items-center gap-2 text-lg font-semibold text-ink-display">
+              <Warning className="size-5 text-amber" aria-hidden />
+              Para corregir en este producto
+            </h3>
+            <p className="mb-3 text-base text-ink-soft">
+              Una foto repetida se borra; una de <strong>otro tamaño</strong> se manda con{" "}
+              <strong>Mover…</strong> al producto de esa medida, eligiendo su color. Al terminar,
+              borra la nota de revisión del color y el aviso desaparece.
+            </p>
+            <ul className="space-y-2">
+              {fichasParaCorregir.map((f) => (
+                <li key={f.id} className="rounded border border-amber/30 bg-surface p-3">
+                  <p className="font-semibold text-ink-display">{f.nombre}</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-base text-ink">
+                    {f.avisos.map((a) => (
+                      <li key={a}>{a}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 flex flex-wrap gap-x-4">
+                    <a
+                      href={`#fotos-${f.id}`}
+                      className="inline-flex min-h-11 items-center text-base font-semibold text-ink-display underline decoration-heritage-navy/50 underline-offset-4 hover:decoration-heritage-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+                    >
+                      Ver sus fotos
+                    </a>
+                    <a
+                      href={`#variante-${f.id}`}
+                      className="inline-flex min-h-11 items-center text-base font-semibold text-ink-display underline decoration-heritage-navy/50 underline-offset-4 hover:decoration-heritage-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+                    >
+                      Ver sus datos
+                    </a>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <GaleriaFotos
+          telaId={tela.id}
+          telaNombre={tela.nombre}
+          placeholderMedida={placeholderMedidaDeCategoria(principal)}
+          variantes={fichas}
+          colores={(colores ?? []).map((c) => ({ id: c.id, nombre: c.nombre, hex: (c.hex as string | null) ?? null }))}
+        />
 
         <div className="space-y-6">
           {variantes.map((v) => (
@@ -319,10 +394,7 @@ export default async function EditarTelaPage({
               id={`variante-${v.id}`}
               className="scroll-mt-24 rounded-2xl border border-line bg-surface p-6 shadow-sm"
             >
-              <h3 className="mb-4 font-semibold text-ink">
-                {v.color_id ? nombreColor.get(v.color_id) ?? "Variante" : "Sin color"}
-                {v.sku && <span className="ml-2 text-sm font-normal text-ink/50">SKU {v.sku}</span>}
-              </h3>
+              <h3 className="mb-4 text-lg font-semibold text-ink-display">{etiquetaDe(v)}</h3>
 
               <FormGuardable
                 accion={actualizarVarianteDetalle}
@@ -335,6 +407,7 @@ export default async function EditarTelaPage({
                 <CamposVariante
                   colores={colores ?? []}
                   acabados={acabados ?? []}
+                  placeholderMedida={placeholderMedidaDeCategoria(principal)}
                   valores={v}
                 />
               </FormGuardable>
@@ -358,14 +431,12 @@ export default async function EditarTelaPage({
                   />
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                     <label className="block flex-1">
-                      <span className="mb-1 block text-xs font-medium text-ink/60">
-                        Texto alternativo (accesibilidad)
-                      </span>
+                      <span className={etiquetaClase}>Texto alternativo (accesibilidad)</span>
                       <input
                         type="text"
                         name="alt"
                         placeholder={`${tela.nombre}${v.color_id ? ` ${nombreColor.get(v.color_id) ?? ""}` : ""}`}
-                        className="h-10 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+                        className={inputClase}
                       />
                     </label>
                     <SubmitButton label="Subir fotos" pendingLabel="Subiendo…" size="sm" />
@@ -373,7 +444,15 @@ export default async function EditarTelaPage({
                 </form>
               </div>
 
-              <div className="mt-6 border-t border-line pt-4">
+              {/* Mover (no se pierde nada) va antes que eliminar (no se
+                  puede deshacer): casi siempre lo que hace falta es lo primero. */}
+              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                <MoverVarianteBoton
+                  varianteId={v.id}
+                  telaId={tela.id}
+                  etiqueta={etiquetaDe(v)}
+                  fotos={v.foto.length}
+                />
                 <form action={eliminarVariante}>
                   <input type="hidden" name="variante_id" value={v.id} />
                   <input type="hidden" name="tela_id" value={tela.id} />
@@ -400,7 +479,11 @@ export default async function EditarTelaPage({
             className="space-y-4"
           >
             <input type="hidden" name="tela_id" value={tela.id} />
-            <CamposVariante colores={colores ?? []} acabados={acabados ?? []} />
+            <CamposVariante
+              colores={colores ?? []}
+              acabados={acabados ?? []}
+              placeholderMedida={placeholderMedidaDeCategoria(principal)}
+            />
           </FormGuardable>
         </article>
       </section>
@@ -412,10 +495,12 @@ export default async function EditarTelaPage({
 function CamposVariante({
   colores,
   acabados,
+  placeholderMedida,
   valores,
 }: {
   colores: (Lookup & { hex?: string })[];
   acabados: Lookup[];
+  placeholderMedida: string;
   valores?: Variante;
 }) {
   const propiedades = [
@@ -429,7 +514,7 @@ function CamposVariante({
     <>
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">Color</span>
+          <span className={etiquetaClase}>Color</span>
           <select name="color_id" defaultValue={valores?.color_id ?? ""} className={inputClase}>
             <option value="">— Sin color —</option>
             {colores.map((c) => (
@@ -438,7 +523,7 @@ function CamposVariante({
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">Acabado</span>
+          <span className={etiquetaClase}>Acabado</span>
           <select name="acabado_id" defaultValue={valores?.acabado_id ?? ""} className={inputClase}>
             <option value="">— Sin acabado —</option>
             {acabados.map((a) => (
@@ -447,7 +532,7 @@ function CamposVariante({
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">SKU</span>
+          <span className={etiquetaClase}>SKU</span>
           <input
             type="text"
             name="sku"
@@ -459,12 +544,25 @@ function CamposVariante({
         </label>
       </div>
 
+      {/* Medida: lo que distingue dos tamaños del mismo artículo ("3 cm",
+          "talla 34"). Otro tamaño va en su propio producto; aquí se anota. */}
+      <label className="block">
+        <span className={etiquetaClase}>Medida</span>
+        <input
+          type="text"
+          name="medida"
+          defaultValue={valores?.medida ?? ""}
+          placeholder={placeholderMedida}
+          className={inputClase}
+        />
+      </label>
+
       {/* La unidad manda sobre cómo se muestra y cómo se cuenta el producto en
           todo el catálogo (precio, stepper, mensaje de WhatsApp), así que va
           junto al precio y no escondida al final del formulario. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">Se vende por</span>
+          <span className={etiquetaClase}>Se vende por</span>
           <select
             name="unidad_venta"
             defaultValue={valores?.unidad_venta ?? "metro"}
@@ -476,7 +574,7 @@ function CamposVariante({
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">
+          <span className={etiquetaClase}>
             Piezas por unidad
           </span>
           <input
@@ -494,7 +592,7 @@ function CamposVariante({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">
+          <span className={etiquetaClase}>
             Precio {unidadDe(valores?.unidad_venta).sufijoPrecio} (MXN)
           </span>
           <input
@@ -510,7 +608,7 @@ function CamposVariante({
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">
+          <span className={etiquetaClase}>
             Stock ({unidadDe(valores?.unidad_venta).abreviatura})
           </span>
           <input
@@ -525,7 +623,7 @@ function CamposVariante({
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink/60">Gramaje (g/m²)</span>
+          <span className={etiquetaClase}>Gramaje (g/m²)</span>
           <input
             type="number"
             name="gramaje"
@@ -544,7 +642,7 @@ function CamposVariante({
           no tocar ninguna otra (parche parcial, lib/admin/campos.ts). */}
       <input type="hidden" name={CAMPOS_PRESENTES} value={CASILLAS_VARIANTE.join(",")} />
       <fieldset>
-        <legend className="mb-2 text-xs font-medium text-ink/60">Propiedades ópticas</legend>
+        <legend className="mb-2 text-sm font-medium text-ink-soft">Propiedades ópticas</legend>
         <div className="flex flex-wrap gap-2">
           {propiedades.map(([name, etiqueta]) => (
             <CheckboxChip
@@ -557,6 +655,22 @@ function CamposVariante({
           ))}
         </div>
       </fieldset>
+
+      {/* La nota la escribe quien revisa en /revision. Se puede editar aquí
+          para BORRARLA cuando ya se corrigió: así el aviso "Para corregir"
+          desaparece. Solo al editar: un color nuevo no tiene nada que revisar. */}
+      {valores && (
+        <label className="block">
+          <span className={etiquetaClase}>Nota de revisión</span>
+          <textarea
+            name="nota"
+            rows={2}
+            defaultValue={valores.nota ?? ""}
+            placeholder="Sin nota"
+            className="w-full rounded border border-line bg-bg px-3 py-2 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+          />
+        </label>
+      )}
     </>
   );
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
+  baseDeRuta,
   publicImageUrl,
   rutaDerivado,
   rutaMascara,
   rutasDerivados,
   rutasMascara,
+  rutasQueSePuedenBorrar,
   srcsetDerivados,
   urlDerivado,
   urlMascara,
@@ -113,5 +115,64 @@ describe("máscaras de fondo blanco", () => {
     expect(urlMascara(`mascaras/sm/${ID}.webp`, null)).toBe(
       `${BASE}/storage/v1/object/public/telas/mascaras/sm/${ID}.webp`
     );
+  });
+});
+
+describe("rutasQueSePuedenBorrar", () => {
+  const A = "11111111-1111-1111-1111-111111111111";
+  const B = "22222222-2222-2222-2222-222222222222";
+  const todo = (id: string, ruta: string) => [ruta, ...rutasDerivados(ruta), ...rutasMascara(id)];
+
+  it("una foto que no comparte nada se lleva su original, sus 3 derivados y sus 2 máscaras", () => {
+    expect(rutasQueSePuedenBorrar([{ id: A, ruta: "flor/rosa.jpg" }], []).sort()).toEqual(
+      todo(A, "flor/rosa.jpg").sort()
+    );
+  });
+
+  it("si otra fila usa la MISMA ruta, el original y los derivados se quedan", () => {
+    const rutas = rutasQueSePuedenBorrar([{ id: A, ruta: "flor/rosa.jpg" }], [{ ruta: "flor/rosa.jpg" }]);
+    expect(rutas.sort()).toEqual(rutasMascara(A).sort());
+  });
+
+  it("borrar el .jpg de una pareja .jpg/.webp conserva los derivados (son los mismos archivos)", () => {
+    const rutas = rutasQueSePuedenBorrar([{ id: A, ruta: "flor/rosa.jpg" }], [{ ruta: "flor/rosa.webp" }]);
+    expect(rutas).toContain("flor/rosa.jpg");
+    for (const d of rutasDerivados("flor/rosa.jpg")) expect(rutas).not.toContain(d);
+  });
+
+  it("no confunde nombres parecidos: x-1.jpg no comparte con x.jpg", () => {
+    const rutas = rutasQueSePuedenBorrar([{ id: A, ruta: "flor/x.jpg" }], [{ ruta: "flor/x-1.jpg" }]);
+    expect(rutas.sort()).toEqual(todo(A, "flor/x.jpg").sort());
+  });
+
+  it("la barra inicial no cambia la comparación", () => {
+    expect(baseDeRuta("/flor/rosa.jpg")).toBe("flor/rosa");
+    const rutas = rutasQueSePuedenBorrar([{ id: A, ruta: "/flor/rosa.jpg" }], [{ ruta: "flor/rosa.jpg" }]);
+    expect(rutas.sort()).toEqual(rutasMascara(A).sort());
+  });
+
+  it("una variante entera: solo se protege la foto que otra variante comparte", () => {
+    const rutas = rutasQueSePuedenBorrar(
+      [
+        { id: A, ruta: "flor/rosa.jpg" },
+        { id: B, ruta: "flor/lila.jpg" },
+      ],
+      [{ ruta: "flor/lila.jpg" }]
+    );
+    for (const r of todo(A, "flor/rosa.jpg")) expect(rutas).toContain(r);
+    expect(rutas).not.toContain("flor/lila.jpg");
+    for (const d of rutasDerivados("flor/lila.jpg")) expect(rutas).not.toContain(d);
+    for (const m of rutasMascara(B)) expect(rutas).toContain(m);
+  });
+
+  it("dos fotos borradas con la misma ruta no repiten archivos", () => {
+    const rutas = rutasQueSePuedenBorrar(
+      [
+        { id: A, ruta: "flor/rosa.jpg" },
+        { id: B, ruta: "flor/rosa.jpg" },
+      ],
+      []
+    );
+    expect(new Set(rutas).size).toBe(rutas.length);
   });
 });

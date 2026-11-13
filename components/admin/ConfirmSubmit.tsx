@@ -5,6 +5,9 @@ import { useFormStatus } from "react-dom";
 /**
  * Submit destructivo con confirmación nativa. Debe vivir DENTRO del <form>
  * cuya action dispara (usa useFormStatus, igual que SubmitButton).
+ *
+ * Mide al menos 44px en los dos tamaños (se toca en la tablet) y usa el token
+ * `peligro`, no los `red-*` de Tailwind. `xs` solo es más angosto, no más bajo.
  */
 export function ConfirmSubmit({
   label,
@@ -19,7 +22,7 @@ export function ConfirmSubmit({
 }) {
   const { pending } = useFormStatus();
 
-  const sizeClasses = size === "md" ? "h-10 px-4 text-sm" : "h-7 px-2 text-xs";
+  const sizeClasses = size === "md" ? "px-4 text-base" : "px-3 text-sm";
 
   return (
     <button
@@ -28,7 +31,7 @@ export function ConfirmSubmit({
       onClick={(e) => {
         if (!window.confirm(mensaje)) e.preventDefault();
       }}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-surface font-medium text-red-700 shadow-sm transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClasses}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded border border-peligro/30 bg-surface font-semibold text-peligro shadow-sm transition-colors hover:bg-peligro-suave focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-peligro disabled:cursor-not-allowed disabled:opacity-60 ${sizeClasses}`}
     >
       {pending ? pendingLabel : label}
     </button>
