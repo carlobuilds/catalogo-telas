@@ -1,324 +1,539 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { CircleNotch, Plus, MagnifyingGlass, X } from "@/components/ui/iconos";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import { ArrowLeft, CheckCircle, Plus } from "@/components/ui/iconos";
 import { ColorSwatch } from "@/components/ColorSwatch";
+import { ModalAdmin, ErrorModal } from "@/components/admin/ModalAdmin";
+import { BuscadorProducto, type ProductoEncontrado } from "@/components/admin/BuscadorProducto";
+import { useEnterAvanza } from "@/components/admin/useEnterAvanza";
+import { normalizar } from "@/lib/busqueda/normalizar";
+import type { ColorDestino, OpcionesNuevaVariante } from "@/lib/admin/mover-foto";
 import {
-  buscarProductos,
   crearProductoYMoverFoto,
   moverFotoANuevaVariante,
   moverFotoAVariante,
   variantesDeProducto,
+  type ResultadoMover,
 } from "@/app/admin/actions";
 
-export type VarianteDestino = { id: string; nombre: string; hex: string | null };
+/** Un color de un producto, como destino de la foto. */
+export type VarianteDestino = { id: string; nombre: string; hex: string | null; colorId: string | null };
+/** Un color del catálogo de colores (tabla `color`). */
+export type ColorCatalogo = { id: string; nombre: string; hex: string | null };
 
-type Producto = { id: string; nombre: string; categoria: string | null };
-
-/** Espera antes de buscar mientras se teclea. */
-const DEBOUNCE_MS = 300;
+/** A qué producto va la foto cuando se le crea un color nuevo. */
+type Destino =
+  | { tipo: "este" }
+  | { tipo: "otro"; producto: ProductoEncontrado; variantes: VarianteDestino[] }
+  | { tipo: "nuevo"; nombre: string };
 
 /**
  * A dónde mandar una foto mal clasificada. Es el camino accesible del drag &
  * drop de `GaleriaFotos` —y el ÚNICO que sirve para "otro producto", que no
  * está en pantalla para arrastrarle nada—.
  *
- * Dos secciones, en el orden en que ocurren los errores de captura: casi
- * siempre la foto es un color más de ESTE producto (por eso los hermanos van
- * arriba, a un toque); de vez en cuando se coló la foto de otro producto.
+ * Dos pasos. Primero el DESTINO: un color que ya existe (aquí o en otro
+ * producto) o un color nuevo. Si es nuevo, el segundo paso pregunta DE QUÉ
+ * COLOR es y su medida. Antes el color nuevo nacía "sin color" y en metro: en
+ * la ficha pública no aparecía y una flor salía cobrada "/m".
+ *
+ * Caso típico que lo motivó: una flor de 5 cm fotografiada junto a la de 3 cm.
+ * Otro tamaño es otro PRODUCTO ("Flor con piedra 5 cm"), así que se busca ese
+ * producto y se le crea su color.
  */
 export function MoverFotoModal({
   fotoId,
+  fotoUrl,
   telaId,
-  hermanas,
+  telaNombre,
+  placeholderMedida,
+  variantesProducto,
+  origenId,
+  colores,
+  pasoInicial = "destino",
   onCerrar,
   onHecho,
 }: {
   fotoId: string;
+  fotoUrl: string | null;
   telaId: string;
-  /** Variantes de ESTE producto, sin la de origen (mover ahí no haría nada). */
-  hermanas: VarianteDestino[];
+  telaNombre: string;
+  placeholderMedida: string;
+  /** TODOS los colores de este producto, incluido el de origen. */
+  variantesProducto: VarianteDestino[];
+  origenId: string;
+  colores: ColorCatalogo[];
+  /** "color" = abrir directo en "color nuevo de este producto" (zona de arrastre). */
+  pasoInicial?: "destino" | "color";
   onCerrar: () => void;
   onHecho: () => void;
 }) {
-  const panel = useRef<HTMLDivElement>(null);
-  const focoPrevio = useRef<HTMLElement | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [destino, setDestino] = useState<Destino | null>(pasoInicial === "color" ? { tipo: "este" } : null);
+  const [productoAbierto, setProductoAbierto] = useState<{
+    producto: ProductoEncontrado;
+    variantes: VarianteDestino[] | null;
+  } | null>(null);
+  const [resultado, setResultado] = useState<ResultadoMover | null>(null);
   const [guardando, startTransition] = useTransition();
 
-  const [termino, setTermino] = useState("");
-  const [buscando, setBuscando] = useState(false);
-  const [resultados, setResultados] = useState<Producto[] | null>(null);
-  const [elegido, setElegido] = useState<Producto | null>(null);
-  const [destinos, setDestinos] = useState<VarianteDestino[] | null>(null);
-
-  // --- Foco: devolverlo a donde estaba al cerrar, y atraparlo mientras abre.
-  useEffect(() => {
-    focoPrevio.current = document.activeElement as HTMLElement | null;
-    panel.current?.querySelector<HTMLElement>("input, button")?.focus();
-    const previo = focoPrevio.current;
-    return () => previo?.focus();
-  }, []);
-
-  useEffect(() => {
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return onCerrar();
-      if (e.key !== "Tab" || !panel.current) return;
-      const focusables = panel.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      const primero = focusables[0];
-      const ultimo = focusables[focusables.length - 1];
-      if (!primero) return;
-      if (e.shiftKey && document.activeElement === primero) {
-        e.preventDefault();
-        ultimo.focus();
-      } else if (!e.shiftKey && document.activeElement === ultimo) {
-        e.preventDefault();
-        primero.focus();
-      }
-    };
-    document.addEventListener("keydown", alTeclear);
-    return () => document.removeEventListener("keydown", alTeclear);
-  }, [onCerrar]);
-
-  // --- Búsqueda con debounce: un setTimeout cancelado en el cleanup basta;
-  //     el efecto ya se re-dispara con cada tecla.
-  useEffect(() => {
-    const texto = termino.trim();
-    if (texto.length < 2) {
-      setResultados(null);
-      setBuscando(false);
-      return;
-    }
-    setBuscando(true);
-    const t = setTimeout(async () => {
-      const res = await buscarProductos(texto);
-      // Se descartan los del producto actual: para eso está la sección de
-      // arriba, y ofrecerlo aquí haría creer que es "otro" producto.
-      setResultados(res.productos.filter((p) => p.id !== telaId));
-      if (res.error) setError(res.error);
-      setBuscando(false);
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [termino, telaId]);
+  const hermanas = variantesProducto.filter((v) => v.id !== origenId);
 
   const correr = useCallback(
-    (accion: () => Promise<{ error?: string }>) => {
-      setError(null);
+    (accion: () => Promise<ResultadoMover>) => {
+      setResultado(null);
       startTransition(async () => {
         const res = await accion();
-        if (res.error) return setError(res.error);
+        if (res.error) return setResultado(res);
         onHecho();
       });
     },
     [onHecho]
   );
 
-  const abrirProducto = (producto: Producto) => {
-    setElegido(producto);
-    setDestinos(null);
-    setError(null);
+  const abrirProducto = (producto: ProductoEncontrado) => {
+    setProductoAbierto({ producto, variantes: null });
+    setResultado(null);
     startTransition(async () => {
       const res = await variantesDeProducto(producto.id);
-      if (res.error) return setError(res.error);
-      setDestinos(res.variantes);
+      if (res.error) return setResultado({ error: res.error });
+      setProductoAbierto({ producto, variantes: res.variantes });
     });
   };
 
-  const sinResultados =
-    resultados !== null && resultados.length === 0 && !buscando && termino.trim().length >= 2;
+  const titulo = destino ? "¿De qué color es?" : "Mover esta foto";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-6"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
+    <ModalAdmin
+      titulo={titulo}
+      onCerrar={onCerrar}
+      descripcion={
+        destino ? (
+          <>
+            Va a un color nuevo{" "}
+            {destino.tipo === "este" && <>de <strong>{telaNombre}</strong></>}
+            {destino.tipo === "otro" && <>de <strong>{destino.producto.nombre}</strong></>}
+            {destino.tipo === "nuevo" && <>del producto nuevo <strong>{destino.nombre}</strong></>}.
+          </>
+        ) : (
+          "La foto conserva su recorte y sus tamaños; solo cambia de lugar."
+        )
+      }
     >
-      <div
-        ref={panel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="mover-foto-titulo"
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 shadow-lg sm:rounded-2xl"
-      >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 id="mover-foto-titulo" className="font-display text-lg text-ink">
-              Mover esta foto
-            </h2>
-            <p className="mt-0.5 text-xs text-ink/50">
-              La foto conserva su recorte y sus tamaños; solo cambia de color.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onCerrar}
-            aria-label="Cerrar"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line text-ink/60 transition-colors hover:bg-line/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
-          >
-            <X className="h-4 w-4" aria-hidden />
-          </button>
+      {fotoUrl && (
+        <div className="relative mb-4 aspect-square w-32 overflow-hidden rounded border border-line bg-line/40">
+          <Image src={fotoUrl} alt="La foto que se va a mover" fill sizes="128px" className="object-cover" />
         </div>
+      )}
 
-        {/* ---------------------------------------- En este mismo producto */}
-        <section className="mb-5">
-          <h3 className="mb-2 text-sm font-medium text-ink">En este producto</h3>
-          <div className="flex flex-wrap gap-2">
-            {hermanas.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                disabled={guardando}
-                onClick={() => correr(() => moverFotoAVariante(fotoId, v.id))}
-                className="inline-flex items-center gap-2 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink transition-colors hover:border-amber hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber disabled:opacity-50"
-              >
-                <ColorSwatch hex={v.hex} nombre={v.nombre} size="sm" />
-                <span className="max-w-40 truncate">{v.nombre}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              disabled={guardando}
-              onClick={() => correr(() => moverFotoANuevaVariante(fotoId, telaId))}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-line bg-bg px-3 py-2 text-sm text-ink/70 transition-colors hover:border-amber hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber disabled:opacity-50"
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              Nuevo color
-            </button>
-          </div>
-          {hermanas.length === 0 && (
-            <p className="mt-2 text-xs text-ink/50">
-              Este producto tiene un solo color. “Nuevo color” crea uno y le pasa
-              esta foto — es lo que hace falta cuando varios colores se
-              capturaron como fotos de uno.
-            </p>
-          )}
-        </section>
-
-        {/* ------------------------------------------------- En otro producto */}
-        <section className="border-t border-line pt-4">
-          <h3 className="mb-2 text-sm font-medium text-ink">En otro producto</h3>
-
-          <div className="relative">
-            <MagnifyingGlass
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={termino}
-              onChange={(e) => {
-                setTermino(e.target.value);
-                setElegido(null);
-                setDestinos(null);
-              }}
-              placeholder="Buscar producto por nombre…"
-              aria-label="Buscar producto de destino"
-              className="h-11 w-full rounded-xl border border-line bg-bg pl-9 pr-9 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
-            />
-            {buscando && (
-              <CircleNotch
-                className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-ink/40"
-                aria-hidden
-              />
+      {destino ? (
+        <PasoColor
+          key={destino.tipo === "otro" ? destino.producto.id : destino.tipo}
+          colores={colores}
+          ocupados={
+            destino.tipo === "este"
+              ? variantesProducto
+              : destino.tipo === "otro"
+                ? destino.variantes
+                : []
+          }
+          permitirSinColor={destino.tipo === "nuevo"}
+          placeholderMedida={placeholderMedida}
+          guardando={guardando}
+          resultado={resultado}
+          onAtras={() => {
+            setDestino(null);
+            setResultado(null);
+          }}
+          onSumarAExistente={(varianteId) => correr(() => moverFotoAVariante(fotoId, varianteId))}
+          onConfirmar={(opciones) =>
+            correr(() =>
+              destino.tipo === "este"
+                ? moverFotoANuevaVariante(fotoId, telaId, opciones)
+                : destino.tipo === "otro"
+                  ? moverFotoANuevaVariante(fotoId, destino.producto.id, opciones)
+                  : crearProductoYMoverFoto(fotoId, destino.nombre, opciones)
+            )
+          }
+        />
+      ) : (
+        <>
+          {/* ---------------------------------------- En este mismo producto */}
+          <section className="mb-5">
+            <h3 className="mb-2 text-base font-semibold text-ink-display">En este producto</h3>
+            <div className="flex flex-wrap gap-2">
+              {hermanas.map((v) => (
+                <BotonDestino
+                  key={v.id}
+                  variante={v}
+                  deshabilitado={guardando}
+                  onClick={() => correr(() => moverFotoAVariante(fotoId, v.id))}
+                />
+              ))}
+              <BotonNuevo deshabilitado={guardando} onClick={() => setDestino({ tipo: "este" })}>
+                Nuevo color
+              </BotonNuevo>
+            </div>
+            {hermanas.length === 0 && (
+              <p className="mt-2 text-sm text-ink-soft">
+                Este producto tiene un solo color. “Nuevo color” crea otro y le pasa esta foto.
+              </p>
             )}
-          </div>
+          </section>
 
-          {/* Un producto elegido: sus colores como destino */}
-          {elegido ? (
-            <div className="mt-3 rounded-xl border border-line bg-bg p-3">
-              <p className="mb-2 text-sm font-medium text-ink">{elegido.nombre}</p>
-              <div className="flex flex-wrap gap-2">
-                {(destinos ?? []).map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    disabled={guardando}
-                    onClick={() => correr(() => moverFotoAVariante(fotoId, v.id))}
-                    className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm text-ink transition-colors hover:border-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber disabled:opacity-50"
-                  >
-                    <ColorSwatch hex={v.hex} nombre={v.nombre} size="sm" />
-                    <span className="max-w-40 truncate">{v.nombre}</span>
-                  </button>
-                ))}
+          {/* ------------------------------------------------- En otro producto */}
+          <section className="border-t border-line pt-4">
+            <h3 className="mb-1 text-base font-semibold text-ink-display">En otro producto</h3>
+            <p className="mb-2 text-sm text-ink-soft">
+              ¿Es el mismo artículo en <strong>otro tamaño</strong>? Va en el producto de esa medida.
+            </p>
+
+            {productoAbierto ? (
+              <div className="rounded border border-line bg-bg p-3">
+                <p className="mb-2 text-base font-semibold text-ink-display">{productoAbierto.producto.nombre}</p>
+                <div className="flex flex-wrap gap-2">
+                  {(productoAbierto.variantes ?? []).map((v) => (
+                    <BotonDestino
+                      key={v.id}
+                      variante={v}
+                      deshabilitado={guardando}
+                      onClick={() => correr(() => moverFotoAVariante(fotoId, v.id))}
+                    />
+                  ))}
+                  {productoAbierto.variantes && (
+                    <BotonNuevo
+                      deshabilitado={guardando}
+                      onClick={() =>
+                        setDestino({
+                          tipo: "otro",
+                          producto: productoAbierto.producto,
+                          variantes: productoAbierto.variantes ?? [],
+                        })
+                      }
+                    >
+                      Nuevo color aquí
+                    </BotonNuevo>
+                  )}
+                </div>
                 <button
                   type="button"
-                  disabled={guardando}
-                  onClick={() => correr(() => moverFotoANuevaVariante(fotoId, elegido.id))}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-line bg-surface px-3 py-1.5 text-sm text-ink/70 transition-colors hover:border-amber hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber disabled:opacity-50"
+                  onClick={() => setProductoAbierto(null)}
+                  className="mt-2 inline-flex min-h-11 items-center rounded text-base font-semibold text-ink-display underline decoration-heritage-navy/50 underline-offset-4 hover:decoration-heritage-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
                 >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
-                  Nuevo color aquí
+                  Elegir otro producto
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setElegido(null);
-                  setDestinos(null);
-                }}
-                className="mt-2 rounded text-xs text-ink/50 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
-              >
-                Elegir otro producto
-              </button>
-            </div>
-          ) : (
-            <>
-              {resultados && resultados.length > 0 && (
-                <ul className="mt-3 space-y-1">
-                  {resultados.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        type="button"
-                        onClick={() => abrirProducto(p)}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-bg px-3 py-2 text-left text-sm text-ink transition-colors hover:border-amber hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
-                      >
-                        <span className="truncate">{p.nombre}</span>
-                        <span className="shrink-0 text-xs text-ink/40">
-                          {p.categoria ?? "Sin categoría"}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            ) : (
+              <BuscadorProducto
+                excluirId={telaId}
+                deshabilitado={guardando}
+                etiquetaCrear={(nombre) => `Crear producto “${nombre}” con esta foto`}
+                onElegir={abrirProducto}
+                onCrear={(nombre) => setDestino({ tipo: "nuevo", nombre })}
+              />
+            )}
+          </section>
 
-              {sinResultados && (
-                <div className="mt-3">
-                  <p className="mb-2 text-sm text-ink/60">
-                    Ningún producto se llama así.
-                  </p>
-                  <button
-                    type="button"
-                    disabled={guardando}
-                    onClick={() => correr(() => crearProductoYMoverFoto(fotoId, termino.trim()))}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-line bg-bg px-3 py-2 text-sm text-ink transition-colors hover:border-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber disabled:opacity-50"
-                  >
-                    <Plus className="h-3.5 w-3.5" aria-hidden />
-                    Crear producto “{termino.trim()}” con esta foto
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+          {resultado?.error && <ErrorModal>{resultado.error}</ErrorModal>}
+        </>
+      )}
 
-        {error && (
-          <p
-            role="alert"
-            className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
-            {error}
-          </p>
+      <p className="mt-4 text-sm text-ink-soft" aria-live="polite">
+        {guardando ? "Moviendo…" : ""}
+      </p>
+    </ModalAdmin>
+  );
+}
+
+/**
+ * Segundo paso: el color (y la medida) del color nuevo. Los colores que el
+ * producto ya tiene se marcan: elegirlos SUMA la foto a ese color en vez de
+ * crear otro igual, que en la ficha no se podría ver.
+ */
+function PasoColor({
+  colores,
+  ocupados,
+  permitirSinColor,
+  placeholderMedida,
+  guardando,
+  resultado,
+  onAtras,
+  onConfirmar,
+  onSumarAExistente,
+}: {
+  colores: ColorCatalogo[];
+  /** Colores que el producto de destino YA tiene. */
+  ocupados: VarianteDestino[];
+  /** Solo en un producto nuevo: una bolsita puede no tener color. */
+  permitirSinColor: boolean;
+  placeholderMedida: string;
+  guardando: boolean;
+  resultado: ResultadoMover | null;
+  onAtras?: () => void;
+  onConfirmar: (opciones: OpcionesNuevaVariante) => void;
+  onSumarAExistente: (varianteId: string) => void;
+}) {
+  const form = useRef<HTMLFormElement>(null);
+  useEnterAvanza(form);
+
+  const [filtro, setFiltro] = useState("");
+  const [elegido, setElegido] = useState<ColorDestino | null>(null);
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [hexNuevo, setHexNuevo] = useState("#c8b49a");
+  const [medida, setMedida] = useState("");
+
+  // Si el servidor dijo "ese nombre de color ya existe", se elige solo.
+  const [colorSugerido, setColorSugerido] = useState<string | null>(null);
+  if (resultado?.colorExistente && colorSugerido !== resultado.colorExistente.id) {
+    setColorSugerido(resultado.colorExistente.id);
+    setElegido({ tipo: "existente", colorId: resultado.colorExistente.id });
+  }
+
+  const varianteDeColor = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const v of ocupados) if (v.colorId && !m.has(v.colorId)) m.set(v.colorId, v.id);
+    return m;
+  }, [ocupados]);
+
+  const visibles = useMemo(() => {
+    const f = normalizar(filtro);
+    return f ? colores.filter((c) => normalizar(c.nombre).includes(f)) : colores;
+  }, [colores, filtro]);
+
+  const ocupadoPor = elegido?.tipo === "existente" ? varianteDeColor.get(elegido.colorId) : undefined;
+  const nombreElegido =
+    elegido?.tipo === "existente" ? colores.find((c) => c.id === elegido.colorId)?.nombre : null;
+
+  const enviar = () => {
+    if (!elegido) return;
+    if (ocupadoPor) return onSumarAExistente(ocupadoPor);
+    const color: ColorDestino =
+      elegido.tipo === "nuevo" ? { tipo: "nuevo", nombre: nombreNuevo, hex: hexNuevo } : elegido;
+    onConfirmar({ color, medida: medida.trim() || null });
+  };
+
+  const listo =
+    !!elegido && (elegido.tipo !== "nuevo" || nombreNuevo.trim().length > 0);
+
+  return (
+    <form
+      ref={form}
+      onSubmit={(e) => {
+        e.preventDefault();
+        enviar();
+      }}
+    >
+      <label className="mb-1 block text-sm font-medium text-ink-soft" htmlFor="filtro-color">
+        Buscar color
+      </label>
+      <input
+        id="filtro-color"
+        type="search"
+        value={filtro}
+        onChange={(e) => setFiltro(e.target.value)}
+        // Enter aquí elige el único color que queda, en vez de saltar de campo.
+        data-enter-propio
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (visibles.length === 1) setElegido({ tipo: "existente", colorId: visibles[0].id });
+          }
+        }}
+        placeholder="Ej. plata, rosa…"
+        className="h-12 w-full rounded border border-line bg-bg px-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+      />
+
+      <div
+        role="radiogroup"
+        aria-label="Color de la foto"
+        className="mt-2 grid max-h-64 grid-cols-1 gap-1 overflow-y-auto rounded border border-line bg-bg p-1 sm:grid-cols-2"
+      >
+        {visibles.map((c) => {
+          const activo = elegido?.tipo === "existente" && elegido.colorId === c.id;
+          const ya = varianteDeColor.has(c.id);
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role="radio"
+              aria-checked={activo}
+              onClick={() => setElegido({ tipo: "existente", colorId: c.id })}
+              className={`flex min-h-11 items-center gap-2 rounded px-2 text-left text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
+                activo ? "bg-heritage-navy text-white" : "text-ink hover:bg-surface-high"
+              }`}
+            >
+              <ColorSwatch hex={c.hex} nombre={c.nombre} size="sm" />
+              <span className="min-w-0 flex-1">{c.nombre}</span>
+              {ya && (
+                <span className={`shrink-0 text-sm ${activo ? "text-white" : "text-amber"}`}>ya está aquí</span>
+              )}
+            </button>
+          );
+        })}
+        {visibles.length === 0 && (
+          <p className="px-2 py-3 text-base text-ink-soft">Ningún color se llama así. Créalo abajo.</p>
         )}
-
-        <p className="mt-4 text-xs text-ink/40" aria-live="polite">
-          {guardando ? "Moviendo…" : ""}
-        </p>
       </div>
-    </div>
+
+      {/* Color nuevo, en línea (no otra ventana encima: se pelearían el teclado). */}
+      <div className="mt-3 rounded border border-line bg-bg p-3">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={elegido?.tipo === "nuevo"}
+          onClick={() => {
+            setElegido({ tipo: "nuevo", nombre: nombreNuevo, hex: hexNuevo });
+            if (!nombreNuevo && filtro.trim()) setNombreNuevo(filtro.trim());
+          }}
+          className="inline-flex min-h-11 items-center gap-2 rounded text-base font-semibold text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+        >
+          {elegido?.tipo === "nuevo" ? (
+            <CheckCircle className="size-5 text-heritage-navy" weight="fill" aria-hidden />
+          ) : (
+            <Plus className="size-5" aria-hidden />
+          )}
+          No está en la lista: color nuevo
+        </button>
+        {elegido?.tipo === "nuevo" && (
+          <div className="mt-2 grid grid-cols-[1fr_auto] items-end gap-3">
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-ink-soft">Nombre del color</span>
+              <input
+                type="text"
+                value={nombreNuevo}
+                onChange={(e) => setNombreNuevo(e.target.value)}
+                maxLength={40}
+                className="h-11 w-full rounded border border-line bg-surface px-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-ink-soft">Tono</span>
+              <input
+                type="color"
+                value={hexNuevo}
+                onChange={(e) => setHexNuevo(e.target.value)}
+                className="h-11 w-16 cursor-pointer rounded border border-line bg-surface p-1"
+              />
+            </label>
+          </div>
+        )}
+        {permitirSinColor && (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={elegido?.tipo === "ninguno"}
+            onClick={() => setElegido({ tipo: "ninguno" })}
+            className="mt-1 flex min-h-11 items-center gap-2 rounded text-base text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+          >
+            {elegido?.tipo === "ninguno" && (
+              <CheckCircle className="size-5 text-heritage-navy" weight="fill" aria-hidden />
+            )}
+            Sin color (por ejemplo, una bolsita de varios colores)
+          </button>
+        )}
+      </div>
+
+      <label className="mt-3 block">
+        <span className="mb-1 block text-sm font-medium text-ink-soft">Medida (opcional)</span>
+        <input
+          type="text"
+          value={medida}
+          onChange={(e) => setMedida(e.target.value)}
+          placeholder={placeholderMedida}
+          maxLength={80}
+          disabled={!!ocupadoPor}
+          className="h-11 w-full rounded border border-line bg-bg px-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:opacity-50"
+        />
+      </label>
+
+      {ocupadoPor && (
+        <p className="mt-3 rounded border border-amber/40 bg-amber/10 px-3 py-2 text-base text-ink">
+          Este producto ya tiene <strong>{nombreElegido}</strong>. Si es la misma pieza, la foto se suma
+          a ese color. Si es de <strong>otro tamaño</strong>, regresa y mándala al producto de esa medida.
+        </p>
+      )}
+
+      {resultado?.error && (
+        <ErrorModal>
+          {resultado.error}
+          {resultado.varianteExistenteId && (
+            <button
+              type="button"
+              onClick={() => onSumarAExistente(resultado.varianteExistenteId!)}
+              className="mt-2 flex min-h-11 items-center rounded border border-peligro/30 bg-surface px-3 text-base font-semibold text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+            >
+              Sumar la foto a ese color
+            </button>
+          )}
+        </ErrorModal>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        {onAtras ? (
+          <button
+            type="button"
+            onClick={onAtras}
+            className="inline-flex min-h-11 items-center gap-2 rounded border border-line px-4 text-base font-semibold text-ink-display hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+          >
+            <ArrowLeft className="size-5" aria-hidden />
+            Atrás
+          </button>
+        ) : (
+          <span />
+        )}
+        <button
+          type="submit"
+          data-atajo="guardar"
+          disabled={!listo || guardando}
+          className="inline-flex min-h-12 items-center rounded bg-heritage-navy px-6 text-base font-semibold text-white shadow-sm transition-colors hover:bg-deep-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {ocupadoPor ? `Sumar a ${nombreElegido}` : "Mover aquí"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function BotonDestino({
+  variante,
+  deshabilitado,
+  onClick,
+}: {
+  variante: VarianteDestino;
+  deshabilitado: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={deshabilitado}
+      onClick={onClick}
+      className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-bg px-3 py-2 text-base text-ink transition-colors hover:border-heritage-navy hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:opacity-50"
+    >
+      <ColorSwatch hex={variante.hex} nombre={variante.nombre} size="sm" />
+      <span>{variante.nombre}</span>
+    </button>
+  );
+}
+
+function BotonNuevo({
+  deshabilitado,
+  onClick,
+  children,
+}: {
+  deshabilitado: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={deshabilitado}
+      onClick={onClick}
+      className="inline-flex min-h-11 items-center gap-2 rounded border border-dashed border-line-strong bg-bg px-3 py-2 text-base font-semibold text-ink-display transition-colors hover:border-heritage-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:opacity-50"
+    >
+      <Plus className="size-5" aria-hidden />
+      {children}
+    </button>
   );
 }

@@ -6,6 +6,7 @@ import { ArrowRight, MagnifyingGlass, X } from "@/components/ui/iconos";
 import { type Filtros, FILTROS_VACIOS, aQuerystring } from "@/lib/filtros";
 import { type Catalogo, CATALOGOS, rutaDeCatalogo } from "@/lib/catalogos";
 import { resaltar } from "@/lib/busqueda/resaltar";
+import { navegarSinSalto } from "@/lib/navegacion";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import type { RespuestaSugerencias } from "@/app/api/sugerencias/route";
 
@@ -191,7 +192,7 @@ export function SearchBar({
     setDatos(null);
     setActivo(-1);
     input.current?.focus();
-    if (filtros.q) router.push(rutaCon(base, { ...filtros, q: "" }), { scroll: false });
+    if (filtros.q) navegarSinSalto(router, rutaCon(base, { ...filtros, q: "" }));
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

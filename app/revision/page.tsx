@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LinkSinSalto } from "@/components/LinkSinSalto";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { CheckCircle, SignOut, MagnifyingGlass, ShieldWarning } from "@/components/ui/iconos";
@@ -186,9 +187,8 @@ function Chip({
   children: ReactNode;
 }) {
   return (
-    <Link
+    <LinkSinSalto
       href={href}
-      scroll={false}
       aria-current={activo ? "true" : undefined}
       className={`inline-flex h-11 items-center gap-2 whitespace-nowrap rounded px-4 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
         activo
@@ -197,7 +197,7 @@ function Chip({
       }`}
     >
       {children}
-    </Link>
+    </LinkSinSalto>
   );
 }
 

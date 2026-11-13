@@ -99,6 +99,10 @@ export type CamposVariante = {
   es_brillante: boolean;
   es_traslucida: boolean;
   es_tornasol: boolean;
+  /** Talla/medida libre ("3 cm", "talla 34"): distingue tamaños en /admin. */
+  medida: string | null;
+  /** Nota del revisor. Se edita aquí para poder BORRARLA al corregir. */
+  nota: string | null;
 };
 
 /**
@@ -132,6 +136,10 @@ export function leerCamposVariante(formData: FormData): Partial<CamposVariante> 
   }
   if (formData.has("gramaje")) campos.gramaje = parseEntero(formData.get("gramaje"), "gramaje");
   if (formData.has("stock")) campos.stock = parseCampoNumerico(formData.get("stock"), "stock");
+  // Texto libre: presente y vacío = se borró a propósito; ausente = no se toca
+  // (la nota la captura /revision y este formulario podría no pintarla).
+  if (formData.has("medida")) campos.medida = textoOpcional(formData.get("medida"));
+  if (formData.has("nota")) campos.nota = textoOpcional(formData.get("nota"));
 
   const presentes = new Set(
     String(formData.get(CAMPOS_PRESENTES) ?? "")

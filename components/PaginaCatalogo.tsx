@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkSinSalto } from "@/components/LinkSinSalto";
 import { FunnelX, Gear, MagnifyingGlass, Warning, X } from "@/components/ui/iconos";
 import { getCatalogo, getFacetas, MODELOS_POR_PAGINA } from "@/lib/queries";
 import { agruparPorModelo } from "@/lib/types";
@@ -118,14 +119,13 @@ export async function PaginaCatalogo({
                 className="inline-flex min-h-[44px] max-w-full items-center rounded border border-outline-variant/40 bg-surface-container-lowest pl-3 text-sm font-semibold text-ink-display shadow-xs"
               >
                 <span className="min-w-0 truncate">{p.etiqueta}</span>
-                <Link
+                <LinkSinSalto
                   href={p.sinEsta}
-                  scroll={false}
                   aria-label={`Quitar ${p.etiqueta}`}
                   className="ml-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-soft transition-colors hover:bg-surface-container hover:text-ink-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
                 >
                   <X className="h-4 w-4" aria-hidden />
-                </Link>
+                </LinkSinSalto>
               </li>
             ))}
             <li>
