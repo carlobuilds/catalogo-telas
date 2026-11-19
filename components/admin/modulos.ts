@@ -18,9 +18,10 @@ import type { AccionAtajo } from "@/lib/atajos";
  * pantalla para tela y mercería); mientras, F2 abre la de mercería porque es
  * la que captura un artículo completo de una sentada.
  *
- * `/admin/fondos` y `/admin/guias` no están en el menú a propósito: la tienda
- * todavía no debe verlos ni leer sobre ellos en las guías impresas. Las rutas
- * siguen funcionando detrás de `exigirAdmin()`; se entra escribiendo la URL.
+ * `/admin/fondos`, `/admin/guias` y `/admin/uso` no están en el menú a
+ * propósito: la tienda todavía no debe verlos ni leer sobre ellos en las guías
+ * impresas. Las rutas siguen funcionando detrás de `exigirAdmin()`; se entra
+ * escribiendo la URL.
  */
 export interface ModuloAdmin {
   href: string;

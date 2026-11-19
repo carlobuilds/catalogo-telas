@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, LinkSimple, ShareNetwork } from "@/components/ui/iconos";
 import { Button } from "@/components/ui/Button";
 import { mensajeCompartir } from "@/lib/compartir";
+import { registrarEvento } from "@/lib/metricas-cliente";
 
 /**
  * "Compartir esta selección": manda la vista filtrada tal cual está, para que
@@ -30,6 +31,7 @@ export function CompartirVista({ ruta, descripcion }: { ruta: string; descripcio
   const urlCompleta = () => new URL(ruta, window.location.origin).toString();
 
   const compartir = async () => {
+    registrarEvento({ tipo: "compartir_vista", ruta: window.location.pathname });
     const url = urlCompleta();
     if (navigator.share) {
       try {
@@ -48,6 +50,7 @@ export function CompartirVista({ ruta, descripcion }: { ruta: string; descripcio
   };
 
   const copiar = async () => {
+    registrarEvento({ tipo: "compartir_vista", ruta: window.location.pathname });
     const url = urlCompleta();
     try {
       await navigator.clipboard.writeText(url);

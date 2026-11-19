@@ -34,6 +34,8 @@ const OCULTOS = [
   "Apagar en esta foto",
   "/admin/fondos",
   "/admin/guias",
+  "Uso del catálogo",
+  "/admin/uso",
 ];
 
 function archivosDe(dir: string): string[] {
@@ -80,10 +82,11 @@ describe("guías de uso", () => {
     expect(encontrados).toEqual([]);
   });
 
-  it("Fondos y Guías no están en el menú del panel", () => {
+  it("Fondos, Guías y Uso no están en el menú del panel", () => {
     const destinos = MODULOS_ADMIN.map((m) => m.href);
     expect(destinos).not.toContain("/admin/fondos");
     expect(destinos).not.toContain("/admin/guias");
+    expect(destinos).not.toContain("/admin/uso");
   });
 
   it("toda captura citada existe y tiene texto alternativo", () => {

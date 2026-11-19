@@ -9,6 +9,8 @@ import { unidadDe } from "@/lib/unidades";
 import { TelaImage } from "./TelaImage";
 import { Button } from "@/components/ui/Button";
 import { ShareCatalog } from "@/components/ShareCatalog";
+import { armarEventoPedido } from "@/lib/metricas";
+import { registrarEvento } from "@/lib/metricas-cliente";
 
 /** Lo que se puede enfocar dentro del panel, para encerrar el Tab. */
 const ENFOCABLES =
@@ -288,7 +290,12 @@ export function CartDrawer() {
                 href={waHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  // Cuenta el pedido (lib/metricas.ts). No espera nada: el
+                  // enlace a WhatsApp abre igual aunque el conteo falle.
+                  registrarEvento(armarEventoPedido(items, window.location.pathname));
+                  setIsOpen(false);
+                }}
                 className="h-14"
               >
                 <WhatsappLogo className="size-6" weight="fill" />
