@@ -25,12 +25,18 @@ export async function login(formData: FormData) {
   if (error) {
     redirect("/revision/login?error=1");
   }
+  // Tira el Router Cache del navegador antes de entrar: sin esto, a veces
+  // volvía a salir el login aunque la sesión ya estuviera puesta. El porqué
+  // completo está en `login` de app/admin/actions.ts.
+  revalidatePath("/", "layout");
   redirect("/revision");
 }
 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  // Sin esto, "atrás" volvía a enseñar hasta 120 s pantallas vistas con sesión.
+  revalidatePath("/", "layout");
   redirect("/revision/login");
 }
 

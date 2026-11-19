@@ -54,12 +54,29 @@ export async function login(formData: FormData) {
     // Mensaje genérico a propósito: no revelar si el correo existe.
     redirect("/admin/login?error=1");
   }
+  // `revalidatePath` ANTES del redirect arregla el "a veces no entra hasta que
+  // refresco". next.config.ts pone `staleTimes: { dynamic: 120 }`, así que el
+  // Router Cache del NAVEGADOR guarda dos minutos el payload de las rutas
+  // dinámicas: al entrar sin sesión el middleware rebota a /admin/login y el
+  // router cachea ese resultado bajo /admin; tras el login, `redirect("/admin")`
+  // es una navegación de cliente y servía esa entrada vieja — otra vez el
+  // login, aunque la cookie ya estuviera puesta. Cualquier `revalidatePath` en
+  // una server action tira TODO el Router Cache del cliente; se usa la raíz
+  // con "layout" (como la plantilla oficial de Supabase) porque la sesión
+  // cambia el árbol entero. Su costo (el cache del catálogo se enfría) es
+  // despreciable: son un puñado de logins al día.
+  revalidatePath("/", "layout");
   redirect("/admin");
 }
 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  // Mismo motivo que en `login`, al revés: sin esto el Router Cache conserva
+  // hasta 120 s las pantallas ya vistas CON sesión, y el botón "atrás" se las
+  // volvía a enseñar a quien ya cerró sesión (en la tablet de la tienda, a
+  // quien la agarre después).
+  revalidatePath("/", "layout");
   redirect("/admin/login");
 }
 

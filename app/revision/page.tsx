@@ -26,6 +26,32 @@ export const metadata: Metadata = {
 const MAX_PRODUCTOS_BUSQUEDA = 48;
 
 /**
+ * La vista `catalogo_telas` trae 30+ columnas por variante y con `select("*")`
+ * esta pantalla bajaba ~650 KB (medido en agosto, 471 filas), que además se
+ * vuelven a serializar en el flight RSC que viaja al celular del revisor. Se
+ * piden solo las que alguien lee: la tarjeta (portada, nombre, categoría,
+ * swatches), `agruparPorModelo` (`tela_slug`, `precio_metro`, `unidad_venta`)
+ * y el avance de cierre de lib/cierre.ts (`revisado_en`, `precio_metro`,
+ * `foto_principal`). Medido entonces: 650 KB → 342 KB. Si esta pantalla
+ * empieza a leer otra columna, se agrega aquí o llega `undefined`.
+ */
+const COLUMNAS_REVISION = [
+  "variante_id",
+  "tela_id",
+  "tela_slug",
+  "tela_nombre",
+  "categoria",
+  "sku",
+  "color_nombre",
+  "color_hex",
+  "precio_metro",
+  "unidad_venta",
+  "revisado_en",
+  "foto_principal",
+  "foto_principal_derivados",
+].join(",");
+
+/**
  * Cola de revisión: una tarjeta por producto, con el avance de sus variantes
  * (`variante.revisado_en`). Mismo patrón de búsqueda en dos lecturas que
  * `app/admin/page.tsx` — ver el comentario ahí para el porqué.
@@ -46,7 +72,7 @@ export default async function RevisionPage({
   const supabase = createAdminClient();
 
   let idsRecortados = false;
-  let query = supabase.from("catalogo_telas").select("*");
+  let query = supabase.from("catalogo_telas").select(COLUMNAS_REVISION);
 
   if (termino) {
     const patron = `%${termino.replace(/[,()"\\]/g, " ")}%`;
@@ -68,7 +94,9 @@ export default async function RevisionPage({
     .order("color_nombre", { ascending: true });
 
   const { data, error } = await query;
-  const variantes = (data ?? []) as CatalogoTela[];
+  // `select` proyectado ⇒ las columnas que no pide esta pantalla llegan
+  // `undefined`; ninguna se lee aquí, en `agruparPorModelo` ni en lib/cierre.ts.
+  const variantes = (data ?? []) as unknown as CatalogoTela[];
   const productos = agruparPorModelo(variantes);
 
   // El avance se calcula sobre TODO lo que trajo la búsqueda, no sobre lo
