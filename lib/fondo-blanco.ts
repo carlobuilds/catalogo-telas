@@ -22,9 +22,9 @@ export type FilaMascara = {
 
 /**
  * ¿La máscara sigue correspondiendo a la foto? Compara el `generado_en` de los
- * derivados con la copia que se guardó al generarla. `resubir-fotos`,
- * `procesar-fotos-crop` y la ingesta reescriben maestro y derivados en las
- * mismas rutas: sin esto, una máscara vieja se pintaría sobre un encuadre
+ * derivados con la copia que se guardó al generarla. `resubir-fotos`, el
+ * curador de /admin y `ingest --upload --actualizar` reescriben maestro y
+ * derivados en las mismas rutas: sin esto, una máscara vieja se pintaría sobre un encuadre
  * nuevo y taparía el producto. Ante la duda, no: se ve la foto original.
  */
 export function mascaraVigente(

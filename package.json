@@ -2,39 +2,25 @@
   "name": "telas-la-jalisciense",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "preparar": "tsx scripts/preparar-fotos.ts",
     "ingest": "tsx scripts/ingest-images.ts",
-    "etiquetas:bolsitas": "tsx scripts/etiquetas-bolsitas.ts",
     "nombres-provisionales": "tsx scripts/nombres-provisionales.ts",
     "clasificar": "tsx scripts/clasificar.ts",
-    "limpiar": "tsx scripts/limpiar-duplicados.ts",
-    "afinar": "tsx scripts/afinar-catalogo.ts",
-    "fusionar": "tsx scripts/fusionar-modelos.ts",
-    "partir": "tsx scripts/partir-modelos.ts",
-    "separar": "tsx scripts/separar-colores.ts",
-    "extraer": "tsx scripts/extraer-fichas.ts",
-    "describir": "tsx scripts/describir.ts",
-    "fusionar:cierres": "tsx scripts/fusionar-cierres.ts",
-    "renombrar:galon": "tsx scripts/renombrar-galon-encaje.ts",
-    "fusionar:mariposas": "tsx scripts/fusionar-mariposas.ts",
-    "dividir:motivos": "tsx scripts/dividir-motivos.ts",
-    "limpiar:rosas": "tsx scripts/limpiar-aplicacion-rosas.ts",
-    "agrupar:tiras": "tsx scripts/agrupar-tira-pedreria.ts",
-    "nombrar:botones-tul": "tsx scripts/nombrar-botones-tul.ts",
-    "nombrar:merceria": "tsx scripts/nombrar-merceria.ts",
-    "corregir:vocabulario": "tsx scripts/corregir-vocabulario.ts",
     "hoja:contactos": "tsx scripts/hoja-contactos.ts",
     "respaldo": "tsx scripts/respaldo.ts",
     "respaldo:completo": "tsx scripts/respaldo-completo.ts",
     "diagnostico:precios": "tsx scripts/diagnostico-precios.ts",
-    "separar:tiras-tul": "tsx scripts/separar-tiras-tul.ts",
     "hoja": "tsx scripts/hoja-revision.ts",
     "backfill:derivados": "tsx scripts/backfill-derivados.ts",
     "medir:mascaras": "tsx scripts/medir-mascaras.ts",
@@ -47,10 +33,10 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
-    "next": "^15.0.3",
+    "next": "^15.5.29",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -62,17 +48,28 @@
     "@types/react-dom": "^19.0.0",
     "dotenv": "^16.4.5",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.20",
+    "eslint-config-next": "^15.5.29",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.12"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "postcss": "^8.5.33",
+      "nanoid@<3.3.18": "^3.3.20",
+      "source-map-js": "^1.2.3",
+      "undici@>=7.0.0 <7.30.1": "^7.30.2",
+      "brace-expansion@<1.1.21": "^1.1.22",
+      "brace-expansion@>=4.0.0 <5.0.12": "^5.0.13",
+      "js-yaml@>=4.0.0 <4.3.2": "^4.3.2",
+      "minimatch@>=7.0.0 <11.0.1": "^11.0.9",
+      "vite": "^8.3.8"
+    }
   }
 }

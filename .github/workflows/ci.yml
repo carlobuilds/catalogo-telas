@@ -1,0 +1,42 @@
+# Revisión automática de cada PR y de cada push a main.
+#
+# Corre lo mismo que se corre a mano antes de fusionar: lint, pruebas y build.
+# No necesita llaves: sin variables de Supabase el sitio compila igual (las
+# páginas del catálogo son dinámicas y muestran el aviso de configuración), y
+# ninguna prueba toca la base de datos. Así la CI nunca lee ni escribe
+# producción.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Solo lee el repo: la CI no publica nada ni comenta en los PR.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # La versión de pnpm sale de `packageManager` en package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      # `next build` también revisa los tipos.
+      - run: pnpm build

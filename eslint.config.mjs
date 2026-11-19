@@ -12,7 +12,21 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: [".next/**", "node_modules/**", "Fotos_Telas/**", "next-env.d.ts"],
+    // `eslint .` recorre todo el árbol (antes `next lint` solo veía app/,
+    // components/ y lib/). Fuera: lo generado, las carpetas de fotos (no son
+    // código, pesan GB) y `.claude/`, donde viven los worktrees, que son
+    // copias completas del repo.
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      ".claude/**",
+      "next-env.d.ts",
+      "components/ui/iconos/**",
+      "FOTOS_TELAS/**",
+      "Fotos_Telas/**",
+      "Fotos_Entrada*/**",
+      "0Fotos_nobg/**",
+    ],
   },
   {
     // Los iconos salen SOLO de @/components/ui/iconos (generado por
