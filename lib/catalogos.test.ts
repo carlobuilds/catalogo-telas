@@ -65,6 +65,11 @@ describe("secciones de Mercería", () => {
     expect(seccionDeCategoria("aplicacion-bordada")?.slug).toBe("flores");
   });
 
+  it("el fleco de cristal (creado desde /admin) vive en Pedrería, junto al fleco de pedrería", () => {
+    expect(seccionDeCategoria("fleco-de-cristal")?.slug).toBe("pedreria");
+    expect(seccionDeCategoria("fleco-de-pedreria")?.slug).toBe("pedreria");
+  });
+
   it("resuelve slugs y tolera los que no existen", () => {
     expect(seccionPorSlug("flores")?.nombre).toBe("Flores");
     expect(seccionPorSlug("no-existe")).toBeNull();

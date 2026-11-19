@@ -12,6 +12,7 @@ import { ColorSwatch } from "@/components/ColorSwatch";
 import { RevisionNav } from "@/components/revision/RevisionNav";
 import { logout } from "./actions";
 import { agruparPorModelo, type CatalogoTela, type TelaAgrupada } from "@/lib/types";
+import { contarAvance, filtroDesdeParams, productoPasaFiltro, type FiltroRevision } from "@/lib/cierre";
 
 export const metadata: Metadata = {
   title: "Revisión de catálogo — Telas La Jalisciense",
@@ -32,15 +33,15 @@ const MAX_PRODUCTOS_BUSQUEDA = 48;
 export default async function RevisionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; pendientes?: string }>;
+  searchParams: Promise<{ q?: string; pendientes?: string; sinprecio?: string; sinfoto?: string }>;
 }) {
   const { user, autorizado } = await getSesionRevisor();
   if (!user) redirect("/revision/login");
   if (!autorizado) return <NoAutorizado email={user.email ?? ""} />;
 
-  const { q, pendientes } = await searchParams;
-  const termino = q?.trim() ?? "";
-  const soloPendientes = pendientes === "1";
+  const params = await searchParams;
+  const termino = params.q?.trim() ?? "";
+  const filtro = filtroDesdeParams(params);
 
   const supabase = createAdminClient();
 
@@ -70,41 +71,35 @@ export default async function RevisionPage({
   const variantes = (data ?? []) as CatalogoTela[];
   const productos = agruparPorModelo(variantes);
 
-  // El progreso se calcula sobre TODO lo que trajo la búsqueda, no sobre lo
-  // que queda visible tras el chip "Sin revisar": si se contara sobre la
-  // lista ya filtrada, esconder lo revisado también borraría la evidencia
-  // de cuánto se ha avanzado.
-  const totalVariantes = variantes.length;
-  const revisadas = variantes.filter((v) => v.revisado_en != null).length;
-  const porcentaje = totalVariantes > 0 ? Math.round((revisadas / totalVariantes) * 100) : 0;
+  // El avance se calcula sobre TODO lo que trajo la búsqueda, no sobre lo
+  // que queda visible tras un chip: si se contara sobre la lista ya filtrada,
+  // esconder lo revisado también borraría la evidencia de cuánto se ha
+  // avanzado. "Lista" = revisada + con precio + con foto (lib/cierre.ts); las
+  // otras cifras dicen cuál de las tres falta.
+  const avance = contarAvance(variantes);
 
-  const productosVisibles = soloPendientes
-    ? productos.filter((p) => p.variantes.some((v) => v.revisado_en == null))
-    : productos;
+  const productosVisibles = productos.filter((p) => productoPasaFiltro(p.variantes, filtro));
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <RevisionNav email={user.email ?? ""} />
 
-      {totalVariantes > 0 && (
-        <div className="mb-5 rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-            <span className="font-medium text-ink-display">Progreso de revisión</span>
-            <span className="font-semibold text-amber">
-              {revisadas} de {totalVariantes} variantes revisadas
-            </span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-line/50">
-            <div
-              className="h-full rounded-full bg-amber transition-[width]"
-              style={{ width: `${porcentaje}%` }}
-            />
-          </div>
+      {avance.total > 0 && (
+        <div className="mb-5 space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-sm">
+          <BarraAvance etiqueta="Listas para entregar" valor={avance.listas} total={avance.total} destacada />
+          <BarraAvance etiqueta="Revisadas" valor={avance.revisadas} total={avance.total} />
+          <BarraAvance etiqueta="Con precio" valor={avance.conPrecio} total={avance.total} />
+          <BarraAvance etiqueta="Con foto" valor={avance.conFoto} total={avance.total} />
+          <p className="text-sm text-ink-soft">
+            Lista para entregar = revisada, con precio y con su foto.
+          </p>
         </div>
       )}
 
       <form method="get" className="mb-3 flex gap-2" role="search">
-        {soloPendientes && <input type="hidden" name="pendientes" value="1" />}
+        {filtro === "pendientes" && <input type="hidden" name="pendientes" value="1" />}
+        {filtro === "sinprecio" && <input type="hidden" name="sinprecio" value="1" />}
+        {filtro === "sinfoto" && <input type="hidden" name="sinfoto" value="1" />}
         <div className="relative flex-1">
           <MagnifyingGlass
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
@@ -128,11 +123,17 @@ export default async function RevisionPage({
       </form>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Chip href={hrefConsulta(termino, false)} activo={!soloPendientes}>
+        <Chip href={hrefConsulta(termino, "todos")} activo={filtro === "todos"}>
           Todos
         </Chip>
-        <Chip href={hrefConsulta(termino, true)} activo={soloPendientes}>
+        <Chip href={hrefConsulta(termino, "pendientes")} activo={filtro === "pendientes"}>
           Sin revisar
+        </Chip>
+        <Chip href={hrefConsulta(termino, "sinprecio")} activo={filtro === "sinprecio"}>
+          Sin precio
+        </Chip>
+        <Chip href={hrefConsulta(termino, "sinfoto")} activo={filtro === "sinfoto"}>
+          Sin foto
         </Chip>
       </div>
 
@@ -154,9 +155,13 @@ export default async function RevisionPage({
         <div className="rounded-2xl border border-dashed border-line bg-surface/60 p-10 text-center text-sm text-ink/50">
           {termino
             ? `Sin resultados para “${termino}”.`
-            : soloPendientes
+            : filtro === "pendientes"
               ? "No queda nada pendiente de revisar."
-              : "Aún no hay productos en el catálogo."}
+              : filtro === "sinprecio"
+                ? "Todos los colores tienen precio."
+                : filtro === "sinfoto"
+                  ? "Todos los colores tienen foto."
+                  : "Aún no hay productos en el catálogo."}
         </div>
       )}
 
@@ -169,12 +174,54 @@ export default async function RevisionPage({
   );
 }
 
-function hrefConsulta(termino: string, soloPendientes: boolean): string {
+function hrefConsulta(termino: string, filtro: FiltroRevision): string {
   const params = new URLSearchParams();
   if (termino) params.set("q", termino);
-  if (soloPendientes) params.set("pendientes", "1");
+  if (filtro === "pendientes") params.set("pendientes", "1");
+  if (filtro === "sinprecio") params.set("sinprecio", "1");
+  if (filtro === "sinfoto") params.set("sinfoto", "1");
   const qs = params.toString();
   return qs ? `/revision?${qs}` : "/revision";
+}
+
+/** Una cifra del avance con su barra. Texto ≥14px y la cifra en palabras. */
+function BarraAvance({
+  etiqueta,
+  valor,
+  total,
+  destacada = false,
+}: {
+  etiqueta: string;
+  valor: number;
+  total: number;
+  destacada?: boolean;
+}) {
+  const porcentaje = total > 0 ? Math.round((valor / total) * 100) : 0;
+  return (
+    <div>
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+        <span className={destacada ? "font-semibold text-ink-display" : "font-medium text-ink-display"}>
+          {etiqueta}
+        </span>
+        <span className="font-semibold text-amber">
+          {valor} de {total} variantes ({porcentaje}%)
+        </span>
+      </div>
+      <div
+        className={`w-full overflow-hidden rounded-full bg-line/50 ${destacada ? "h-3" : "h-2"}`}
+        role="progressbar"
+        aria-label={etiqueta}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={valor}
+      >
+        <div
+          className={`h-full rounded-full transition-[width] ${destacada ? "bg-success" : "bg-amber"}`}
+          style={{ width: `${porcentaje}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 function Chip({

@@ -97,6 +97,9 @@ export const SECCIONES_MERCERIA: readonly Seccion[] = [
       "tira-de-pedreria",
       "cintillo-de-pedreria",
       "fleco-de-pedreria",
+      // Creada por la tienda desde /admin; sin sección salía como chip suelto
+      // en la barra de Mercería y no aparecía al recorrer las secciones.
+      "fleco-de-cristal",
       "broche",
       "hebilla",
     ],
