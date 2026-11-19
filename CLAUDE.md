@@ -239,6 +239,14 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
   exige también en el resumen y en el `alt` y `pie` de las capturas. Al imprimir, hay que desmarcar
   "Encabezados y pies de página": si no, el navegador escribe la URL en el margen. Si cambia una pantalla, también hay que rehacer su captura en `public/guias/`.
 
+- **Contador de uso** (sección 18, `sql/2026-11-19-eventos.sql`, `lib/metricas.ts`): cuenta los toques a
+  "Enviar pedido por WhatsApp" y los links compartidos, para medir con cifras reales qué hace el
+  catálogo. NO guarda datos personales (ni teléfono, ni IP, ni el contenido del carrito) ni la querystring.
+  El navegador lo manda con `sendBeacon` (`lib/metricas-cliente.ts`) a `POST /api/evento`, que valida,
+  responde siempre 204 y **solo escribe si `VERCEL_ENV === "production"`**: preview y local solo lo anotan
+  en el log. Sin la tabla no hace nada. Se lee en `/admin/uso`, fuera del menú como Fondos y Guías.
+  Qué se guarda de cada pedido lo decide `armarEventoPedido`.
+
 ## Convenciones
 - **La descripción no se muestra en el catálogo público**, por decisión de la tienda: ni en
   la ficha, ni en la metadata/vista previa del link, ni en el índice de búsqueda. La columna

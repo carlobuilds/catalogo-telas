@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShareNetwork } from "@/components/ui/iconos";
 import { Button } from "@/components/ui/Button";
+import { registrarEvento } from "@/lib/metricas-cliente";
 
 /**
  * Compartir el catálogo (cierra el "camino de venta": el vendedor manda el
@@ -37,6 +38,7 @@ export function ShareCatalog({
   }, []);
 
   const compartir = async () => {
+    registrarEvento({ tipo: "compartir_catalogo", ruta: window.location.pathname });
     const texto = MENSAJE.replace("{url}", url);
 
     // Web Share API nativa (principalmente móvil).
