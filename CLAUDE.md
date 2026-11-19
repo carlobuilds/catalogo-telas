@@ -37,6 +37,12 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
 ## Comandos (gestor: **pnpm**)
 - `pnpm dev` — servidor de desarrollo
 - `pnpm build` / `pnpm start` — producción
+- `pnpm lint` (`eslint .`, todo el árbol; `next lint` ya no existe en Next 16) y `pnpm test`.
+  La CI (`.github/workflows/ci.yml`) corre lint, pruebas y build en cada PR y en `main`,
+  sin llaves: nunca toca la base de datos.
+- Dependencias: `pnpm audit` debe salir limpio. Lo transitivo vulnerable se fija con
+  `pnpm.overrides` en `package.json`; al subir Next, revisar si las overrides siguen
+  haciendo falta (Next fija su propio `postcss`).
 - `pnpm iconos` — regenera `components/ui/iconos/` desde Phosphor (tras agregar un
   icono a `scripts/generar-iconos.ts` o subir de versión el paquete)
 - `pnpm preparar --in=<carpeta>` — RAW de cámara (.ARW…) → JPEG recortado al producto
@@ -57,10 +63,15 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   para poder tirarlas al regenerar sin tocar las que escribió la tienda.
   `--forzar` regenera desde cero. El sidecar `catalog-manifest.auto.json` recuerda qué
   puso el parser, para poder corregirlo sin pisar lo que capturó la tienda.
-- `pnpm etiquetas:bolsitas` — vuelca sobre el CSV el código/cantidad/precio que están
-  escritos A MANO en la etiqueta de cada bolsita (se leyeron de la foto, ningún parser
-  los saca). Idempotente; los precios van marcados para confirmar.
-- `pnpm ingest --upload` — tras aprobar el CSV: sube fotos al bucket y hace upsert idempotente
+- `pnpm ingest --upload` — tras aprobar el CSV (y `pnpm ingest --validar`): sube fotos al
+  bucket y **solo CREA** lo que no existe. Lo que ya estaba antes de la corrida no se toca:
+  un color/código ya capturado o un archivo ya en el bucket se reporta como "saltada"; un
+  producto existente se reusa para colgarle colores nuevos sin cambiarle nombre ni
+  categoría. Lee y decide ANTES de escribir (`lib/ingesta/solo-nuevos.ts`, con pruebas), así
+  una fila saltada no deja nada a medias. Los lookups (color, categoría, caso de uso) se
+  buscan y solo se crean si faltan. Antes era un upsert que pisaba precio (a null si la
+  celda venía vacía), nombre, categoría, el hex de colores curados y el recorte de la foto.
+  `--actualizar` recupera ese comportamiento: solo con respaldo y pedido explícito.
 - `pnpm backfill:derivados` — genera derivados WebP para fotos con `derivados IS NULL`
   (idempotente; acepta `--limit=N`)
 - `pnpm backfill:mascaras` — genera la máscara de fondo blanco de las fotos que no la tienen
@@ -86,14 +97,14 @@ uso: cliente final que navega, y vendedor en tablet que arma cotizaciones.
   corren se omiten y lo dice), cuentas de admin/revisor, la vista
   en `catalogo.csv` y copia de todo el bucket `telas`, con verificación al final. Correrlo
   antes de cualquier `--aplicar` y guardarlo FUERA del worktree (`…/Respaldos/<fecha>-<motivo>`).
-  `pnpm respaldo` (6 tablas a un JSON) sigue existiendo para los scripts de curaduría.
+  `pnpm respaldo` (6 tablas a un JSON, la versión vieja) sigue existiendo.
+  Los scripts de curaduría de un solo uso (agosto–octubre 2026: fusionar, partir, nombrar,
+  separar tiras de tul, etiquetas de bolsitas…) se borraron al cerrar la Fase 1; viven en el
+  historial de git y su lista está en `docs/OPERACION.md`.
 - `pnpm diagnostico:precios [--respaldo=<carpeta>]` — SOLO LECTURA: compara `variante` contra
   el `datos/variante.json` de un respaldo y lista precios/SKU que pasaron de tener valor a
   vacío, más las variantes revisadas sin precio. Nació del bug del editor de /admin que
   escribía `precio: null` al guardar (ver "Parche parcial" en Convenciones).
-- `pnpm separar:tiras-tul` — pasa las "Tira de tul bordado…" de la categoría de tela
-  `tul-bordado` a `tira-de-tul-bordado` (mercería). Simulacro por defecto; `--aplicar` exige
-  `--respaldo=<carpeta>` y deja ahí `deshacer-tiras-tul.json`. Solo toca `tela.categoria_id`.
 - `pnpm clasificar` — sobre lo YA SUBIDO: asigna categoría a cada tela según el prefijo
   de su código (`lib/ingesta/categorias.ts`) y le quita a las bolsitas de piedra el
   número de cámara del nombre. **Simulacro por defecto**: `--aplicar` escribe,

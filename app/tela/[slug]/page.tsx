@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTelaPorSlug, getFotosDeVariantes } from "@/lib/queries";
+import { getTelaPorSlug, getFotosDeVariantes, getNombresDeOcasion } from "@/lib/queries";
+import { etiquetaDeOcasion } from "@/lib/ocasiones";
 import { publicImageUrl } from "@/lib/supabase/storage";
 import { construirSlides } from "@/lib/fotos";
 import { getFondoBlanco } from "@/lib/fondo-blanco-lectura";
@@ -94,6 +95,9 @@ export default async function TelaDetallePage({
   };
 
   const tags = [...seleccionada.casos_uso, ...seleccionada.oportunidades];
+  // Solo se leen los nombres si hay algo que nombrar (casi ningún producto
+  // tiene ocasiones capturadas).
+  const nombresOcasion = tags.length > 0 ? await getNombresDeOcasion() : {};
   // Todas las variantes comparten la categoría del modelo.
   const catalogo = catalogoDeCategoria(seleccionada.categoria_slug);
   const unidad = unidadDe(seleccionada.unidad_venta);
@@ -283,9 +287,9 @@ export default async function TelaDetallePage({
                 {tags.map((t) => (
                   <span
                     key={t}
-                    className="rounded border border-outline-variant/30 bg-surface-container-lowest px-3.5 py-1.5 text-sm font-medium capitalize text-ink-soft shadow-2xs"
+                    className="rounded border border-outline-variant/30 bg-surface-container-lowest px-3.5 py-1.5 text-sm font-medium text-ink-soft shadow-2xs"
                   >
-                    {t.replace(/-/g, " ")}
+                    {etiquetaDeOcasion(t, nombresOcasion)}
                   </span>
                 ))}
               </div>

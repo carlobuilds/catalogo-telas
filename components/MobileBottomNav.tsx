@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useCartStore } from "@/lib/store";
 import { useGuideStore } from "@/lib/guide-store";
-import { Question, ShoppingBag, Sparkle, SquaresFour, type Icon } from "@/components/ui/iconos";
+import { Question, ShoppingBag, SquaresFour, type Icon } from "@/components/ui/iconos";
 
 /**
  * Barra inferior del celular. Mide 4rem (h-16): `AddToCart` y la ficha de
@@ -30,13 +30,13 @@ export function MobileBottomNav() {
 
   const itemCount = items.length;
   // Una sola pestaña para los dos catálogos: el selector Mercería | Telas de
-  // la barra del catálogo hace la separación, y abajo no cabe otra pestaña.
+  // la barra del catálogo hace la separación. Tres pestañas grandes se tocan
+  // mejor que cuatro chicas.
   const isCatalogo =
     pathname === "/" ||
     pathname === "/telas" ||
     pathname === "/merceria" ||
     pathname.startsWith("/tela/");
-  const isInspiracion = pathname === "/inspiracion";
 
   return (
     <nav
@@ -45,7 +45,6 @@ export function MobileBottomNav() {
     >
       <div className="flex h-16 items-stretch justify-around px-1">
         <Pestana href="/" icono={SquaresFour} etiqueta="Catálogo" activa={isCatalogo} />
-        <Pestana href="/inspiracion" icono={Sparkle} etiqueta="Inspiración" activa={isInspiracion} />
         <Pestana
           icono={ShoppingBag}
           etiqueta="Cesta"

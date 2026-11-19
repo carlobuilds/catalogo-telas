@@ -9,7 +9,7 @@ describe("esRutaInterna", () => {
   });
 
   it("la vitrina no es interna, aunque un slug empiece igual", () => {
-    for (const ruta of ["/", "/tela/admin-encaje", "/inspiracion", "/administracion", "/revisiones"]) {
+    for (const ruta of ["/", "/tela/admin-encaje", "/telas", "/administracion", "/revisiones"]) {
       expect(esRutaInterna(ruta)).toBe(false);
     }
   });

@@ -5,7 +5,7 @@ import { metadataDeVista } from "@/lib/metadata-vista";
 
 const BASE: Metadata = {
   title: "Telas — Telas La Jalisciense",
-  description: "Tul, chifón y tul bordado en Fresnillo. Elige tus metros y cotiza por WhatsApp.",
+  description: "Tul, tul bordado, chifón y organza en Fresnillo. Elige tus metros y cotiza por WhatsApp.",
   alternates: { canonical: rutaDeCatalogo("telas") },
 };
 

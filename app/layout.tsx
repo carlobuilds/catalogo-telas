@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk } from "next/font/google";
 import { ChromeTienda } from "@/components/ChromeTienda";
+import { SITE_URL } from "@/lib/sitio";
 import "./globals.css";
 
 // Tipografía del design system de Stitch "Artisanal Modernity": Hanken Grotesk
@@ -17,30 +18,19 @@ const hankenGrotesk = Hanken_Grotesk({
 // Base absoluta de los metadatos. `app/opengraph-image.png` se anuncia como
 // URL COMPLETA: los scrapers de WhatsApp y Facebook no resuelven rutas
 // relativas, así que sin esto la miniatura del enlace no carga.
-// En producción hay que definir NEXT_PUBLIC_SITE_URL con el dominio real.
-// Mientras no esté, en Vercel se usa su variable de sistema con el dominio de
-// producción (`VERCEL_PROJECT_PRODUCTION_URL`, sin protocolo): sin ella, la
-// og:url de cada link compartido decía "localhost:3000" y Facebook/WhatsApp
-// la toman como la dirección canónica. En local cae al dev server. Si la
-// variable trae basura, `new URL` truena en el build a propósito: es
-// preferible a publicar enlaces sin miniatura.
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "http://localhost:3000");
-
+// Los textos solo nombran lo que de verdad está en el catálogo: antes
+// prometían "seda y lino", que la tienda no vende en línea.
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: "Telas La Jalisciense — Catálogo Textil",
+  metadataBase: new URL(SITE_URL),
+  title: "Telas La Jalisciense — Telas y mercería en Fresnillo",
   description:
-    "Catálogo de telas finas, encajes y mercería de alta calidad en Fresnillo.",
+    "Catálogo de mercería y telas en Fresnillo: pedrería, encajes, flores, botones, tul y más. Arma tu pedido y mándalo por WhatsApp.",
   openGraph: {
     title: "Telas La Jalisciense — Catálogo",
     description:
-      "Explora las telas, elige tus metros y manda tu pedido por WhatsApp. Chifón, tul, seda, lino y encajes en Fresnillo.",
+      "Mercería y telas en Fresnillo: elige lo que necesitas y manda tu pedido por WhatsApp.",
     siteName: "Telas La Jalisciense",
-    url: siteUrl,
+    url: SITE_URL,
     locale: "es_MX",
     type: "website",
   },

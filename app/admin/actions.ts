@@ -443,21 +443,24 @@ export async function eliminarVariante(formData: FormData) {
 
   const supabase = createAdminClient();
 
-  // Primero las imágenes del bucket (el DELETE en cascada solo borra las
-  // filas de `foto`, no los archivos de Storage).
+  // El DELETE en cascada solo borra las filas de `foto`, no los archivos de
+  // Storage: se calcula ANTES qué archivos son solo de este color (ver
+  // `rutasQueSePuedenBorrar`), y se borran DESPUÉS de la fila, igual que en
+  // `eliminarFoto`. Al revés, si el DELETE fallaba, el color se quedaba con
+  // sus fotos rotas y sin original que recuperar; así lo peor es un archivo
+  // huérfano en el bucket, que solo ocupa espacio.
   const { data: fotos } = await supabase
     .from("foto")
     .select("id, ruta")
     .eq("variante_id", varianteId);
-
-  // Solo los archivos que ninguna otra foto usa (ver `rutasQueSePuedenBorrar`).
   const rutas = await rutasLibresParaBorrar(supabase, fotos ?? []);
-  if (rutas?.length) {
-    await supabase.storage.from(STORAGE_BUCKET).remove(rutas);
-  }
 
   const { error } = await supabase.from("variante").delete().eq("id", varianteId);
   if (error) throw new Error(`No se pudo eliminar la variante: ${error.message}`);
+
+  if (rutas?.length) {
+    await supabase.storage.from(STORAGE_BUCKET).remove(rutas);
+  }
 
   refrescarCatalogo(telaId);
 }

@@ -24,7 +24,6 @@ export function SiteHeader() {
   }, []);
 
   const itemCount = items.length;
-  const isInspiracion = pathname === "/inspiracion";
   // El botón de la cesta es solo icono: su nombre accesible es el aria-label,
   // y el conteo del globo (oculto, es un número suelto) va en palabras dentro.
   const nombreCesta =
@@ -105,17 +104,6 @@ export function SiteHeader() {
               </Link>
             );
           })}
-          <Link
-            href="/inspiracion"
-            aria-current={isInspiracion ? "page" : undefined}
-            className={`inline-flex min-h-[44px] items-center rounded px-4 text-sm font-semibold transition-all ${
-              isInspiracion
-                ? "bg-heritage-navy text-white shadow-xs"
-                : "text-ink-soft hover:bg-surface-container hover:text-ink-text"
-            }`}
-          >
-            Inspiración
-          </Link>
         </nav>
 
         {/* Acciones */}

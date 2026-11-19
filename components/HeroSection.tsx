@@ -26,7 +26,7 @@ const TEXTO: Record<
   telas: {
     titulo: "Telas finas para tus creaciones.",
     parrafo:
-      "Tul, chifón y tul bordado para vestidos de fiesta, novia y XV años. Cotiza fácilmente tus metros y recibe atención directa por WhatsApp.",
+      "Tul, tul bordado, chifón y organza para vestidos de fiesta, novia y XV años. Cotiza fácilmente tus metros y recibe atención directa por WhatsApp.",
     pildora: { Icono: Ruler, texto: "Corte a tu medida" },
   },
 };
