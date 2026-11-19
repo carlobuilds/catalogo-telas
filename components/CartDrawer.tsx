@@ -277,19 +277,28 @@ export function CartDrawer() {
                   ? "Algunos artículos se cotizan por WhatsApp; no están en el total."
                   : "Es una estimación. Confirmamos disponibilidad y apartado por WhatsApp."}
             </p>
-            <Button
-              variant="whatsapp"
-              size="lg"
-              fullWidth
-              href={waHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setIsOpen(false)}
-              className="h-14"
-            >
-              <WhatsappLogo className="size-6" weight="fill" />
-              Enviar pedido por WhatsApp
-            </Button>
+            {/* Sin número, `wa.me/?text=` abre el selector de contactos y el
+                pedido acabaría con cualquiera menos con la tienda: mejor que
+                se note la falta de configuración. */}
+            {numero ? (
+              <Button
+                variant="whatsapp"
+                size="lg"
+                fullWidth
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsOpen(false)}
+                className="h-14"
+              >
+                <WhatsappLogo className="size-6" weight="fill" />
+                Enviar pedido por WhatsApp
+              </Button>
+            ) : (
+              <p role="alert" className="rounded bg-peligro-suave px-4 py-3 text-base text-peligro">
+                Falta configurar el número de WhatsApp de la tienda (NEXT_PUBLIC_WHATSAPP_NUMBER).
+              </p>
+            )}
             <Button
               variant="secondary"
               size="md"

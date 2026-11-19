@@ -57,6 +57,17 @@ describe("buildQuoteMessage", () => {
     expect(msg).toContain("¿Me confirman precios y disponibilidad?");
   });
 
+  it("marca en su renglón cada precio de referencia y no lo llama 'estimado'", () => {
+    const msg = buildQuoteMessage([
+      item({ precio: 89, cantidad: 1 }),
+      item({ id: "v2", tela_nombre: "Tul Ilusión", precio: 40, precio_referencia: true, cantidad: 1, sku: null, color_nombre: null }),
+    ]);
+    expect(msg).toContain("- 1 metro de Tul Ilusión — precio de referencia, por confirmar");
+    expect(msg).not.toContain("Chifón Seda color Rojo (SKU: CH-ROJO-01) — precio de referencia");
+    expect(msg).toContain("Total aproximado (con precios de referencia): $129.00 MXN.");
+    expect(msg).not.toContain("Total estimado");
+  });
+
   it("con carrito vacío, no incluye línea de total", () => {
     const msg = buildQuoteMessage([]);
     expect(msg).not.toContain("Total");

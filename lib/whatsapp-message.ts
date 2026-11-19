@@ -31,12 +31,17 @@ export function buildQuoteMessage(items: CartItem[]): string {
     if (item.color_nombre) msg += ` color ${item.color_nombre}`;
     if (item.sku) msg += ` (SKU: ${item.sku})`;
     if (item.precio == null) msg += " — precio por confirmar";
+    // Precio de demostración (NEXT_PUBLIC_DEMO_PRICES): se dice en el renglón,
+    // o la tienda recibiría un total con precios que nunca fijó.
+    else if (item.precio_referencia) msg += " — precio de referencia, por confirmar";
     msg += "\n";
   });
   if (total > 0) {
     msg += haySinPrecio
       ? `\nTotal parcial (sin los artículos por confirmar): ${pesos.format(total)} MXN.`
-      : `\nTotal estimado: ${pesos.format(total)} MXN.`;
+      : hayReferencia
+        ? `\nTotal aproximado (con precios de referencia): ${pesos.format(total)} MXN.`
+        : `\nTotal estimado: ${pesos.format(total)} MXN.`;
   }
   msg += hayReferencia || haySinPrecio
     ? "\n¿Me confirman precios y disponibilidad?"

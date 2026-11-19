@@ -16,6 +16,7 @@ import { FACETAS_VACIAS, type Facetas, facetasDeIndice } from "@/lib/busqueda/fa
 import { type PrecioVisible, seleccionarModelos } from "@/lib/busqueda/seleccion";
 import { conMascaras } from "@/lib/fondo-blanco";
 import { getFondoBlanco } from "@/lib/fondo-blanco-lectura";
+import type { NombresDeOcasion } from "@/lib/ocasiones";
 
 // Los tipos de las facetas viven con el índice; se re-exportan aquí porque
 // los componentes ya los importaban de este módulo.
@@ -371,6 +372,39 @@ export async function getTelaPorSlug(slug: string): Promise<CatalogoTela[]> {
     return aplicarPreciosDemo(data);
   } catch {
     return [];
+  }
+}
+
+const nombresDeOcasionCached = unstable_cache(
+  async (): Promise<NombresDeOcasion> => {
+    const supabase = createPublicClient();
+    const [casos, oportunidades] = await Promise.all([
+      supabase.from("caso_uso").select("slug,nombre"),
+      supabase.from("oportunidad").select("slug,nombre"),
+    ]);
+    if (casos.error) throw new Error(casos.error.message);
+    if (oportunidades.error) throw new Error(oportunidades.error.message);
+    const nombres: NombresDeOcasion = {};
+    for (const fila of [...(casos.data ?? []), ...(oportunidades.data ?? [])]) {
+      if (fila.slug && fila.nombre) nombres[fila.slug] = fila.nombre;
+    }
+    return nombres;
+  },
+  ["catalogo-nombres-ocasion"],
+  { revalidate: REVALIDATE_SEGUNDOS, tags: ["catalogo"] }
+);
+
+/**
+ * Nombres de los casos de uso y oportunidades (slug → nombre), para la ficha:
+ * la vista solo trae los slugs. Si falla, vacío: `etiquetaDeOcasion` cae a un
+ * texto legible hecho con el slug.
+ */
+export async function getNombresDeOcasion(): Promise<NombresDeOcasion> {
+  if (!isSupabaseConfigured()) return {};
+  try {
+    return await nombresDeOcasionCached();
+  } catch {
+    return {};
   }
 }
 

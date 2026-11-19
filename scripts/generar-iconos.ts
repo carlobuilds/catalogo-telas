@@ -39,7 +39,6 @@ const ICONOS = [
   "ArrowSquareOut",
   "ArrowsLeftRight",
   "ArrowsOut",
-  "Barricade",
   "Basket",
   "CameraPlus",
   "CaretDown",
@@ -67,7 +66,6 @@ const ICONOS = [
   "MagnifyingGlassPlus",
   "Minus",
   "Needle",
-  "PencilRuler",
   "PencilSimple",
   "Printer",
   "Plus",
@@ -101,7 +99,6 @@ const CON_FILL = new Set([
   "CheckCircle", // filtro "solo disponibles" puesto (CatalogToolbar)
   "Question", // ┐
   "ShoppingBag", // │ pestaña activa de la barra inferior (MobileBottomNav)
-  "Sparkle", // │
   "SquaresFour", // ┘
   "WhatsappLogo", // botones de WhatsApp (HeroSection, CartDrawer)
 ]);
