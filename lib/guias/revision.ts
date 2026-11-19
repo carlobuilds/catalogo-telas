@@ -18,8 +18,8 @@ export const guiaRevision: Guia = {
     {
       titulo: "Elegir qué revisar",
       pasos: [
-        "Arriba está el avance de lo que ya se revisó.",
-        "Usa [[Sin revisar]] para ver solo lo pendiente, o [[Todos]] para ver el catálogo completo.",
+        "Arriba está el avance. Un color está [[Listas para entregar]] cuando ya se revisó, tiene precio y tiene su foto.",
+        "Usa [[Sin revisar]] para ver solo lo pendiente, [[Sin precio]] o [[Sin foto]] para ver lo que falta capturar, o [[Todos]] para ver el catálogo completo.",
         "Para buscar algo en particular, escribe la tela, el color o el código y toca [[Buscar]].",
         "Toca un producto para abrirlo.",
       ],
