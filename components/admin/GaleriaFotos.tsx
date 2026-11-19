@@ -3,28 +3,28 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, ArrowsLeftRight, ImageBroken, Plus, Star } from "@/components/ui/iconos";
+import { ArrowLeft, ArrowRight, ArrowsLeftRight, ImageBroken, Plus, Star, Warning } from "@/components/ui/iconos";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
-import {
-  eliminarFoto,
-  moverFoto,
-  moverFotoANuevaVariante,
-  moverFotoAVariante,
-} from "@/app/admin/actions";
-import { MoverFotoModal } from "@/components/admin/MoverFotoModal";
+import { eliminarFoto, moverFoto, moverFotoAVariante } from "@/app/admin/actions";
+import { MoverFotoModal, type ColorCatalogo } from "@/components/admin/MoverFotoModal";
 
 export type FotoGaleria = { id: string; url: string | null; alt: string | null };
 export type VarianteGaleria = {
   id: string;
+  /** Color · medida · SKU (`etiquetaVariante`): distingue tamaños y "sin color". */
   nombre: string;
   hex: string | null;
+  colorId: string | null;
+  /** Lo que hay que corregir en este color (`lib/admin/sospechosos.ts`), en texto. */
+  avisos: string[];
   /** Ya ordenadas por `orden`: la primera es la portada de ese color. */
   fotos: FotoGaleria[];
 };
 
 /** Qué foto se está arrastrando y de qué variante salió. */
 type Arrastre = { fotoId: string; origenId: string };
+type Modal = Arrastre & { pasoInicial?: "destino" | "color" };
 
 /**
  * Todas las fotos del producto, agrupadas por color y REASIGNABLES entre ellos.
@@ -33,21 +33,27 @@ type Arrastre = { fotoId: string; origenId: string };
  * zonas de drop son los OTROS colores: hay que verlos todos a la vez para poder
  * arrastrar de uno a otro. Existe por un problema de captura concreto: decenas
  * de variantes traen varios colores amontonados como fotos extra de una sola
- * (Gema llegó con 18). Antes, corregirlo era borrar y volver a subir, tirando
- * el encuadre ya curado; aquí la foto solo cambia de dueño.
+ * (Gema llegó con 18), o el mismo artículo en OTRO TAMAÑO, que va en su propio
+ * producto. Aquí la foto solo cambia de dueño, conservando su encuadre.
  *
  * El arrastre es un ATAJO, nunca la única vía: cada foto trae además un botón
- * "Mover…" que abre el mismo destino en un modal, que es como se usa en la
+ * "Mover…" que abre los mismos destinos en un modal, que es como se usa en la
  * tablet de la tienda y con teclado. Mismo patrón que `OrdenColores`.
  */
 export function GaleriaFotos({
   telaId,
   telaNombre,
+  placeholderMedida,
   variantes,
+  colores,
 }: {
   telaId: string;
   telaNombre: string;
+  /** Ayuda del campo "Medida" según la categoría (se calcula en el servidor). */
+  placeholderMedida: string;
   variantes: VarianteGaleria[];
+  /** El catálogo de colores, para elegir el de un color nuevo. */
+  colores: ColorCatalogo[];
 }) {
   const router = useRouter();
   const arrastrada = useRef<Arrastre | null>(null);
@@ -55,9 +61,12 @@ export function GaleriaFotos({
   const [sobre, setSobre] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [moviendo, startTransition] = useTransition();
-  const [modal, setModal] = useState<Arrastre | null>(null);
+  const [modal, setModal] = useState<Modal | null>(null);
 
   const total = variantes.reduce((n, v) => n + v.fotos.length, 0);
+  const fotoDelModal = modal
+    ? variantes.flatMap((v) => v.fotos).find((f) => f.id === modal.fotoId)
+    : undefined;
 
   /** Corre un movimiento y refresca; el error se pinta sin tirar la página. */
   const correr = (accion: () => Promise<{ error?: string }>) => {
@@ -98,50 +107,61 @@ export function GaleriaFotos({
   });
 
   const anillo = (clave: string) =>
-    sobre === clave ? "border-amber ring-2 ring-amber" : "border-line";
+    sobre === clave ? "border-heritage-navy ring-2 ring-heritage-navy" : "border-line";
 
   return (
     <div className="mb-6 rounded-2xl border border-line bg-surface p-4 shadow-sm sm:p-5">
       <div className="mb-1 flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-medium text-ink">
-          Fotos del producto ({total})
-        </h3>
-        <span className="shrink-0 text-xs text-ink/50" aria-live="polite">
+        <h3 className="text-lg font-semibold text-ink-display">Fotos del producto ({total})</h3>
+        <span className="shrink-0 text-sm text-ink-soft" aria-live="polite">
           {moviendo ? "Moviendo…" : ""}
         </span>
       </div>
-      <p className="mb-4 text-xs text-ink/50">
-        La primera foto de cada color es su portada. <strong>Arrastra</strong> una
-        foto al color al que de verdad pertenece —o usa su botón{" "}
-        <strong>Mover…</strong>, que hace lo mismo sin arrastrar—. La foto
-        conserva su recorte y sus tamaños; solo cambia de color.
+      <p className="mb-4 text-base text-ink-soft">
+        La primera foto de cada color es su portada. <strong>Arrastra</strong> una foto al color al que
+        de verdad pertenece —o usa su botón <strong>Mover…</strong>, que hace lo mismo sin arrastrar—.
+        La foto conserva su recorte y sus tamaños; solo cambia de color.
       </p>
 
       <div className="space-y-3">
         {variantes.map((v) => (
           <section
             key={v.id}
+            // Destino de "Ver sus fotos" del recuadro "Para corregir".
+            id={`fotos-${v.id}`}
             {...propsZona(v.id, (a) => {
               if (a.origenId === v.id) return; // ya estaba en este color
               correr(() => moverFotoAVariante(a.fotoId, v.id));
             })}
-            className={`rounded-xl border bg-bg p-3 transition-colors ${anillo(v.id)}`}
+            className={`scroll-mt-24 rounded-xl border bg-bg p-3 transition-colors ${
+              v.avisos.length ? "border-amber/50" : ""
+            } ${anillo(v.id)}`}
           >
-            <h4 className="mb-2 flex items-center gap-2 text-sm text-ink">
+            <h4 className="mb-2 flex flex-wrap items-center gap-2 text-base text-ink-display">
               <ColorSwatch hex={v.hex} nombre={v.nombre} size="sm" />
-              <span className="truncate font-medium">{v.nombre}</span>
-              <span className="text-xs font-normal text-ink/50">
+              <span className="font-semibold">{v.nombre}</span>
+              <span className="text-sm text-ink-soft">
                 {v.fotos.length === 0
                   ? "sin fotos"
                   : `${v.fotos.length} ${v.fotos.length === 1 ? "foto" : "fotos"}`}
               </span>
             </h4>
 
+            {v.avisos.length > 0 && (
+              <ul className="mb-3 space-y-1 rounded border border-amber/40 bg-amber/10 px-3 py-2 text-base text-ink">
+                {v.avisos.map((a) => (
+                  <li key={a} className="flex items-start gap-2">
+                    <Warning className="mt-1 size-4 shrink-0 text-amber" aria-hidden />
+                    <span>{a}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             {v.fotos.length === 0 ? (
-              <p className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-4 text-xs text-ink/50">
-                <ImageBroken className="h-4 w-4 shrink-0" aria-hidden />
-                Sin fotos: este color sale con un marcador gris en el catálogo.
-                Arrástrale una.
+              <p className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-4 text-base text-ink-soft">
+                <ImageBroken className="size-5 shrink-0" aria-hidden />
+                Sin fotos: este color sale con un marcador gris en el catálogo. Arrástrale una.
               </p>
             ) : (
               <ul className="flex flex-wrap gap-3">
@@ -157,24 +177,20 @@ export function GaleriaFotos({
                       arrastrada.current = null;
                       setSobre(null);
                     }}
-                    className="w-28 cursor-grab active:cursor-grabbing"
+                    // 160px: caben tres controles de 44px, y una foto repetida
+                    // se distingue de otra de distinto tamaño a simple vista.
+                    className="w-40 cursor-grab active:cursor-grabbing"
                   >
-                    <div className="relative aspect-square w-28 overflow-hidden rounded-xl border border-line bg-line/40">
+                    <div className="relative aspect-square w-40 overflow-hidden rounded border border-line bg-line/40">
                       {f.url && (
-                        <Image
-                          src={f.url}
-                          alt={f.alt ?? telaNombre}
-                          fill
-                          sizes="112px"
-                          className="object-cover"
-                        />
+                        <Image src={f.url} alt={f.alt ?? telaNombre} fill sizes="160px" className="object-cover" />
                       )}
                       {idx === 0 && (
                         <span
-                          className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-lg bg-amber px-1.5 py-0.5 text-[10px] font-medium text-white"
+                          className="absolute left-1 top-1 inline-flex items-center gap-1 rounded bg-amber px-2 py-0.5 text-sm font-semibold text-white"
                           title="Foto principal"
                         >
-                          <Star className="h-3 w-3" aria-hidden /> Portada
+                          <Star className="size-4" aria-hidden /> Portada
                         </span>
                       )}
                     </div>
@@ -186,7 +202,7 @@ export function GaleriaFotos({
                         <input type="hidden" name="tela_id" value={telaId} />
                         <input type="hidden" name="direccion" value="subir" />
                         <BotonIcono etiqueta="Mover antes" deshabilitado={idx === 0}>
-                          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+                          <ArrowLeft className="size-5" aria-hidden />
                         </BotonIcono>
                       </form>
                       <form action={eliminarFoto}>
@@ -196,7 +212,7 @@ export function GaleriaFotos({
                           label="Borrar"
                           pendingLabel="…"
                           size="xs"
-                          mensaje="¿Eliminar esta foto? Se borra también del almacenamiento y no se puede deshacer."
+                          mensaje="¿Eliminar esta foto? Se borra también del almacenamiento (salvo lo que otra foto siga usando) y no se puede deshacer."
                         />
                       </form>
                       <form action={moverFoto}>
@@ -204,11 +220,8 @@ export function GaleriaFotos({
                         <input type="hidden" name="variante_id" value={v.id} />
                         <input type="hidden" name="tela_id" value={telaId} />
                         <input type="hidden" name="direccion" value="bajar" />
-                        <BotonIcono
-                          etiqueta="Mover después"
-                          deshabilitado={idx === lista.length - 1}
-                        >
-                          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                        <BotonIcono etiqueta="Mover después" deshabilitado={idx === lista.length - 1}>
+                          <ArrowRight className="size-5" aria-hidden />
                         </BotonIcono>
                       </form>
                     </div>
@@ -216,9 +229,9 @@ export function GaleriaFotos({
                     <button
                       type="button"
                       onClick={() => setModal({ fotoId: f.id, origenId: v.id })}
-                      className="mt-1 inline-flex h-7 w-full items-center justify-center gap-1 rounded-lg border border-line bg-surface text-[11px] font-medium text-ink/70 transition-colors hover:border-amber hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+                      className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded border border-line bg-surface text-base font-semibold text-ink-display transition-colors hover:border-heritage-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
                     >
-                      <ArrowsLeftRight className="h-3 w-3" aria-hidden />
+                      <ArrowsLeftRight className="size-5" aria-hidden />
                       Mover…
                     </button>
                   </li>
@@ -233,32 +246,27 @@ export function GaleriaFotos({
           "Mover…" de cada foto, que abre estos mismos destinos en el modal. */}
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div
-          {...propsZona("nueva", (a) =>
-            correr(() => moverFotoANuevaVariante(a.fotoId, telaId))
-          )}
-          className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-4 text-xs text-ink/60 transition-colors ${anillo(
+          {...propsZona("nueva", (a) => setModal({ ...a, pasoInicial: "color" }))}
+          className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-4 text-base text-ink-soft transition-colors ${anillo(
             "nueva"
           )}`}
         >
-          <Plus className="h-4 w-4 shrink-0" aria-hidden />
+          <Plus className="size-5 shrink-0" aria-hidden />
           Suelta aquí para darle su propio color
         </div>
         <div
           {...propsZona("otro", (a) => setModal(a))}
-          className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-4 text-xs text-ink/60 transition-colors ${anillo(
+          className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-4 text-base text-ink-soft transition-colors ${anillo(
             "otro"
           )}`}
         >
-          <ArrowsLeftRight className="h-4 w-4 shrink-0" aria-hidden />
+          <ArrowsLeftRight className="size-5 shrink-0" aria-hidden />
           Suelta aquí para mandarla a otro producto
         </div>
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-        >
+        <p role="alert" className="mt-3 rounded border border-peligro/30 bg-peligro-suave px-3 py-2 text-base text-peligro">
           {error}
         </p>
       )}
@@ -266,10 +274,14 @@ export function GaleriaFotos({
       {modal && (
         <MoverFotoModal
           fotoId={modal.fotoId}
+          fotoUrl={fotoDelModal?.url ?? null}
           telaId={telaId}
-          hermanas={variantes
-            .filter((v) => v.id !== modal.origenId)
-            .map((v) => ({ id: v.id, nombre: v.nombre, hex: v.hex }))}
+          telaNombre={telaNombre}
+          placeholderMedida={placeholderMedida}
+          variantesProducto={variantes.map((v) => ({ id: v.id, nombre: v.nombre, hex: v.hex, colorId: v.colorId }))}
+          origenId={modal.origenId}
+          colores={colores}
+          pasoInicial={modal.pasoInicial}
           onCerrar={() => setModal(null)}
           onHecho={() => {
             setModal(null);
@@ -281,7 +293,7 @@ export function GaleriaFotos({
   );
 }
 
-/** Botón compacto de submit para reordenar fotos dentro de su color. */
+/** Botón de submit con solo icono para reordenar fotos dentro de su color. */
 function BotonIcono({
   etiqueta,
   deshabilitado,
@@ -297,7 +309,7 @@ function BotonIcono({
       disabled={deshabilitado}
       aria-label={etiqueta}
       title={etiqueta}
-      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-surface text-ink/70 transition-colors hover:bg-surface-high hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex size-11 items-center justify-center rounded border border-line bg-surface text-ink-display transition-colors hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

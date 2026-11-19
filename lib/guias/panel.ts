@@ -48,6 +48,22 @@ export const guiaPanel: Guia = {
         "[[SKU]] es el código de la etiqueta. Si un producto no lo tiene, déjalo vacío: no lo inventes.",
         "Con el precio vacío, el catálogo dice que es a consultar. No es lo mismo que poner 0.",
         "[[Eliminar variante]] borra ese color y sus fotos, y no se puede deshacer.",
+        "[[Para corregir]] deja solo los productos que tienen algo que acomodar. Desaparecen solos en cuanto se corrigen.",
+      ],
+    },
+    {
+      titulo: "Acomodar fotos repetidas o de otro tamaño",
+      pasos: [
+        "En [[Artículos]], toca [[Para corregir]]: quedan solo los productos con algo pendiente.",
+        "Abre el producto. El recuadro [[Para corregir en este producto]] dice qué tiene cada color y la nota de revisión, si la hay.",
+        "Si una foto está repetida, tócale [[Borrar]].",
+        "Si es el mismo artículo en otro tamaño, tócale [[Mover…]], busca el producto de esa medida y toca [[Nuevo color aquí]]. Elige su color y escribe su [[Medida]]. Si el producto no existe, créalo ahí mismo.",
+        "Si un color completo, con su código y su precio, quedó en el producto equivocado, usa [[Mover a otro producto…]]. Se lleva todo y no se borra nada.",
+        "Al terminar, borra la [[Nota de revisión]] de ese color y toca [[Guardar este color]].",
+      ],
+      notas: [
+        "Otro tamaño es otro producto: en el catálogo, cada producto solo cambia de color.",
+        "La pantalla no deja repetir un color dentro del mismo producto: si ya existe, la foto se suma a ese color.",
       ],
     },
     {
@@ -79,7 +95,7 @@ export const guiaPanel: Guia = {
       pasos: [
         "Abre el producto y busca el color. En [[Agregar fotos]] elige las fotos y toca [[Subir fotos]].",
         "La primera foto de cada color es su portada: es la que sale en el catálogo.",
-        "Usa [[Mover antes]] y [[Mover después]] para cambiar el orden. Con [[Mover…]] pasas una foto a otro color o a otro producto sin volver a subirla.",
+        "Usa [[Mover antes]] y [[Mover después]] para cambiar el orden. Con [[Mover…]] pasas una foto a otro color o a otro producto sin volver a subirla; si va a un color nuevo, eliges su color y su medida.",
       ],
       capturas: [
         {

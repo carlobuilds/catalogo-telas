@@ -6,7 +6,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSesionAdmin } from "@/lib/admin-auth";
-import { STORAGE_BUCKET, rutasDerivados, rutasMascara } from "@/lib/supabase/storage";
+import { STORAGE_BUCKET, baseDeRuta, rutasQueSePuedenBorrar } from "@/lib/supabase/storage";
 import { procesarFoto } from "@/lib/images/derivados";
 import { generarYGuardarMascara } from "@/lib/images/mascara";
 import { esContenedor } from "@/lib/fondo-blanco";
@@ -26,6 +26,17 @@ import {
 } from "@/lib/admin/campos";
 import { esTablaFaltante, reemplazarCategoriasExtra } from "@/lib/categorias-extra";
 import { mensajeDeError, type EstadoGuardado } from "@/lib/estado-guardado";
+import { etiquetaVariante } from "@/lib/admin/variantes";
+import {
+  elegirUnidad,
+  filaNuevaVariante,
+  revisarChoque,
+  revisarMoverVariante,
+  siguienteOrden,
+  validarOpciones,
+  type OpcionesNuevaVariante,
+  type VarianteDestino,
+} from "@/lib/admin/mover-foto";
 import type { DerivadosFoto } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -381,6 +392,50 @@ export async function actualizarVarianteDetalle(formData: FormData): Promise<Est
   return { ok: true };
 }
 
+/**
+ * Archivos del bucket que se pueden quitar junto con estas fotos: los que
+ * ninguna OTRA fila de `foto` sigue usando (misma ruta, o misma base, que
+ * comparte derivados). La regla vive en `rutasQueSePuedenBorrar`; aquí solo se
+ * buscan las candidatas a compartir.
+ *
+ * Falla CERRADO: si la consulta falla devuelve `null` y no se borra ningún
+ * archivo. Un archivo huérfano solo ocupa espacio; uno borrado de más deja una
+ * foto rota en el catálogo.
+ */
+async function rutasLibresParaBorrar(
+  supabase: ReturnType<typeof createAdminClient>,
+  fotos: { id: string; ruta: string }[]
+): Promise<string[] | null> {
+  if (!fotos.length) return [];
+  const ids = new Set(fotos.map((f) => f.id));
+  const bases = [...new Set(fotos.map((f) => baseDeRuta(f.ruta)))];
+
+  // `like 'base.%'` atrapa "base.jpg", "base.webp"… Un `_` o `%` en el nombre
+  // hace que el patrón atrape DE MÁS, nunca de menos: la comparación exacta
+  // la hace la función pura.
+  // Filtros simples y no `.or()`: un paréntesis o una coma en el nombre ("flor
+  // (2).jpg") rompe la sintaxis de `.or()` de PostgREST. La variante con barra
+  // inicial cubre rutas viejas guardadas como "/carpeta/foto.jpg".
+  const respuestas = await Promise.all(
+    bases.flatMap((base) => [
+      supabase.from("foto").select("id, ruta").like("ruta", `${base}.%`),
+      supabase.from("foto").select("id, ruta").like("ruta", `/${base}.%`),
+    ])
+  );
+  if (respuestas.some((r) => r.error)) {
+    console.error(
+      "No se pudo verificar qué archivos comparten las fotos; no se borra ninguno del bucket.",
+      respuestas.find((r) => r.error)?.error
+    );
+    return null;
+  }
+
+  const quedan = respuestas
+    .flatMap((r) => (r.data ?? []) as { id: string; ruta: string }[])
+    .filter((f) => !ids.has(f.id));
+  return rutasQueSePuedenBorrar(fotos, quedan);
+}
+
 export async function eliminarVariante(formData: FormData) {
   await requireAdmin();
   const varianteId = requireUuid(formData.get("variante_id"), "variante");
@@ -395,12 +450,9 @@ export async function eliminarVariante(formData: FormData) {
     .select("id, ruta")
     .eq("variante_id", varianteId);
 
-  const rutas = (fotos ?? []).flatMap((f) => [
-    f.ruta,
-    ...rutasDerivados(f.ruta),
-    ...rutasMascara(f.id),
-  ]);
-  if (rutas.length) {
+  // Solo los archivos que ninguna otra foto usa (ver `rutasQueSePuedenBorrar`).
+  const rutas = await rutasLibresParaBorrar(supabase, fotos ?? []);
+  if (rutas?.length) {
     await supabase.storage.from(STORAGE_BUCKET).remove(rutas);
   }
 
@@ -668,15 +720,17 @@ export async function eliminarFoto(formData: FormData) {
   const telaId = requireUuid(formData.get("tela_id"), "tela");
 
   const supabase = createAdminClient();
-  const { data: foto } = await supabase.from("foto").select("ruta").eq("id", fotoId).single();
+  const { data: foto } = await supabase.from("foto").select("id, ruta").eq("id", fotoId).single();
+
+  // Se calcula ANTES de borrar la fila: qué archivos son solo de esta foto.
+  // Una "repetida" puede compartir original o derivados con la que se queda.
+  const rutas = foto ? await rutasLibresParaBorrar(supabase, [foto]) : null;
 
   const { error } = await supabase.from("foto").delete().eq("id", fotoId);
   if (error) throw new Error(`No se pudo eliminar la foto: ${error.message}`);
 
-  if (foto?.ruta) {
-    await supabase.storage
-      .from(STORAGE_BUCKET)
-      .remove([foto.ruta, ...rutasDerivados(foto.ruta), ...rutasMascara(fotoId)]);
+  if (rutas?.length) {
+    await supabase.storage.from(STORAGE_BUCKET).remove(rutas);
   }
 
   refrescarCatalogo(telaId);
@@ -784,6 +838,10 @@ async function moverFilaFoto(
     .from("foto")
     .update({ variante_id: varianteDestinoId, orden: (ultima?.[0]?.orden ?? -1) + 1 })
     .eq("id", fotoId);
+  if (error?.code === "23505") {
+    // unique(variante_id, ruta): ese color ya tiene ESTE MISMO archivo.
+    return { error: "Ese color ya tiene esta misma foto (es una repetida). Bórrala en lugar de moverla." };
+  }
   if (error) return { error: `No se pudo mover la foto: ${error.message}` };
 
   return { telas };
@@ -813,30 +871,148 @@ export async function moverFotoAVariante(
 }
 
 /**
- * Crea una variante VACÍA en `telaId` y le mueve la foto. Es el caso de la
- * captura equivocada: la foto era un color propio y nunca tuvo variante. Se
- * crea sin precio ni color a propósito —la tienda los llena en el editor, que
- * es donde ve el producto completo—; heredarlos del origen inventaría datos.
- *
- * Sirve para "nueva variante de ESTE producto" y para "nueva variante en OTRO
- * producto": la diferencia es solo qué `telaId` manda el llamador.
+ * Lo que devuelven las acciones de reacomodo. Además del error, dicen CÓMO
+ * salir de él: `varianteExistenteId` = "ese color ya está, mueve ahí";
+ * `colorExistente` = "ese nombre de color ya existe, elígelo".
  */
-export async function moverFotoANuevaVariante(
-  fotoId: string,
-  telaId: string
-): Promise<{ error?: string }> {
-  await requireAdmin();
-  if (!UUID_RE.test(fotoId)) return { error: "Identificador de foto inválido." };
-  if (!UUID_RE.test(telaId)) return { error: "Identificador de producto inválido." };
+export type ResultadoMover = {
+  error?: string;
+  varianteExistenteId?: string;
+  colorExistente?: { id: string; nombre: string; hex: string | null };
+};
 
-  const supabase = createAdminClient();
+type Supabase = ReturnType<typeof createAdminClient>;
+
+/** El embed de PostgREST llega como objeto o como arreglo según la versión. */
+function primero<T>(x: T | T[] | null | undefined): T | null {
+  return (Array.isArray(x) ? x[0] : x) ?? null;
+}
+
+/**
+ * Variantes de un producto con lo que piden las reglas de reacomodo. `orden`
+ * solo existe tras la sección 11 del SQL: sin ella se lee sin él (42703).
+ */
+async function leerVariantesDestino(
+  supabase: Supabase,
+  telaId: string
+): Promise<{ variantes: VarianteDestino[]; conOrden: boolean; error?: string }> {
+  const { data, error } = await supabase
+    .from("variante")
+    .select("id, color_id, unidad_venta, orden")
+    .eq("tela_id", telaId);
+  if (error?.code === "42703") {
+    const r = await supabase.from("variante").select("id, color_id, unidad_venta").eq("tela_id", telaId);
+    if (r.error) return { variantes: [], conOrden: false, error: r.error.message };
+    return {
+      variantes: (r.data ?? []).map((v) => ({ ...(v as Omit<VarianteDestino, "orden">), orden: null })),
+      conOrden: false,
+    };
+  }
+  if (error) return { variantes: [], conOrden: true, error: error.message };
+  return { variantes: (data ?? []) as VarianteDestino[], conOrden: true };
+}
+
+/** Nombre y categoría (slug) de un producto. */
+async function leerProducto(
+  supabase: Supabase,
+  telaId: string
+): Promise<{ nombre: string; categoriaId: string | null; categoriaSlug: string | null } | null> {
+  const { data } = await supabase
+    .from("tela")
+    .select("nombre, categoria_id, categoria(slug)")
+    .eq("id", telaId)
+    .single();
+  if (!data) return null;
+  return {
+    nombre: data.nombre as string,
+    categoriaId: (data.categoria_id as string | null) ?? null,
+    categoriaSlug: primero(data.categoria as { slug: string } | { slug: string }[] | null)?.slug ?? null,
+  };
+}
+
+/**
+ * Da de alta un color nuevo. Solo INSERTA: si el nombre ya existe devuelve ese
+ * color para que la tienda lo elija, en vez de "actualizarlo" — un upsert por
+ * slug le cambiaría el tono a todos los productos que ya lo usan.
+ */
+async function crearColor(
+  supabase: Supabase,
+  nombre: string,
+  hex: string
+): Promise<{ id?: string; error?: string; colorExistente?: ResultadoMover["colorExistente"] }> {
+  const slug = slugify(nombre);
+  if (!slug) return { error: "El nombre del color debe tener letras o números." };
+  const { data, error } = await supabase.from("color").insert({ nombre, slug, hex }).select("id").single();
+  if (error?.code === "23505") {
+    const { data: ya } = await supabase.from("color").select("id, nombre, hex").eq("slug", slug).maybeSingle();
+    return {
+      error: `Ya existe el color “${ya?.nombre ?? nombre}”. Elígelo de la lista.`,
+      colorExistente: ya ? { id: ya.id as string, nombre: ya.nombre as string, hex: (ya.hex as string | null) ?? null } : undefined,
+    };
+  }
+  if (error || !data) return { error: `No se pudo crear el color: ${error?.message ?? "sin datos"}.` };
+  return { id: data.id as string };
+}
+
+/**
+ * Crea la variante nueva —con su color, su medida y la unidad que le toca—
+ * en `telaId` y le mueve la foto. Antes nacía sin color y en "metro": en la
+ * ficha no se veía y una flor salía cobrada por metro.
+ *
+ * Nunca copia precio, código ni existencia del origen (ver
+ * `filaNuevaVariante`): otro tamaño es otro precio y otro código.
+ */
+async function crearVarianteYMover(
+  supabase: Supabase,
+  fotoId: string,
+  telaId: string,
+  opciones: OpcionesNuevaVariante
+): Promise<ResultadoMover & { telas?: string[] }> {
+  const { data: foto } = await supabase
+    .from("foto")
+    .select("variante_id, variante(unidad_venta)")
+    .eq("id", fotoId)
+    .single();
+  if (!foto) return { error: "Esa foto ya no existe. Recarga la página." };
+  const unidadOrigen =
+    primero(foto.variante as { unidad_venta: string | null } | { unidad_venta: string | null }[] | null)
+      ?.unidad_venta ?? null;
+
+  const [destino, producto] = await Promise.all([
+    leerVariantesDestino(supabase, telaId),
+    leerProducto(supabase, telaId),
+  ]);
+  if (destino.error) return { error: `No se pudieron leer los colores del producto: ${destino.error}` };
+  if (!producto) return { error: "Ese producto ya no existe. Recarga la página." };
+
+  const choque = revisarChoque(destino.variantes, opciones.color, `“${producto.nombre}”`);
+  if (!choque.ok) return { error: choque.error, varianteExistenteId: choque.varianteExistenteId };
+
+  let colorId: string | null = null;
+  if (opciones.color.tipo === "existente") colorId = opciones.color.colorId;
+  if (opciones.color.tipo === "nuevo") {
+    const nuevo = await crearColor(supabase, opciones.color.nombre, opciones.color.hex);
+    if (!nuevo.id) return { error: nuevo.error, colorExistente: nuevo.colorExistente };
+    colorId = nuevo.id;
+  }
+
+  const fila = filaNuevaVariante({
+    telaId,
+    colorId,
+    medida: opciones.medida,
+    unidad: elegirUnidad(destino.variantes, unidadOrigen, producto.categoriaSlug),
+    orden: siguienteOrden(destino.variantes),
+  });
+  // Sin la sección 11 del SQL no hay columna `orden`: se inserta sin ella.
+  const { orden, ...sinOrden } = fila;
+  const alta: Record<string, unknown> = destino.conOrden ? { ...sinOrden, orden } : sinOrden;
   const { data: variante, error: errorAlta } = await supabase
     .from("variante")
-    .insert({ tela_id: telaId })
+    .insert(alta)
     .select("id")
     .single();
   if (errorAlta || !variante) {
-    return { error: `No se pudo crear la variante: ${errorAlta?.message ?? "sin datos"}.` };
+    return { error: `No se pudo crear el color: ${errorAlta?.message ?? "sin datos"}.` };
   }
 
   const { error, telas } = await moverFilaFoto(supabase, fotoId, variante.id);
@@ -846,37 +1022,175 @@ export async function moverFotoANuevaVariante(
     await supabase.from("variante").delete().eq("id", variante.id);
     return { error };
   }
+  return { telas };
+}
+
+/**
+ * Manda la foto a un color NUEVO de `telaId` (este producto u otro), con el
+ * color y la medida que eligió la tienda en el modal. Es el caso de la captura
+ * equivocada: la foto era otro color, u otro tamaño que vive en otro producto.
+ */
+export async function moverFotoANuevaVariante(
+  fotoId: string,
+  telaId: string,
+  entrada: unknown
+): Promise<ResultadoMover> {
+  await requireAdmin();
+  if (!UUID_RE.test(fotoId)) return { error: "Identificador de foto inválido." };
+  if (!UUID_RE.test(telaId)) return { error: "Identificador de producto inválido." };
+  const validas = validarOpciones(entrada);
+  if (!validas.ok) return { error: validas.error };
+
+  const supabase = createAdminClient();
+  const { telas, ...resultado } = await crearVarianteYMover(supabase, fotoId, telaId, validas.opciones);
+  if (resultado.error) return resultado;
 
   refrescarTelas(telas);
   return {};
 }
 
-/** Crea un producto nuevo (modelo + una variante vacía) y le mueve la foto. */
+/**
+ * Crea un producto nuevo y le manda la foto como su primer color. Hereda la
+ * CATEGORÍA del producto de origen: casi siempre es la misma familia ("Flor
+ * con piedra 5 cm" sale de "Flor con piedra 3 cm"), y sin categoría el
+ * producto no entraría a ninguna sección de Mercería. Se cambia en el editor.
+ */
 export async function crearProductoYMoverFoto(
   fotoId: string,
-  nombre: string
-): Promise<{ error?: string; telaId?: string }> {
+  nombre: string,
+  entrada: unknown
+): Promise<ResultadoMover & { telaId?: string }> {
   await requireAdmin();
   if (!UUID_RE.test(fotoId)) return { error: "Identificador de foto inválido." };
+  const validas = validarOpciones(entrada);
+  if (!validas.ok) return { error: validas.error };
 
   const supabase = createAdminClient();
-  const { id, error: errorTela } = await insertarTelaVacia(supabase, { nombre });
+  const { data: foto } = await supabase
+    .from("foto")
+    .select("variante(tela_id)")
+    .eq("id", fotoId)
+    .single();
+  const telaOrigen = primero(foto?.variante as { tela_id: string } | { tela_id: string }[] | null)?.tela_id;
+  const origen = telaOrigen ? await leerProducto(supabase, telaOrigen) : null;
+
+  const { id, error: errorTela } = await insertarTelaVacia(supabase, {
+    nombre,
+    categoria_id: origen?.categoriaId ?? null,
+  });
   if (!id) return { error: errorTela ?? "No se pudo crear el producto." };
 
-  const { error } = await moverFotoANuevaVariante(fotoId, id);
-  if (error) {
-    // Igual que arriba: sin la foto, el producto recién creado sobra.
+  const { telas, ...resultado } = await crearVarianteYMover(supabase, fotoId, id, validas.opciones);
+  if (resultado.error) {
+    // Sin la foto, el producto recién creado (vacío, de este mismo clic) sobra.
     await supabase.from("tela").delete().eq("id", id);
-    return { error };
+    return resultado;
   }
 
+  refrescarTelas(telas);
   return { telaId: id };
 }
 
-/** Productos cuyo nombre contiene `termino`, para el buscador del modal. */
-export async function buscarProductos(
-  termino: string
-): Promise<{ productos: { id: string; nombre: string; categoria: string | null }[]; error?: string }> {
+/**
+ * Mueve un color COMPLETO —con su código, precio, existencia, fotos y kardex—
+ * a otro producto. Solo cambia `variante.tela_id` (y su lugar en el orden): no
+ * se copia ni se borra nada. Es para cuando un artículo ya capturado quedó en
+ * el producto de otro tamaño.
+ */
+async function moverVarianteInterno(
+  supabase: Supabase,
+  varianteId: string,
+  telaDestinoId: string
+): Promise<ResultadoMover & { telas?: string[] }> {
+  const { data: variante } = await supabase
+    .from("variante")
+    .select("id, tela_id, color_id")
+    .eq("id", varianteId)
+    .single();
+  if (!variante) return { error: "Ese color ya no existe. Recarga la página." };
+  const telaOrigen = variante.tela_id as string;
+
+  const [{ count: enOrigen }, destino, producto] = await Promise.all([
+    supabase.from("variante").select("id", { count: "exact", head: true }).eq("tela_id", telaOrigen),
+    leerVariantesDestino(supabase, telaDestinoId),
+    leerProducto(supabase, telaDestinoId),
+  ]);
+  if (destino.error) return { error: `No se pudieron leer los colores del producto: ${destino.error}` };
+  if (!producto) return { error: "Ese producto ya no existe. Recarga la página." };
+
+  const revision = revisarMoverVariante({
+    variantesEnOrigen: enOrigen ?? 0,
+    mismoProducto: telaOrigen === telaDestinoId,
+    colorId: (variante.color_id as string | null) ?? null,
+    destino: destino.variantes,
+    nombreDestino: `“${producto.nombre}”`,
+  });
+  if (!revision.ok) return { error: revision.error, varianteExistenteId: revision.varianteExistenteId };
+
+  const cambio = destino.conOrden
+    ? { tela_id: telaDestinoId, orden: siguienteOrden(destino.variantes) }
+    : { tela_id: telaDestinoId };
+  // `.eq("tela_id", origen)`: si otra pestaña ya la movió, no se pisa.
+  const { error, count } = await supabase
+    .from("variante")
+    .update(cambio, { count: "exact" })
+    .eq("id", varianteId)
+    .eq("tela_id", telaOrigen);
+  if (error) return { error: `No se pudo mover el color: ${error.message}` };
+  if (!count) return { error: "Ese color ya cambió de producto. Recarga la página." };
+
+  return { telas: [telaOrigen, telaDestinoId] };
+}
+
+/** Mueve un color completo a otro producto que ya existe. */
+export async function moverVarianteAProducto(
+  varianteId: string,
+  telaDestinoId: string
+): Promise<ResultadoMover> {
+  await requireAdmin();
+  if (!UUID_RE.test(varianteId)) return { error: "Identificador de color inválido." };
+  if (!UUID_RE.test(telaDestinoId)) return { error: "Identificador de producto inválido." };
+
+  const supabase = createAdminClient();
+  const { telas, ...resultado } = await moverVarianteInterno(supabase, varianteId, telaDestinoId);
+  if (resultado.error) return resultado;
+  refrescarTelas(telas);
+  return {};
+}
+
+/** Crea un producto (con la categoría del de origen) y le mueve el color completo. */
+export async function crearProductoYMoverVariante(
+  varianteId: string,
+  nombre: string
+): Promise<ResultadoMover & { telaId?: string }> {
+  await requireAdmin();
+  if (!UUID_RE.test(varianteId)) return { error: "Identificador de color inválido." };
+
+  const supabase = createAdminClient();
+  const { data: variante } = await supabase.from("variante").select("tela_id").eq("id", varianteId).single();
+  if (!variante) return { error: "Ese color ya no existe. Recarga la página." };
+  const origen = await leerProducto(supabase, variante.tela_id as string);
+
+  const { id, error: errorTela } = await insertarTelaVacia(supabase, {
+    nombre,
+    categoria_id: origen?.categoriaId ?? null,
+  });
+  if (!id) return { error: errorTela ?? "No se pudo crear el producto." };
+
+  const { telas, ...resultado } = await moverVarianteInterno(supabase, varianteId, id);
+  if (resultado.error) {
+    await supabase.from("tela").delete().eq("id", id);
+    return resultado;
+  }
+  refrescarTelas(telas);
+  return { telaId: id };
+}
+
+/** Productos cuyo nombre contiene `termino`, para el buscador de los modales. */
+export async function buscarProductos(termino: string): Promise<{
+  productos: { id: string; nombre: string; categoria: string | null }[];
+  error?: string;
+}> {
   await requireAdmin();
 
   const texto = termino.trim();
@@ -898,43 +1212,46 @@ export async function buscarProductos(
     productos: (data ?? []).map((t) => ({
       id: t.id as string,
       nombre: t.nombre as string,
-      // El embed de PostgREST llega como objeto o como arreglo según la
-      // versión; se normaliza aquí y no en la UI.
-      categoria:
-        (Array.isArray(t.categoria) ? t.categoria[0]?.nombre : (t.categoria as { nombre?: string } | null)?.nombre) ??
-        null,
+      categoria: primero(t.categoria as { nombre?: string } | { nombre?: string }[] | null)?.nombre ?? null,
     })),
   };
 }
 
-/** Variantes de un producto, para elegir destino en el modal. */
-export async function variantesDeProducto(
-  telaId: string
-): Promise<{ variantes: { id: string; nombre: string; hex: string | null }[]; error?: string }> {
+/**
+ * Colores de un producto, para elegir destino en el modal. La etiqueta suma
+ * medida y código (`etiquetaVariante`): dos variantes sin color, o dos
+ * tamaños, ya no salen idénticas.
+ */
+export async function variantesDeProducto(telaId: string): Promise<{
+  variantes: { id: string; nombre: string; hex: string | null; colorId: string | null }[];
+  error?: string;
+}> {
   await requireAdmin();
   if (!UUID_RE.test(telaId)) return { variantes: [], error: "Identificador de producto inválido." };
 
   const supabase = createAdminClient();
-  // Se lee la VISTA y no `variante` para traer el nombre y el hex del color ya
-  // resueltos. Se ordena por nombre de color y no por `variante_orden`: esa
-  // columna puede no existir todavía (sección 11 del SQL) y aquí el orden solo
-  // decide en qué fila aparece un botón.
   const { data, error } = await supabase
-    .from("catalogo_telas")
-    .select("variante_id, color_nombre, color_hex, sku")
+    .from("variante")
+    .select("id, sku, medida, color_id, color(nombre, hex)")
     .eq("tela_id", telaId)
-    .order("color_nombre", { ascending: true });
+    .order("created_at", { ascending: true });
 
   if (error) return { variantes: [], error: `No se pudieron leer los colores: ${error.message}` };
 
   return {
-    variantes: (data ?? []).map((v) => ({
-      id: v.variante_id as string,
-      nombre:
-        (v.color_nombre as string | null) ??
-        (v.sku ? `SKU ${v.sku}` : "Sin color"),
-      hex: (v.color_hex as string | null) ?? null,
-    })),
+    variantes: (data ?? []).map((v) => {
+      const color = primero(v.color as { nombre: string; hex: string | null } | { nombre: string; hex: string | null }[] | null);
+      return {
+        id: v.id as string,
+        nombre: etiquetaVariante({
+          colorNombre: color?.nombre,
+          sku: v.sku as string | null,
+          medida: v.medida as string | null,
+        }),
+        hex: color?.hex ?? null,
+        colorId: (v.color_id as string | null) ?? null,
+      };
+    }),
   };
 }
 

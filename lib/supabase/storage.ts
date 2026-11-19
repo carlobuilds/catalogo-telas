@@ -24,8 +24,16 @@ export type TamanoDerivado = (typeof TAMANOS_DERIVADOS)[number];
  * El prefijo `derivados/` se puede borrar completo sin tocar originales.
  */
 export function rutaDerivado(ruta: string, tamano: TamanoDerivado): string {
-  const sinExt = ruta.replace(/^\/+/, "").replace(/\.[^./]+$/, "");
-  return `derivados/${tamano}/${sinExt}.webp`;
+  return `derivados/${tamano}/${baseDeRuta(ruta)}.webp`;
+}
+
+/**
+ * Lo que un original comparte con sus derivados: la ruta sin barra inicial ni
+ * extensión. "a.jpg" y "a.webp" dan lo mismo, así que sus derivados son LOS
+ * MISMOS archivos (por eso `rutasQueSePuedenBorrar` existe).
+ */
+export function baseDeRuta(ruta: string): string {
+  return ruta.replace(/^\/+/, "").replace(/\.[^./]+$/, "");
 }
 
 /** Las tres rutas derivadas de un original (para borrarlas junto con él). */
@@ -51,6 +59,42 @@ export function rutaMascara(fotoId: string, tamano: TamanoMascara): string {
 /** Las rutas de máscara de una foto (para borrarlas junto con ella). */
 export function rutasMascara(fotoId: string): string[] {
   return TAMANOS_MASCARA.map((t) => rutaMascara(fotoId, t));
+}
+
+/**
+ * Qué archivos del bucket se pueden quitar al borrar unas fotos SIN dejar rota
+ * ninguna de las que se quedan.
+ *
+ * Borrar una foto no siempre es dueña de sus archivos:
+ *  - Otra fila de `foto` puede apuntar a la MISMA ruta (`foto` solo exige
+ *    `unique(variante_id, ruta)`; pasa al mover una foto y re-correr la ingesta).
+ *  - "x.jpg" y "x.webp" comparten derivados (`rutaDerivado` quita la
+ *    extensión), y la ingesta llegó a subir esas parejas como fotos repetidas.
+ * Borrar la "repetida" a ciegas dejaba a la otra sin sus tamaños sm/md/lg.
+ *
+ * Las máscaras van por id de foto, así que esas siempre se van.
+ *
+ * @param borradas Fotos cuyas filas se eliminan.
+ * @param quedan   Otras fotos que podrían compartir archivos (basta con las
+ *                 que tengan la misma base; las demás no estorban).
+ */
+export function rutasQueSePuedenBorrar(
+  borradas: { id: string; ruta: string }[],
+  quedan: { ruta: string }[]
+): string[] {
+  const limpia = (r: string) => r.replace(/^\/+/, "");
+  const originalesEnUso = new Set(quedan.map((q) => limpia(q.ruta)));
+  const basesEnUso = new Set(quedan.map((q) => baseDeRuta(q.ruta)));
+
+  const rutas = new Set<string>();
+  for (const f of borradas) {
+    if (!originalesEnUso.has(limpia(f.ruta))) rutas.add(f.ruta);
+    if (!basesEnUso.has(baseDeRuta(f.ruta))) {
+      for (const d of rutasDerivados(f.ruta)) rutas.add(d);
+    }
+    for (const m of rutasMascara(f.id)) rutas.add(m);
+  }
+  return [...rutas];
 }
 
 /**

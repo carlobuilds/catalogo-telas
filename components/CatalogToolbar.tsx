@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { LinkSinSalto } from "@/components/LinkSinSalto";
 import { X, CheckCircle, SlidersHorizontal } from "@/components/ui/iconos";
 import { SearchBar } from "@/components/SearchBar";
 import { ColorSwatch } from "@/components/ColorSwatch";
@@ -174,15 +175,14 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
             )}
 
             {(activos > 0 || filtros.q) && (
-              <Link
+              <LinkSinSalto
                 href={base}
-                scroll={false}
                 aria-label="Limpiar búsqueda y filtros"
                 className="inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded border border-amber/40 bg-surface-container-lowest/80 px-3 text-sm font-bold text-amber shadow-xs transition-all hover:bg-surface-container hover:border-amber active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
               >
                 <X className="h-4 w-4" aria-hidden />
                 <span className="hidden sm:inline" aria-hidden>Limpiar</span>
-              </Link>
+              </LinkSinSalto>
             )}
           </div>
         </div>
@@ -201,28 +201,26 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
               ref={filaSecciones}
               className="relative -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:px-0 no-scrollbar"
             >
-              <Link
+              <LinkSinSalto
                 href={ruta({ ...filtros, seccion: null, categorias: [] })}
-                scroll={false}
                 aria-current={!seccionActiva ? "true" : undefined}
                 className={claseChip(!seccionActiva, true)}
               >
                 Todo
                 <Conteo n={facetas.porCatalogo.merceria} activo={!seccionActiva} />
-              </Link>
+              </LinkSinSalto>
               {facetas.secciones.map((s) => {
                 const activo = seccionActiva?.slug === s.slug;
                 return (
-                  <Link
+                  <LinkSinSalto
                     key={s.slug}
                     href={ruta({ ...filtros, seccion: s.slug, categorias: [] })}
-                    scroll={false}
                     aria-current={activo ? "true" : undefined}
                     className={claseChip(activo, true)}
                   >
                     {s.nombre}
                     <Conteo n={s.conteo} activo={activo} />
-                  </Link>
+                  </LinkSinSalto>
                 );
               })}
             </div>
@@ -244,30 +242,28 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
             <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:px-0 no-scrollbar">
               {/* Chip "Todos": en Mercería ese papel lo hace la sección. */}
               {catalogo === "telas" && (
-                <Link
+                <LinkSinSalto
                   href={ruta({ ...filtros, categorias: [] })}
-                  scroll={false}
                   aria-current={filtros.categorias.length === 0 ? "true" : undefined}
                   className={claseChip(filtros.categorias.length === 0)}
                 >
                   Todos
-                </Link>
+                </LinkSinSalto>
               )}
 
               {/* Categorías */}
               {chipsCategoria.map((c) => {
                 const activo = filtros.categorias.includes(c.slug);
                 return (
-                  <Link
+                  <LinkSinSalto
                     key={c.slug}
                     href={href("categorias", c.slug)}
-                    scroll={false}
                     aria-current={activo ? "true" : undefined}
                     className={claseChip(activo)}
                   >
                     <span>{c.nombre}</span>
                     {c.conteo != null && <Conteo n={c.conteo} activo={activo} />}
-                  </Link>
+                  </LinkSinSalto>
                 );
               })}
             </div>
@@ -310,10 +306,9 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                   {facetas.colores.map((c) => {
                     const activo = filtros.colores.includes(c.slug);
                     return (
-                      <Link
+                      <LinkSinSalto
                         key={c.slug}
                         href={href("colores", c.slug)}
-                        scroll={false}
                         aria-current={activo ? "true" : undefined}
                         className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded px-3 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                           activo
@@ -334,7 +329,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                             {c.conteo}
                           </span>
                         )}
-                      </Link>
+                      </LinkSinSalto>
                     );
                   })}
                 </div>
@@ -350,10 +345,9 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                   {facetas.propiedades.map((p) => {
                     const activo = filtros.propiedades.includes(p.clave as never);
                     return (
-                      <Link
+                      <LinkSinSalto
                         key={p.clave}
                         href={href("propiedades", p.clave)}
-                        scroll={false}
                         aria-current={activo ? "true" : undefined}
                         className={`inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded px-3 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                           activo
@@ -371,7 +365,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                             {p.conteo}
                           </span>
                         )}
-                      </Link>
+                      </LinkSinSalto>
                     );
                   })}
                 </div>
@@ -384,12 +378,11 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                   Disponibilidad
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  <Link
+                  <LinkSinSalto
                     href={ruta({
                       ...filtros,
                       soloDisponibles: !filtros.soloDisponibles,
                     })}
-                    scroll={false}
                     aria-current={filtros.soloDisponibles ? "true" : undefined}
                     className={`inline-flex min-h-[44px] items-center gap-1.5 rounded px-3 text-sm font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy ${
                       filtros.soloDisponibles
@@ -399,7 +392,7 @@ export function CatalogToolbar({ catalogo, filtros, facetas }: CatalogToolbarPro
                   >
                     <CheckCircle className="size-4.5" />
                     <span>Solo con existencia inmediata</span>
-                  </Link>
+                  </LinkSinSalto>
                 </div>
               </div>
             )}

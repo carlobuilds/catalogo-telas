@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Image as ImageIcon, ImageBroken, PencilSimple, MagnifyingGlass } from "@/components/ui/iconos";
+import { Image as ImageIcon, ImageBroken, PencilSimple, MagnifyingGlass, Warning, X } from "@/components/ui/iconos";
 import { exigirAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicImageUrl } from "@/lib/supabase/storage";
@@ -9,6 +9,7 @@ import { ColorSwatch } from "@/components/ColorSwatch";
 import { EncabezadoPagina } from "@/components/admin/EncabezadoPagina";
 import { contarFotosPorVariante } from "@/lib/fotos";
 import { agruparPorModelo, type CatalogoTela, type TelaAgrupada } from "@/lib/types";
+import { motivosPorVariante, politicaDeProducto, resumenDeMotivos } from "@/lib/admin/sospechosos";
 
 export const metadata: Metadata = {
   title: "Admin — Telas La Jalisciense",
@@ -24,6 +25,29 @@ const MAX_SWATCHES = 12;
  * recorrerla (el grid público pagina de 48 por lo mismo).
  */
 const MAX_PRODUCTOS_BUSQUEDA = 48;
+
+/** Tope de filas por respuesta de PostgREST: más allá de esto, se pagina. */
+const FILAS_POR_LECTURA = 1000;
+
+type Pagina<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+
+/**
+ * Lee TODAS las filas de una consulta de mil en mil. Sin esto, PostgREST corta
+ * en 1000 en silencio: el conteo de fotos (y con él la marca de "fotos de
+ * más") saldría mal en cuanto el catálogo pase de mil fotos. La consulta debe
+ * traer un `order` que no empate, o dos páginas se enciman.
+ */
+async function leerTodo<T>(
+  pagina: (desde: number, hasta: number) => Pagina<T>
+): Promise<{ data: T[]; error: { message: string } | null }> {
+  const filas: T[] = [];
+  for (let desde = 0; ; desde += FILAS_POR_LECTURA) {
+    const { data, error } = await pagina(desde, desde + FILAS_POR_LECTURA - 1);
+    if (error) return { data: filas, error };
+    filas.push(...(data ?? []));
+    if ((data?.length ?? 0) < FILAS_POR_LECTURA) return { data: filas, error: null };
+  }
+}
 
 /**
  * Panel de administración: una tarjeta POR PRODUCTO (no por variante). La vista
@@ -43,13 +67,15 @@ const MAX_PRODUCTOS_BUSQUEDA = 48;
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; buscar?: string }>;
+  searchParams: Promise<{ q?: string; buscar?: string; revisar?: string }>;
 }) {
   await exigirAdmin();
 
   // `?buscar=1` lo pone F3 desde otra pantalla: llega con el cursor en el buscador.
-  const { q, buscar } = await searchParams;
+  // `?revisar=1` deja solo los productos "para corregir" (lib/admin/sospechosos.ts).
+  const { q, buscar, revisar } = await searchParams;
   const termino = q?.trim() ?? "";
+  const soloParaCorregir = revisar === "1";
 
   const supabase = createAdminClient();
 
@@ -63,7 +89,7 @@ export default async function AdminPage({
   // El tope existe porque el segundo `in(...)` viaja en la URL y cientos de
   // UUIDs la revientan (mismo motivo por el que el grid público pagina de 48).
   let idsRecortados = false;
-  let query = supabase.from("catalogo_telas").select("*");
+  let idsBuscados: string[] | null = null;
 
   if (termino) {
     const patron = `%${termino.replace(/[,()"\\]/g, " ")}%`;
@@ -77,26 +103,59 @@ export default async function AdminPage({
 
     const ids = [...new Set((coincidencias ?? []).map((c) => c.tela_id as string))];
     idsRecortados = ids.length > MAX_PRODUCTOS_BUSQUEDA;
-    query = query.in("tela_id", ids.slice(0, MAX_PRODUCTOS_BUSQUEDA));
+    idsBuscados = ids.slice(0, MAX_PRODUCTOS_BUSQUEDA);
   }
 
-  query = query
-    .order("tela_nombre", { ascending: true })
-    .order("color_nombre", { ascending: true });
+  // `variante_id` desempata el orden: sin él, dos páginas de mil podrían
+  // encimarse (muchas filas comparten nombre de tela y de color).
+  const paginaVista = (desde: number, hasta: number) => {
+    let consulta = supabase.from("catalogo_telas").select("*");
+    if (idsBuscados) consulta = consulta.in("tela_id", idsBuscados);
+    return consulta
+      .order("tela_nombre", { ascending: true })
+      .order("color_nombre", { ascending: true })
+      .order("variante_id", { ascending: true })
+      .range(desde, hasta);
+  };
 
   // El conteo de fotos NO está en la vista (colapsa las N fotos de la variante
   // en `foto_principal`), así que va en una lectura aparte que se agrupa en
   // memoria. Se piden TODAS las filas, sin filtrar por las variantes visibles:
   // un `in(...)` con cientos de UUIDs revienta el largo de la URL de PostgREST.
   const [{ data, error }, { data: fotos }] = await Promise.all([
-    query,
-    supabase.from("foto").select("variante_id"),
+    leerTodo<CatalogoTela>(paginaVista),
+    leerTodo<{ variante_id: string }>((desde, hasta) =>
+      supabase.from("foto").select("variante_id").order("id", { ascending: true }).range(desde, hasta)
+    ),
   ]);
-  const variantes = (data ?? []) as CatalogoTela[];
-  const fotosPorVariante = contarFotosPorVariante(fotos ?? []);
+  const variantes = data;
+  const fotosPorVariante = contarFotosPorVariante(fotos);
   // La query ya viene ordenada por nombre de tela; el agrupador respeta ese
   // orden de llegada, así que la lista sale alfabética sin volver a ordenar.
-  const productos = agruparPorModelo(variantes);
+  const todos = agruparPorModelo(variantes).map((tela) => {
+    const motivos = motivosPorVariante(
+      tela.variantes.map((v) => ({
+        id: v.variante_id,
+        colorClave: v.color_slug ?? null,
+        fotos: fotosPorVariante.get(v.variante_id) ?? 0,
+        nota: v.nota,
+      })),
+      politicaDeProducto(tela.variantes[0]?.categoria_slug)
+    );
+    return { tela, avisos: resumenDeMotivos(motivos) };
+  });
+  const paraCorregir = todos.filter((p) => p.avisos.length > 0).length;
+  const productos = soloParaCorregir ? todos.filter((p) => p.avisos.length > 0) : todos;
+  const coloresVisibles = productos.reduce((n, p) => n + p.tela.variantes.length, 0);
+
+  // El chip conserva la búsqueda: "flor" + "para corregir" se combinan.
+  const hrefChip = (() => {
+    const qs = new URLSearchParams();
+    if (termino) qs.set("q", termino);
+    if (!soloParaCorregir) qs.set("revisar", "1");
+    const t = qs.toString();
+    return t ? `/admin?${t}` : "/admin";
+  })();
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -104,6 +163,7 @@ export default async function AdminPage({
 
       {/* Búsqueda (GET → estado compartible en la URL, igual que el sitio público) */}
       <form method="get" className="mb-3 flex max-w-xl gap-2" role="search">
+        {soloParaCorregir && <input type="hidden" name="revisar" value="1" />}
         <div className="relative flex-1">
           <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 z-10 size-5 -translate-y-1/2 text-ink-soft" />
           <input
@@ -126,6 +186,26 @@ export default async function AdminPage({
         </button>
       </form>
 
+      {/* "Para corregir": colores con fotos de más, notas de revisión, color
+          repetido o sin color. Se calcula al vuelo; no escribe nada. */}
+      {(paraCorregir > 0 || soloParaCorregir) && (
+        <div className="mb-4">
+          <Link
+            href={hrefChip}
+            aria-pressed={soloParaCorregir}
+            className={
+              soloParaCorregir
+                ? "inline-flex min-h-11 items-center gap-2 rounded bg-heritage-navy px-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-deep-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy focus-visible:ring-offset-2"
+                : "inline-flex min-h-11 items-center gap-2 rounded border border-amber/50 bg-amber/10 px-4 text-base font-semibold text-amber transition-colors hover:bg-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
+            }
+          >
+            <Warning className="size-5" aria-hidden />
+            Para corregir ({paraCorregir})
+            {soloParaCorregir && <X className="size-4" aria-hidden />}
+          </Link>
+        </div>
+      )}
+
       <p className="mb-6 text-base text-ink-soft">
         <strong>Toca la tarjeta</strong> para abrir el editor completo (precio,
         stock, fotos, colores, categoría), o toca un <strong>color</strong> para
@@ -136,7 +216,8 @@ export default async function AdminPage({
             <span className="font-semibold text-ink-display">
               {productos.length}{" "}
               {productos.length === 1 ? "producto" : "productos"} ·{" "}
-              {variantes.length} {variantes.length === 1 ? "color" : "colores"}
+              {coloresVisibles} {coloresVisibles === 1 ? "color" : "colores"}
+              {soloParaCorregir && " para corregir"}
               {termino && " en esta búsqueda"}.
               {idsRecortados &&
                 ` Hay más resultados: se muestran los primeros ${MAX_PRODUCTOS_BUSQUEDA}, afina la búsqueda para verlos.`}
@@ -146,24 +227,27 @@ export default async function AdminPage({
       </p>
 
       {error && (
-        <div className="rounded-2xl border border-amber/30 bg-amber/5 p-5 text-sm text-ink/80">
+        <div className="rounded-2xl border border-amber/30 bg-amber/5 p-5 text-base text-ink">
           No se pudo leer el catálogo: {error.message}
         </div>
       )}
 
       {!error && productos.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-line bg-surface/60 p-10 text-center text-sm text-ink/50">
-          {termino
-            ? `Sin resultados para “${termino}”.`
-            : "Aún no hay productos en el catálogo. Corre la ingesta (ver README)."}
+        <div className="rounded-2xl border border-dashed border-line bg-surface/60 p-10 text-center text-base text-ink-soft">
+          {soloParaCorregir
+            ? "Nada para corregir aquí. ¡Todo en orden!"
+            : termino
+              ? `Sin resultados para “${termino}”.`
+              : "Aún no hay productos en el catálogo. Corre la ingesta (ver README)."}
         </div>
       )}
 
       <ul className="space-y-3">
-        {productos.map((tela) => (
+        {productos.map(({ tela, avisos }) => (
           <TarjetaProducto
             key={tela.tela_id}
             tela={tela}
+            avisos={avisos}
             fotos={tela.variantes.reduce(
               (total, v) => total + (fotosPorVariante.get(v.variante_id) ?? 0),
               0
@@ -186,7 +270,16 @@ export default async function AdminPage({
  * comparten color y sin ningún punto a las variantes sin color —justo las de
  * mercería—.
  */
-function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number }) {
+function TarjetaProducto({
+  tela,
+  fotos,
+  avisos,
+}: {
+  tela: TelaAgrupada;
+  fotos: number;
+  /** Resumen de lo que hay que corregir (vacío = nada). */
+  avisos: string[];
+}) {
   const portada = tela.variantes[0];
   const unicaVariante = tela.variantes.length === 1 ? portada : null;
   const visibles = tela.variantes.slice(0, MAX_SWATCHES);
@@ -226,7 +319,7 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
             {tela.tela_nombre}
           </Link>
           <PencilSimple
-            className="h-3.5 w-3.5 shrink-0 text-ink/30 transition-colors group-hover:text-amber"
+            className="size-4 shrink-0 text-ink-soft transition-colors group-hover:text-amber"
             aria-hidden
           />
         </p>
@@ -235,7 +328,7 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
             diga ya; en su lugar se muestra el color y el SKU, que es lo que
             identifica una bolsita de mercería. */}
         {unicaVariante && (
-          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink/60">
+          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-soft">
             {unicaVariante.color_hex && (
               <ColorSwatch
                 hex={unicaVariante.color_hex}
@@ -250,12 +343,12 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
           </p>
         )}
 
-        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm">
           <span
             className={
               tela.categoria
-                ? "rounded-full border border-line bg-bg px-2 py-0.5 text-ink/70"
-                : "rounded-full border border-dashed border-line px-2 py-0.5 text-ink/40"
+                ? "rounded border border-line bg-bg px-2 py-0.5 text-ink-soft"
+                : "rounded border border-dashed border-line px-2 py-0.5 text-ink-soft"
             }
           >
             {tela.categoria ?? "Sin categoría"}
@@ -265,28 +358,37 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
           <span
             className={
               fotos === 0
-                ? "inline-flex items-center gap-1 rounded-full bg-amber/10 px-2 py-0.5 font-medium text-amber"
-                : "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-ink/50"
+                ? "inline-flex items-center gap-1 rounded bg-amber/10 px-2 py-0.5 font-semibold text-amber"
+                : "inline-flex items-center gap-1 rounded px-2 py-0.5 text-ink-soft"
             }
           >
             {fotos === 0 ? (
-              <ImageBroken className="h-3.5 w-3.5" aria-hidden />
+              <ImageBroken className="size-4" aria-hidden />
             ) : (
-              <ImageIcon className="h-3.5 w-3.5" aria-hidden />
+              <ImageIcon className="size-4" aria-hidden />
             )}
             {fotos === 0 ? "Sin fotos" : `${fotos} ${fotos === 1 ? "foto" : "fotos"}`}
           </span>
           {!unicaVariante && (
-            <span className="rounded-full px-2 py-0.5 text-ink/50">
+            <span className="rounded px-2 py-0.5 text-ink-soft">
               {tela.variantes.length} colores
             </span>
           )}
         </p>
 
+        {/* Lo que hay que corregir, en mostaza (información, no acción). El
+            detalle por color está dentro del editor. */}
+        {avisos.length > 0 && (
+          <p className="mt-1.5 flex items-start gap-1.5 text-sm font-semibold text-amber">
+            <Warning className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>Para corregir: {avisos.join(" · ")}</span>
+          </p>
+        )}
+
         {/* z-10 levanta los swatches por encima del ::after del enlace: sin
             esto, tocar un color abriría el editor en la primera variante. */}
         {!unicaVariante && (
-          <div className="relative z-10 mt-2 flex flex-wrap items-center gap-1.5">
+          <div className="relative z-10 mt-1 flex flex-wrap items-center">
             {visibles.map((v) => {
               const etiqueta =
                 v.color_nombre ?? (v.sku ? `SKU ${v.sku}` : "Sin color");
@@ -296,7 +398,8 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
                   href={`/admin/tela/${tela.tela_id}#variante-${v.variante_id}`}
                   title={`Editar ${etiqueta}`}
                   aria-label={`Editar ${etiqueta}`}
-                  className="rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  /* El punto mide 20px; el enlace, 44px: es lo que se toca en la tablet. */
+                  className="inline-flex size-11 items-center justify-center rounded transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
                 >
                   <ColorSwatch hex={v.color_hex} nombre={etiqueta} size="sm" />
                 </Link>
@@ -305,7 +408,7 @@ function TarjetaProducto({ tela, fotos }: { tela: TelaAgrupada; fotos: number })
             {ocultos > 0 && (
               <Link
                 href={`/admin/tela/${tela.tela_id}`}
-                className="rounded px-1 text-xs font-semibold text-ink/50 hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+                className="inline-flex min-h-11 items-center rounded px-2 text-sm font-semibold text-ink-soft hover:text-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
               >
                 +{ocultos}
               </Link>

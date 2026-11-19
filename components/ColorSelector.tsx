@@ -3,6 +3,7 @@
 import { useTransition, useOptimistic } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ColorSwatch } from "@/components/ColorSwatch";
+import { navegarSinSalto } from "@/lib/navegacion";
 import type { CatalogoTela } from "@/lib/types";
 
 /**
@@ -36,8 +37,10 @@ export function ColorSelector({
   function seleccionar(slug: string) {
     startTransition(() => {
       setOptimisticSlug(slug);
-      router.replace(`${pathname}?color=${encodeURIComponent(slug)}`, {
-        scroll: false,
+      // `navegarSinSalto` y no `router.replace` a secas: en producción Next
+      // ignoraba `scroll: false` y la ficha subía hasta arriba al elegir color.
+      navegarSinSalto(router, `${pathname}?color=${encodeURIComponent(slug)}`, {
+        reemplazar: true,
       });
     });
   }

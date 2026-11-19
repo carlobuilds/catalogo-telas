@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkSinSalto } from "@/components/LinkSinSalto";
 import { EncabezadoPagina } from "@/components/admin/EncabezadoPagina";
 import { InterruptorFondoBlanco } from "@/components/admin/fondos/InterruptorFondoBlanco";
 import { TarjetaFondo } from "@/components/admin/fondos/TarjetaFondo";
@@ -95,13 +96,12 @@ export function PanelFondos({
 
       {visibles.length > pagina.length && (
         <div className="mt-6 flex justify-center">
-          <Link
+          <LinkSinSalto
             href={ruta(filtro, hasta + POR_TANDA)}
-            scroll={false}
             className="inline-flex min-h-11 items-center rounded border border-line bg-surface-container-lowest px-5 text-base font-semibold text-ink-display hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heritage-navy"
           >
             Ver más ({visibles.length - pagina.length})
-          </Link>
+          </LinkSinSalto>
         </div>
       )}
     </main>

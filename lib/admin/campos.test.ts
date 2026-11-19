@@ -10,6 +10,12 @@ function form(campos: Record<string, string>): FormData {
 }
 
 describe("leerCamposVariante — parche parcial", () => {
+  it("medida y nota: ausentes no se tocan; vacías se borran; con texto se recortan", () => {
+    expect("medida" in leerCamposVariante(form({ precio: "10" }))).toBe(false);
+    expect("nota" in leerCamposVariante(form({ precio: "10" }))).toBe(false);
+    expect(leerCamposVariante(form({ medida: " 3 cm ", nota: "" }))).toEqual({ medida: "3 cm", nota: null });
+  });
+
   it("si solo viene el color, NO trae precio, sku ni stock", () => {
     // Éste es el bug de producción: guardar el color escribía precio: null.
     const campos = leerCamposVariante(form({ color_id: COLOR }));

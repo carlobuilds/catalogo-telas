@@ -9,6 +9,7 @@ import { VisorZoom } from "@/components/ficha/VisorZoom";
 import { useGuideStore } from "@/lib/guide-store";
 import { publicImageUrl, urlDerivado } from "@/lib/supabase/storage";
 import { dimensionesDeZoom, type SlideFoto } from "@/lib/fotos";
+import { navegarSinSalto } from "@/lib/navegacion";
 
 const HINT_ID = "detalle-swipe";
 /** La invitación se oculta sola tras unos segundos para no tapar la tela. */
@@ -155,8 +156,8 @@ export function TelaImageCarousel({
       }
       // Solo al cruzar de color: dentro del mismo color la URL no cambia.
       if (slide.colorSlug && slide.colorSlug !== selectedColorSlug) {
-        router.replace(`${pathname}?color=${encodeURIComponent(slide.colorSlug)}`, {
-          scroll: false,
+        navegarSinSalto(router, `${pathname}?color=${encodeURIComponent(slide.colorSlug)}`, {
+          reemplazar: true,
         });
       }
     }, SNAP_ASENTADO_MS);
