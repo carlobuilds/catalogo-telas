@@ -320,7 +320,8 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
    pasos —qué modelos cumplen y en qué orden, sobre el índice en memoria (da el total
    honesto), y luego las filas de esa página con `.in(tela_id)` en trozos de 48 para no
    reventar la URL—. Cambiar un filtro o la búsqueda resetea `ver`.
-5. ⏳ Cotización + WhatsApp (carrito y envío listos; pulido pendiente)
+5. ⏳ Cotización + WhatsApp (carrito y envío listos, con contador de envíos —sección 18—;
+   pulido pendiente)
 6. ✅ Admin con Auth (allowlist `ADMIN_EMAILS`, altas con `pnpm admin:crear`):
    lista de productos en `/admin`, editor
    completo de telas/variantes/fotos en `/admin/tela/[id]`, inventario con
@@ -389,4 +390,9 @@ corrido: el índice lee la vista sin la columna (42703) y las pantallas muestran
      (un lector de código de barras manda "código + Enter"). No aplica en
      textarea, botones, archivos ni en `[data-enter-propio]`. Ya lo usan
      `FormGuardable` y `FormNuevaMerceria`.
-7. ⏳ Pulido visual, rendimiento, tests (README listo)
+7. ⏳ Cierre de la Fase 1 (noviembre 2026). Hecho: dependencias sin vulnerabilidades,
+   CI, ingesta que solo crea, borrado de colores en orden seguro, fuera /inspiracion,
+   robots/sitemap, avance de cierre en /revision ("lista para entregar" = revisada + precio
+   + foto, `lib/cierre.ts`), contador de uso, README y `docs/OPERACION.md` (manual de
+   operación: despliegue, migraciones, respaldos, accesos, llaves). Falta: captura de las
+   telas en tienda y acta de entrega.
