@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedAdminEmail, isAllowedRevisorEmail } from "@/lib/admin-allowlist";
@@ -14,7 +15,12 @@ export type SesionRevisor = {
   esAdmin: boolean;
 };
 
-export async function getSesionRevisor(): Promise<SesionRevisor> {
+/**
+ * Memoizada por request con `cache()` de React, igual que `getSesionAdmin`:
+ * `getUser()` no es una lectura local, siempre pega a /auth/v1/user, así que
+ * la página y la server action que dispara pagan un solo viaje.
+ */
+export const getSesionRevisor = cache(async (): Promise<SesionRevisor> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,4 +34,4 @@ export async function getSesionRevisor(): Promise<SesionRevisor> {
     autorizado: esAdmin || esRevisor,
     esAdmin,
   };
-}
+});

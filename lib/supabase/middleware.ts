@@ -13,6 +13,20 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
  * catálogo público no paga este costo.
  */
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  // Dos zonas protegidas con logins DISTINTOS (/admin y /revision comparten
+  // el mismo backend de Auth, pero cada una redirige a su propia pantalla).
+  const esRevision = pathname.startsWith("/revision");
+  const esLogin = esRevision ? pathname.startsWith("/revision/login") : pathname.startsWith("/admin/login");
+
+  // Las DOS pantallas de login se saltan el middleware entero: no hay ruta
+  // que proteger, y la propia página ya llama a getSesionRevisor() /
+  // getSesionAdmin() para rebotar a quien YA entró. Sin cookie, `getUser()`
+  // no tocaba la red; lo que esto quita es el viaje duplicado de "ya tengo
+  // sesión y abro el login" (middleware + página preguntaban lo mismo) y saca
+  // al POST de la server action de login de un middleware sin nada que hacer.
+  if (esLogin) return NextResponse.next({ request });
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -41,17 +55,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Dos zonas protegidas con logins DISTINTOS (/admin y /revision comparten
-  // el mismo backend de Auth, pero cada una redirige a su propia pantalla).
-  const esRevision = request.nextUrl.pathname.startsWith("/revision");
-  const esLogin = esRevision
-    ? request.nextUrl.pathname.startsWith("/revision/login")
-    : request.nextUrl.pathname.startsWith("/admin/login");
-
-  if (!user && !esLogin) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = esRevision ? "/revision/login" : "/admin/login";
-    return NextResponse.redirect(url);
+    const redireccion = NextResponse.redirect(url);
+
+    // El redirect NO puede tirar lo que Supabase acaba de escribir. Cuando el
+    // refresh token ya no existe del lado del servidor (rotado, sesión cerrada
+    // en otro dispositivo, proyecto reiniciado), @supabase/ssr responde
+    // BORRANDO las cookies de auth, y ese borrado va sobre `supabaseResponse`.
+    // Devolver el redirect pelado lo descartaba: la cookie podrida sobrevivía,
+    // cada visita reintentaba el refresh (un viaje de red condenado a fallar)
+    // y rebotaba al login sin arreglar nada, hasta borrar cookies a mano.
+    supabaseResponse.cookies.getAll().forEach((cookie) => redireccion.cookies.set(cookie));
+    return redireccion;
   }
 
   return supabaseResponse;
