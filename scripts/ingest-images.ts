@@ -9,10 +9,19 @@
  *       defensiva) y escribe `catalog-manifest.csv` para revisión MANUAL.
  *       NO sube nada ni toca la BD.
  *
- *   pnpm ingest --upload         → MODO UPLOAD
+ *   pnpm ingest --upload         → MODO UPLOAD (solo nuevos)
  *       Lee el CSV (ya revisado por ti), sube las imágenes al bucket `telas`
- *       y hace upsert idempotente contra el esquema (tela, variante, foto, N:N).
- *       Respeta SKUs existentes: upsert por SKU, no duplica.
+ *       y CREA lo que no existe (tela, variante, foto, N:N). Lo que ya existía
+ *       antes de la corrida NO se toca: un color/código ya capturado o un
+ *       archivo ya en el bucket se reporta y su fila se salta, así una ingesta
+ *       nunca pisa precios, existencias ni recortes hechos en /admin. Un
+ *       producto existente sí se reusa para colgarle colores nuevos, sin
+ *       cambiarle nombre ni categoría. Reglas en lib/ingesta/solo-nuevos.ts.
+ *       Si una subida se corta, las fotos que falten se terminan en /admin.
+ *
+ *   pnpm ingest --upload --actualizar
+ *       La subida original: REESCRIBE lo existente con lo del CSV (una celda
+ *       de precio vacía deja el precio en null). Solo con respaldo previo.
  *
  * Volver a correr el modo manifest NO borra lo capturado: si el CSV ya existe,
  * se fusiona por `archivo` y lo tecleado gana sobre lo deducido del nombre de
@@ -24,6 +33,7 @@
  *   --out=<ruta>   ruta del CSV (default: ./catalog-manifest.csv)
  *   --forzar       regenera el manifest desde cero (descarta lo capturado)
  *   --validar      revisa el CSV con las reglas de --upload SIN escribir nada
+ *   --actualizar   con --upload: reescribe lo que ya existe (ver arriba)
  * ===========================================================================
  */
 
@@ -34,6 +44,7 @@ import { config as loadEnv } from "dotenv";
 import { procesarFoto } from "../lib/images/derivados";
 import { interpretaFlor, interpretaFamilia, modeloFlor, tablaDeColores } from "../lib/ingesta/nombres";
 import { fusionaFila, registroAuto, type Procedencia } from "../lib/ingesta/fusion";
+import { decidirFila, type Existencia, type ModoIngesta } from "../lib/ingesta/solo-nuevos";
 
 // Cargar variables: .env.local tiene prioridad (igual que Next), luego .env
 loadEnv({ path: ".env.local" });
@@ -50,6 +61,8 @@ const flags = {
   forzar: argv.includes("--forzar"),
   // Revisa el CSV con las reglas de la subida sin escribir nada.
   validar: argv.includes("--validar"),
+  // Con --upload: reescribe lo que ya existe. Sin él, solo se crea lo nuevo.
+  actualizar: argv.includes("--actualizar"),
   dir: argChar("--dir"),
   sep: argChar("--sep"),
   out: argChar("--out") ?? "catalog-manifest.csv",
@@ -590,9 +603,28 @@ async function modoUpload() {
   const telaCache = new Map<string, string>();     // slug -> id
   // variante id -> datos de la primera fila que la reclamó (guardia anti-colapso)
   const huellaPorVariante = new Map<string, { huella: string; archivo: string }>();
+  // Lo que ESTA corrida creó o reescribió: se reusa en las tomas siguientes y
+  // es lo único que el modo solo-nuevos distingue de lo que ya existía.
+  const telasDeEstaCorrida = new Set<string>();
+  const variantesDeEstaCorrida = new Set<string>();
+
+  const modo: ModoIngesta = flags.actualizar ? "actualizar" : "solo-nuevos";
+  console.log(
+    modo === "solo-nuevos"
+      ? "\nModo: solo nuevos — lo que ya existe en el catálogo no se toca.\n"
+      : "\n⚠ Modo --actualizar: lo que ya existe se REESCRIBE con lo del CSV.\n"
+  );
 
   const ctx = {
-    contadores: { telas: new Set<string>(), variantes: 0, fotos: 0, derivados: 0, sinSku: 0, errores: [] as string[] },
+    contadores: {
+      telas: new Set<string>(),
+      variantes: 0,
+      fotos: 0,
+      derivados: 0,
+      sinSku: 0,
+      errores: [] as string[],
+      saltadas: [] as string[],
+    },
   };
 
   for (const fila of filas) {
@@ -603,21 +635,55 @@ async function modoUpload() {
     }
   }
 
-  // ----- helpers de upsert -----
-  async function upsertLookup(
+  // ----- helpers de lectura -----
+  // Un error de lectura revienta la fila: sin saber si algo existe no se puede
+  // decidir si escribir, y adivinar "no existe" es justo lo que pisaba datos.
+  async function buscarId(tabla: string, columna: string, valor: string): Promise<string | null> {
+    const { data, error } = await supabase.from(tabla).select("id").eq(columna, valor).maybeSingle();
+    if (error) throw new Error(`leer ${tabla}.${columna}=${valor}: ${error.message}`);
+    return (data?.id as string | undefined) ?? null;
+  }
+
+  async function buscarVariantePorColor(telaId: string, colorId: string | null): Promise<string | null> {
+    const q = supabase.from("variante").select("id").eq("tela_id", telaId);
+    const { data, error } = colorId
+      ? await q.eq("color_id", colorId).maybeSingle()
+      : await q.is("color_id", null).maybeSingle();
+    if (error) throw new Error(`leer variante por color: ${error.message}`);
+    return (data?.id as string | undefined) ?? null;
+  }
+
+  async function existeEnBucket(ruta: string): Promise<boolean> {
+    const carpeta = path.posix.dirname(ruta);
+    const nombre = path.posix.basename(ruta);
+    const { data, error } = await supabase.storage.from(BUCKET).list(carpeta, { search: nombre, limit: 100 });
+    if (error) throw new Error(`leer bucket ${ruta}: ${error.message}`);
+    return (data ?? []).some((o) => o.name === nombre);
+  }
+
+  /**
+   * Lookups (categoría, color, caso de uso): busca por slug y solo CREA si no
+   * existe. Antes era un upsert, que reescribía el nombre y el hex de un color
+   * ya curado con el gris `#CCCCCC` del placeholder.
+   */
+  async function buscarOCrearLookup(
     tabla: string, nombre: string, cache: Map<string, string>, extra: Record<string, unknown> = {}
   ): Promise<string | null> {
     const slug = slugify(nombre);
     if (!slug) return null;
     if (cache.has(slug)) return cache.get(slug)!;
-    const { data, error } = await supabase
-      .from(tabla)
-      .upsert({ nombre, slug, ...extra }, { onConflict: "slug" })
-      .select("id")
-      .single();
-    if (error) throw new Error(`${tabla} "${nombre}": ${error.message}`);
-    cache.set(slug, data.id);
-    return data.id;
+    let id = await buscarId(tabla, "slug", slug);
+    if (!id) {
+      const { data, error } = await supabase
+        .from(tabla)
+        .insert({ nombre, slug, ...extra })
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(`${tabla} "${nombre}": ${error?.message ?? "sin datos"}`);
+      id = data.id as string;
+    }
+    cache.set(slug, id);
+    return id;
   }
 
   async function procesarFila(fila: Record<string, string>) {
@@ -626,14 +692,14 @@ async function modoUpload() {
 
     // 1) lookups
     const categoriaId = fila.categoria?.trim()
-      ? await upsertLookup("categoria", fila.categoria.trim(), catCache)
+      ? await buscarOCrearLookup("categoria", fila.categoria.trim(), catCache)
       : null;
 
     let colorId: string | null = null;
     if (fila.color?.trim()) {
       const cn = fila.color.trim();
       const conocido = COLOR_POR_NORM.get(normaliza(cn));
-      colorId = await upsertLookup("color", conocido?.nombre ?? cn, colorCache, {
+      colorId = await buscarOCrearLookup("color", conocido?.nombre ?? cn, colorCache, {
         hex: conocido?.hex ?? "#CCCCCC", // color nuevo sin hex → placeholder a revisar
       });
     }
@@ -645,31 +711,55 @@ async function modoUpload() {
     const modelo = fila.modelo?.trim();
     if (!modelo) throw new Error("falta 'modelo' — ponle nombre al producto en el CSV");
     const telaSlug = slugify(modelo);
-    let telaId: string;
-    const telaCached = telaCache.get(telaSlug);
-    if (telaCached) {
-      telaId = telaCached;
-    } else {
-      const { data, error } = await supabase
-        .from("tela")
-        .upsert({ slug: telaSlug, nombre: modelo, categoria_id: categoriaId }, { onConflict: "slug" })
-        .select("id")
-        .single();
-      if (error || !data) throw new Error(`tela "${modelo}": ${error?.message ?? "sin datos"}`);
-      telaId = data.id as string;
-      telaCache.set(telaSlug, telaId);
-    }
-    ctx.contadores.telas.add(telaSlug);
 
-    // 3) variante — upsert por SKU si existe; si no, por (tela_id,color_id)
+    // 3) datos de la variante (todavía sin escribir nada)
     const sku = fila.sku?.trim() || null;
-    if (!sku) ctx.contadores.sinSku++;
     // Vacío → 'metro', el default de la tabla: así el CSV de una ingesta de
     // telas se puede dejar sin tocar esta columna.
     const unidad = fila.unidad_venta?.trim().toLowerCase() || "metro";
     if (!UNIDADES.has(unidad)) {
       throw new Error(`unidad_venta "${unidad}" inválida (${[...UNIDADES].join(", ")})`);
     }
+    const ext = path.extname(archivo).toLowerCase();
+    const ruta = `${telaSlug}/${slugify(path.basename(archivo, ext))}${ext}`;
+
+    // 4) Leer lo que ya existe y DECIDIR antes de escribir: así una fila que
+    //    se salta no deja un producto o un color vacío creado a medias.
+    const telaExistente = telaCache.get(telaSlug) ?? (await buscarId("tela", "slug", telaSlug));
+    const varianteExistente = sku
+      ? await buscarId("variante", "sku", sku)
+      : telaExistente
+        ? await buscarVariantePorColor(telaExistente, colorId)
+        : null;
+    const estado = (id: string | null, deEstaCorrida: Set<string>): Existencia =>
+      !id ? "no" : deEstaCorrida.has(id) ? "nueva" : "previa";
+    const decision = decidirFila(modo, {
+      tela: estado(telaExistente, telasDeEstaCorrida),
+      variante: estado(varianteExistente, variantesDeEstaCorrida),
+      archivoEnBucket: await existeEnBucket(ruta),
+    });
+    if (decision.accion === "saltar") {
+      ctx.contadores.saltadas.push(`${archivo}: ${decision.motivo}`);
+      return;
+    }
+
+    // 5) tela
+    let telaId: string;
+    if (decision.tela === "reusar") {
+      telaId = telaExistente!;
+    } else {
+      const filaTela = { slug: telaSlug, nombre: modelo, categoria_id: categoriaId };
+      const { data, error } =
+        decision.tela === "crear"
+          ? await supabase.from("tela").insert(filaTela).select("id").single()
+          : await supabase.from("tela").upsert(filaTela, { onConflict: "slug" }).select("id").single();
+      if (error || !data) throw new Error(`tela "${modelo}": ${error?.message ?? "sin datos"}`);
+      telaId = data.id as string;
+      telasDeEstaCorrida.add(telaId);
+    }
+    telaCache.set(telaSlug, telaId);
+    ctx.contadores.telas.add(telaSlug);
+    if (!sku) ctx.contadores.sinSku++;
 
     const varPayload = {
       tela_id: telaId,
@@ -686,25 +776,28 @@ async function modoUpload() {
       es_tornasol: bool(fila.es_tornasol),
     };
 
+    // 6) variante
     let varianteId: string;
-    if (sku) {
-      const { data, error } = await supabase
-        .from("variante").upsert(varPayload, { onConflict: "sku" }).select("id").single();
-      if (error) throw new Error(`variante SKU ${sku}: ${error.message}`);
-      varianteId = data.id;
+    if (decision.variante === "reusar") {
+      varianteId = varianteExistente!;
+    } else if (decision.variante === "crear") {
+      const { data, error } = await supabase.from("variante").insert(varPayload).select("id").single();
+      if (error || !data) throw new Error(`variante ${sku ?? archivo}: ${error?.message ?? "sin datos"}`);
+      varianteId = data.id as string;
+      variantesDeEstaCorrida.add(varianteId);
     } else {
-      // sin SKU: buscar existente por tela+color para no duplicar
-      const q = supabase.from("variante").select("id").eq("tela_id", telaId);
-      const { data: prev } = colorId ? await q.eq("color_id", colorId).maybeSingle()
-                                     : await q.is("color_id", null).maybeSingle();
-      if (prev) {
-        await supabase.from("variante").update(varPayload).eq("id", prev.id);
-        varianteId = prev.id;
+      // --actualizar: la subida original, por SKU o por (tela, color).
+      if (sku) {
+        const { data, error } = await supabase
+          .from("variante").upsert(varPayload, { onConflict: "sku" }).select("id").single();
+        if (error || !data) throw new Error(`variante SKU ${sku}: ${error?.message ?? "sin datos"}`);
+        varianteId = data.id as string;
       } else {
-        const { data, error } = await supabase.from("variante").insert(varPayload).select("id").single();
+        const { error } = await supabase.from("variante").update(varPayload).eq("id", varianteExistente!);
         if (error) throw new Error(`variante (sin SKU) ${archivo}: ${error.message}`);
-        varianteId = data.id;
+        varianteId = varianteExistente!;
       }
+      variantesDeEstaCorrida.add(varianteId);
     }
 
     // Guardia anti-colapso. Dos filas pueden legítimamente caer en la misma
@@ -730,9 +823,8 @@ async function modoUpload() {
     huellaPorVariante.set(varianteId, { huella, archivo });
     ctx.contadores.variantes++;
 
-    // 4) subir imagen al bucket (idempotente con upsert) + fila foto
-    const ext = path.extname(archivo).toLowerCase();
-    const ruta = `${telaSlug}/${slugify(path.basename(archivo, ext))}${ext}`;
+    // 7) subir imagen al bucket + fila foto. Solo --actualizar reemplaza un
+    //    archivo existente: en solo-nuevos ya se comprobó que no hay ninguno.
     let buffer = await fs.readFile(path.join(dir, archivo));
     let contentType =
       ext === ".webp"
@@ -751,7 +843,7 @@ async function modoUpload() {
 
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(ruta, buffer, {
       contentType,
-      upsert: true,
+      upsert: decision.reemplazarArchivo,
     });
     if (upErr) throw new Error(`storage ${ruta}: ${upErr.message}`);
 
@@ -759,23 +851,19 @@ async function modoUpload() {
     // estable, porque la vista elige foto_principal con `order by orden`.
     // Con todas en 0 la foto de portada la decidiría el desempate por
     // created_at, o sea el azar de la concurrencia de subida.
-    const { data: fotoFila, error: fotoErr } = await supabase
-      .from("foto")
-      .upsert(
-        {
-          variante_id: varianteId,
-          ruta,
-          orden: entero(fila.orden) ?? 0,
-          alt: `${modelo}${fila.color ? " " + fila.color : ""}`,
-        },
-        { onConflict: "variante_id,ruta" }
-      )
-      .select("id")
-      .single();
+    const filaFoto = {
+      variante_id: varianteId,
+      ruta,
+      orden: entero(fila.orden) ?? 0,
+      alt: `${modelo}${fila.color ? " " + fila.color : ""}`,
+    };
+    const { data: fotoFila, error: fotoErr } = decision.reemplazarArchivo
+      ? await supabase.from("foto").upsert(filaFoto, { onConflict: "variante_id,ruta" }).select("id").single()
+      : await supabase.from("foto").insert(filaFoto).select("id").single();
     if (fotoErr || !fotoFila) throw new Error(`foto ${ruta}: ${fotoErr?.message ?? "sin datos"}`);
     ctx.contadores.fotos++;
 
-    // 4b) derivados WebP (sm/md/lg) con el buffer ya en memoria. Si falla
+    // 7b) derivados WebP (sm/md/lg) con el buffer ya en memoria. Si falla
     //     (p.ej. falta la sección 12 del SQL), la foto queda con
     //     derivados=null y `pnpm backfill:derivados` la recoge después.
     try {
@@ -785,10 +873,11 @@ async function modoUpload() {
       ctx.contadores.errores.push(`derivados ${ruta}: ${(e as Error).message}`);
     }
 
-    // 5) casos de uso (N:N) — lista separada por ; o ,
+    // 8) casos de uso (N:N) — lista separada por ; o ,. Solo AGREGA vínculos;
+    //    nunca quita los que ya tenía el producto.
     const casos = (fila.casos_uso ?? "").split(/[;,]/).map((s) => s.trim()).filter(Boolean);
     for (const caso of casos) {
-      const casoId = await upsertLookup("caso_uso", caso, casoCache);
+      const casoId = await buscarOCrearLookup("caso_uso", caso, casoCache);
       if (casoId) {
         await supabase.from("tela_caso_uso")
           .upsert({ tela_id: telaId, caso_uso_id: casoId }, { onConflict: "tela_id,caso_uso_id" });
@@ -804,6 +893,10 @@ async function modoUpload() {
   console.log(`   fotos subidas   : ${c.fotos}`);
   console.log(`   derivados web   : ${c.derivados}${c.derivados < c.fotos ? "  ← faltantes: pnpm backfill:derivados" : ""}`);
   console.log(`   variantes sin SKU: ${c.sinSku}  ${c.sinSku ? "← requieren tu atención" : ""}`);
+  if (c.saltadas.length) {
+    console.log(`\n↷ ${c.saltadas.length} filas saltadas (ya existían; no se tocó nada):`);
+    c.saltadas.forEach((s) => console.log(`   · ${s}`));
+  }
   if (c.errores.length) {
     console.log(`\n⚠ ${c.errores.length} errores:`);
     c.errores.forEach((e) => console.log(`   · ${e}`));
